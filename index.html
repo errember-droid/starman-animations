@@ -570,6 +570,8 @@ body.mobile .mnav .pb{flex:1;min-width:0;height:42px;font-size:12px;padding:0 2p
 body.mobile .mnav .pb.on{outline:2px solid #ffce57;outline-offset:-2px}
 body.mobile .clipbar{font-size:10px}
 body.mobile .tip{display:none!important}
+.syncbtn{height:22px;padding:0 6px;font:inherit;font-size:11px;color:var(--ink,#fff);background:transparent;border:1px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap}.syncbtn[data-st=err]{color:#ff8a8a;border-color:#ff8a8a}.syncbtn[data-st=busy]{opacity:.75}
+.syncdlg ol{padding-left:18px;margin:6px 0}.syncdlg li{margin:5px 0}.syncdlg a{color:var(--accent)}.syncdlg .sy-row{display:flex;gap:8px;align-items:center;margin:8px 0}.syncdlg .sy-row input[type=text],.syncdlg .sy-row input[type=password]{flex:1;min-width:0}.syncdlg .sy-st{min-height:1.2em;color:var(--accent)}.syncdlg .muted{color:var(--muted)}
 .wnew .wnbody{max-height:60vh;overflow:auto;font-size:12px}.wnew h3{margin:10px 0 4px;font-size:13px;color:var(--accent)}.wnew h3 small{color:var(--muted);font-weight:400}.wnew ul{margin:0;padding-left:18px}.wnew li{margin:3px 0}
 .spk{position:relative;background:color-mix(in srgb,var(--sc) 22%,transparent);border:0;border-right:1px solid rgba(52,52,87,.25);padding:0;min-width:0;cursor:pointer;overflow:visible;color:#16162b;font:inherit;font-size:9px;text-align:left}
 .spk.key{background:color-mix(in srgb,var(--sc) 55%,transparent);box-shadow:inset 2px 0 0 var(--sc)}.spk i{font-style:normal;color:var(--sc);margin-left:1px}.spk span{position:absolute;left:12px;top:50%;transform:translateY(-50%);white-space:nowrap;pointer-events:none;font-weight:600;color:#16162b;z-index:1}
@@ -5697,9 +5699,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.25.0';
+const APP_VERSION = '1.26.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.26.0', date: '2026-11-08', items: ['Cloud sync: the same animations on your computer and phone (Start → Cloud sync). Files are kept in your own private GitHub storage', 'Syncs by itself after saving, every few minutes and when the app opens; the ☁ button on the taskbar shows the state', 'If one file was changed on two devices, both versions are kept'] },
   { v: '1.25.0', date: '2026-11-08', items: ['Phone and tablet layout: full-screen canvas, tools at the bottom, palette, settings and timeline slide up', 'Touch: two fingers zoom and move the canvas, two-finger tap = undo, three-finger tap = redo', 'Install on Android as an app (from the web page, or the APK)', 'This “What’s new” window, and “Check for updates” in the Start menu', 'Big animations no longer hit the 5 MB browser limit (files are kept in IndexedDB)'] },
   { v: '1.24.0', date: '2026-11-06', items: ['Sprite layers: animated clips with their own tab, ◆ keys choose idle / run / jump…', 'Hide a sprite on some frames, remove keys on selected frames', '◆ motion keys for any layer with the Move tool (“Whole layer”)'] },
   { v: '1.23.0', date: '2026-11-06', items: ['Hue / Saturation window (Ctrl+U) like Aseprite', 'More export formats: Animated PNG, MP4, sheet + JSON, WebP / JPEG', '.sdz packages to move animations to another computer'] },
@@ -5839,6 +5842,241 @@ const touchEnd = e => {
   if (!touches.size) { const g = gest; gest = null; if (!g.moved && performance.now() - g.t0 < 350) { if (g.n === 2) { undo(); flash('Undo'); } else if (g.n >= 3) { redo(); flash('Redo'); } } }
 };
 view.addEventListener('pointerup', touchEnd, true); view.addEventListener('pointercancel', touchEnd, true);
+/* ================= v26: cloud sync between computer and phone (a private GitHub repository is the storage) ================= */
+const SYNC_API = 'https://api.github.com';
+const syncCfg = () => Object.assign({ token: '', owner: '', repo: 'starman-files', branch: '', auto: true, last: 0 }, prefGet('sync', {}) || {});
+const syncSet = patch => prefSet('sync', Object.assign(syncCfg(), patch));
+const syncOn = () => { const c = syncCfg(); return !!(c.token && c.owner && c.repo); };
+const syncBaseKey = () => { const c = syncCfg(); return 'syncBase.' + c.owner + '/' + c.repo; };
+let syncState = 'off', syncMsg = '', syncBusy = null, syncAgain = false, syncTimer = 0;
+const SYNC_DIR = 'files/';
+const ANIM_RX = /\.(sdt|sdv|sdp)$/i;
+
+/* --- bytes, base64, git hashes --- */
+const utf8 = new TextEncoder(), utf8d = new TextDecoder();
+function bytesToB64(u8) { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }
+function b64ToBytes(b) { const s = atob(String(b).replace(/\s+/g, '')); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; }
+async function gitSha(bytes) {   // same id GitHub gives the file, so equal ids = equal files
+  const head = utf8.encode('blob ' + bytes.length + '\0'), all = new Uint8Array(head.length + bytes.length); all.set(head); all.set(bytes, head.length);
+  const h = new Uint8Array(await crypto.subtle.digest('SHA-1', all)); return [...h].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/* --- GitHub calls --- */
+async function gh(method, url, body) {
+  const c = syncCfg();
+  const r = await fetch(url.startsWith('http') ? url : SYNC_API + url, { method, cache: 'no-store', headers: Object.assign({ Authorization: 'Bearer ' + c.token, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
+  let data = null; try { data = await r.json(); } catch (e) {}
+  if (!r.ok) { const e = new Error((data && data.message) || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+  return data;
+}
+const repoUrl = () => { const c = syncCfg(); return '/repos/' + encodeURIComponent(c.owner) + '/' + encodeURIComponent(c.repo); };
+function syncErrText(e) {
+  if (!navigator.onLine || e instanceof TypeError) return 'No internet';
+  if (e.status === 401) return 'The key is wrong or expired';
+  if (e.status === 404) return 'Storage “' + syncCfg().repo + '” not found, or the key has no access to it';
+  if (e.status === 403) return /rate limit/i.test(e.message) ? 'GitHub limit reached, try later' : 'The key cannot write: give it “Contents: Read and write”';
+  return e.message || 'Unknown error';
+}
+
+/* --- local side: every animation file with its git id (cached by modified time) --- */
+async function localFiles() {
+  const out = new Map(), cache = (() => { try { return JSON.parse(localStorage.getItem('sda.syncHash') || '{}'); } catch (e) { return {}; } })(), next = {};
+  const walk = async dir => {
+    let list; try { list = await store.list(dir); } catch (e) { return; }
+    for (const it of list) {
+      if (it.kind === 'dir') { await walk(it.path); continue; }
+      if (!ANIM_RX.test(it.path)) continue;
+      const c = cache[it.path];
+      if (c && c.m === it.mtime && it.mtime) { out.set(it.path, c.s); next[it.path] = c; continue; }
+      const text = await store.read(it.path); if (text == null) continue;
+      const s = await gitSha(utf8.encode(text)); out.set(it.path, s); next[it.path] = { m: it.mtime, s };
+    }
+  };
+  await walk('');
+  try { localStorage.setItem('sda.syncHash', JSON.stringify(next)); } catch (e) {}
+  return out;
+}
+function conflictName(p, taken) {
+  const sp = splitFile(p), d = dirName(p);
+  for (let i = 1; ; i++) { const n = joinP(d, sp.name + (i > 1 ? ' (cloud ' + i + ')' : ' (cloud)') + '.' + sp.ext); if (!taken.has(n)) return n; }
+}
+
+/* --- open tabs: show what came from the other device --- */
+async function reloadOpenDoc(p) {
+  const d = docs.find(x => x.path === p); if (!d) return;
+  if (d === active && saveT) return;   // being edited right now: keep it, it will be uploaded
+  docs = docs.filter(x => x !== d);
+  if (d === active) { const ed = S.inEditor; active = null; if (ed) await openFile(p); else renderTaskbar(); }
+  else renderTaskbar();
+}
+
+/* --- one sync: compare local, cloud and the last synced state --- */
+async function syncRun() {
+  const c = syncCfg();
+  if (!c.branch) { const info = await gh('GET', repoUrl()); syncSet({ branch: info.default_branch || 'main' }); }
+  const br = syncCfg().branch;
+  let head = null;
+  try { head = await gh('GET', repoUrl() + '/git/ref/heads/' + encodeURIComponent(br)); }
+  catch (e) {
+    if (e.status !== 409 && e.status !== 404) throw e;   // empty storage: make the first commit
+    await gh('PUT', repoUrl() + '/contents/README.md', { message: 'Starman Does Animations storage', content: bytesToB64(utf8.encode('# Starman Does Animations\n\nYour animations, synced between your devices. Files are in the `files` folder.\n')), branch: br });
+    head = await gh('GET', repoUrl() + '/git/ref/heads/' + encodeURIComponent(br));
+  }
+  const parent = head.object.sha;
+  const tree = await gh('GET', repoUrl() + '/git/trees/' + parent + '?recursive=1');
+  const remote = new Map();
+  for (const t of tree.tree || []) if (t.type === 'blob' && t.path.startsWith(SYNC_DIR) && ANIM_RX.test(t.path)) remote.set(t.path.slice(SYNC_DIR.length), t.sha);
+  await flushSave().catch(() => {});
+  const local = await localFiles();
+  let base = prefGet(syncBaseKey(), {}) || {};
+  const nb = {}, up = [], put = [], downs = [], dels = [], trashes = [], copies = [];
+  const taken = new Set([...local.keys(), ...remote.keys()]);
+  for (const p of new Set([...local.keys(), ...remote.keys(), ...Object.keys(base)])) {
+    const L_ = local.get(p) || null, R = remote.get(p) || null, B = base[p] || null;
+    if (L_ === R) { if (L_) nb[p] = L_; continue; }
+    if (R === B) { if (L_) { up.push(p); nb[p] = L_; } else dels.push(p); continue; }          // changed only here
+    if (L_ === B) { if (R) { downs.push([p, R]); nb[p] = R; } else trashes.push(p); continue; } // changed only in the cloud
+    if (!L_) { downs.push([p, R]); nb[p] = R; continue; }                                         // deleted here, changed there: keep theirs
+    if (!R) { up.push(p); nb[p] = L_; continue; }                                                 // deleted there, changed here: keep ours
+    const cp = conflictName(p, taken); taken.add(cp);                                             // changed on both: keep both
+    up.push(p); nb[p] = L_; copies.push([cp, R]); nb[cp] = R;
+  }
+  // download first (so nothing is lost if the upload fails)
+  for (const [p, sha] of downs.concat(copies)) {
+    const b = await gh('GET', repoUrl() + '/git/blobs/' + sha);
+    const text = utf8d.decode(b64ToBytes(b.content));
+    await store.write(p, text);
+    reloadOpenDoc(p);
+  }
+  for (const p of trashes) { if (docs.some(d => d.path === p)) { nb[p] = local.get(p); up.push(p); continue; } try { await store.trash(p); } catch (e) {} }
+  // upload: one commit with everything
+  const entries = [];
+  for (const p of up) {
+    const text = await store.read(p); const bytes = utf8.encode(text);
+    const sha = await gitSha(bytes); nb[p] = sha;
+    const blob = await gh('POST', repoUrl() + '/git/blobs', { content: bytesToB64(bytes), encoding: 'base64' });
+    entries.push({ path: SYNC_DIR + p, mode: '100644', type: 'blob', sha: blob.sha });
+  }
+  for (const [cp, sha] of copies) entries.push({ path: SYNC_DIR + cp, mode: '100644', type: 'blob', sha });
+  for (const p of dels) entries.push({ path: SYNC_DIR + p, mode: '100644', type: 'blob', sha: null });
+  if (entries.length) {
+    const t = await gh('POST', repoUrl() + '/git/trees', { base_tree: tree.sha, tree: entries });
+    const who = window.desktop ? 'computer' : isCap() ? 'phone app' : (document.body.classList.contains('mobile') ? 'phone' : 'browser');
+    const cm = await gh('POST', repoUrl() + '/git/commits', { message: 'Sync from ' + who + ': ' + (up.length ? up.length + ' changed' : '') + (dels.length ? ' ' + dels.length + ' deleted' : ''), tree: t.sha, parents: [parent] });
+    await gh('PATCH', repoUrl() + '/git/refs/heads/' + encodeURIComponent(br), { sha: cm.sha });   // fails if another device synced meanwhile: then we simply try again
+  }
+  for (const p of dels) delete nb[p];
+  prefSet(syncBaseKey(), nb);
+  if (downs.length || copies.length || trashes.length) refreshAll();
+  if (copies.length) toast('Changed on both devices: the other version is kept as “' + baseName(copies[0][0]) + '”');
+  else if (downs.length) toast('Synced: ' + downs.length + ' file' + (downs.length > 1 ? 's' : '') + ' updated from the cloud');
+  return { up: up.length, down: downs.length, del: dels.length + trashes.length };
+}
+function syncNow(manual) {
+  if (!syncOn()) return Promise.resolve(null);
+  if (syncBusy) { syncAgain = true; return syncBusy; }
+  if (!manual && typeof stroke !== 'undefined' && stroke) { syncSoon(5000); return Promise.resolve(null); }   // not in the middle of a line
+  setSync('busy', 'Syncing…');
+  syncBusy = (async () => {
+    let r = null;
+    for (let i = 0; i < 3; i++) {
+      try { r = await syncRun(); break; }
+      catch (e) { if (e.status === 422 && i < 2) continue; setSync('err', syncErrText(e)); if (manual) toast('Sync failed: ' + syncErrText(e)); return null; }
+    }
+    syncSet({ last: Date.now() }); setSync('ok', 'Synced');
+    if (manual && r) toast(r.up + r.down + r.del ? 'Synced: ' + r.up + ' up, ' + r.down + ' down' + (r.del ? ', ' + r.del + ' deleted' : '') : 'Everything is already synced');
+    return r;
+  })().finally(() => { syncBusy = null; if (syncAgain) { syncAgain = false; syncSoon(1500); } });
+  return syncBusy;
+}
+function syncSoon(ms) { if (!syncOn() || !syncCfg().auto) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => syncNow(false), ms == null ? 12000 : ms); }
+
+/* --- taskbar cloud button --- */
+function setSync(st, msg) {
+  syncState = st; syncMsg = msg || '';
+  const b = $('#syncBtn'); if (!b) return;
+  b.hidden = !syncOn(); b.dataset.st = st;
+  b.textContent = st === 'busy' ? '☁ …' : st === 'err' ? '☁ !' : '☁ ✓';
+  b.title = 'Cloud sync: ' + syncMsg + (syncCfg().last ? ' · last ' + new Date(syncCfg().last).toLocaleTimeString() : '');
+}
+
+/* --- the window --- */
+function syncDialog() {
+  const c = syncCfg(), on = syncOn();
+  const d = document.createElement('dialog'); d.className = 'fdlg wnew syncdlg';
+  const tokenUrl = 'https://github.com/settings/personal-access-tokens/new?name=Starman%20sync&description=Starman%20Does%20Animations%20cloud%20sync&expires_in=none&contents=write';
+  const repoNew = 'https://github.com/new?name=' + encodeURIComponent(c.repo || 'starman-files') + '&visibility=private&description=Starman%20Does%20Animations%20files';
+  d.innerHTML = '<form method="dialog" class="dlg"><h2>Cloud sync</h2><div class="wnbody">' + (on
+    ? '<p>Connected to <b>' + esc_(c.owner + '/' + c.repo) + '</b> (private GitHub storage).</p><p class="sy-st"></p>' +
+      '<label class="sy-row"><input type="checkbox" id="syAuto"' + (c.auto ? ' checked' : '') + '> Sync by itself (after saving, every few minutes, when the app opens)</label>' +
+      '<p class="muted">Every computer and phone connected to the same storage gets the same files. If one file is changed on two devices at once, both versions are kept.</p>'
+    : '<p>Keep the same animations on your computer and phone. They are kept in a <b>private</b> GitHub repository that only you can see.</p>' +
+      '<ol><li><a href="' + repoNew + '" target="_blank" rel="noopener">Create the storage</a> — a private repository (name: <b>starman-files</b>). Do it once.</li>' +
+      '<li><a href="' + tokenUrl + '" target="_blank" rel="noopener">Make a key</a> — under “Repository access” choose <b>Only select repositories → starman-files</b>, under “Permissions → Contents” choose <b>Read and write</b>, then “Generate token” and copy it.</li>' +
+      '<li>Paste the key here. On your other devices paste the same key.</li></ol>' +
+      '<label class="sy-row">Key <input type="password" id="syTok" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>' +
+      '<label class="sy-row">Storage <input type="text" id="syRepo" value="' + esc_(c.repo || 'starman-files') + '" spellcheck="false"></label><p class="sy-st"></p>') +
+    '</div><div class="actions">' + (on
+      ? '<button class="txtbtn" value="off" type="button" id="syOff">Disconnect</button><button class="txtbtn" type="button" id="syOpen">Open storage</button><button class="txtbtn" value="close">Close</button><button class="txtbtn primary" type="button" id="syGo">Sync now</button>'
+      : '<button class="txtbtn" value="close">Cancel</button><button class="txtbtn primary" type="button" id="syCon">Connect</button>') + '</div></form>';
+  const st = d.querySelector('.sy-st');
+  const showSt = () => { if (st && on) st.textContent = 'Status: ' + (syncMsg || 'not synced yet') + (syncCfg().last ? ' · last sync ' + new Date(syncCfg().last).toLocaleString() : ''); };
+  showSt();
+  d.querySelectorAll('a[target]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); openLink(a.href); }));
+  const q = s => d.querySelector(s);
+  if (on) {
+    q('#syAuto').onchange = e => { syncSet({ auto: e.target.checked }); if (e.target.checked) syncSoon(500); };
+    q('#syGo').onclick = async () => { q('#syGo').disabled = true; st.textContent = 'Syncing…'; await syncNow(true); q('#syGo').disabled = false; showSt(); };
+    q('#syOpen').onclick = () => openLink('https://github.com/' + c.owner + '/' + c.repo + '/tree/' + (c.branch || 'main') + '/files');
+    q('#syOff').onclick = () => { prefSet('sync', { repo: c.repo }); setSync('off'); d.close(); toast('Cloud sync is off. Your files stay on this device.'); };
+  } else {
+    q('#syCon').onclick = async () => {
+      const token = q('#syTok').value.trim(), repo = q('#syRepo').value.trim().replace(/[^\w.-]+/g, '-') || 'starman-files';
+      if (!token) { st.textContent = 'Paste the key first'; return; }
+      q('#syCon').disabled = true; st.textContent = 'Checking…';
+      try {
+        prefSet('sync', { token, repo, owner: '', auto: true });
+        const me = await gh('GET', '/user');
+        syncSet({ owner: me.login });
+        let info;
+        try { info = await gh('GET', repoUrl()); }
+        catch (e) { if (e.status !== 404) throw e; try { info = await gh('POST', '/user/repos', { name: repo, private: true, description: 'Starman Does Animations files', auto_init: true }); } catch (e2) { const n = new Error('missing'); n.status = 404; throw n; } }
+        if (info.private === false) { st.textContent = 'This repository is public — anyone could see your animations. Make it private on GitHub (Settings → Danger zone) or use another one.'; prefSet('sync', { repo }); q('#syCon').disabled = false; return; }
+        if (info.permissions && !info.permissions.push) { const e = new Error('no write'); e.status = 403; throw e; }
+        syncSet({ branch: info.default_branch || 'main' });
+        d.close(); setSync('busy', 'Syncing…'); toast('Connected as ' + me.login + ': syncing…'); await syncNow(true);
+      } catch (e) {
+        st.textContent = e.status === 404 ? 'Storage not found: create it with step 1, and give the key access to it' : syncErrText(e);
+        prefSet('sync', { repo }); q('#syCon').disabled = false;
+      }
+    };
+  }
+  d.addEventListener('close', () => d.remove());
+  document.body.appendChild(d); d.showModal();
+}
+function openLink(url) {
+  const dk = window.desktop; if (dk && dk.openExternal) { dk.openExternal(url); return; }
+  window.open(url, '_blank', 'noopener');
+}
+
+/* --- start: menu item, cloud button, timers (after the file store exists) --- */
+setTimeout(() => {
+  const anchor = $('#smSettings');
+  if (anchor) {
+    const icon = anchor.querySelector('img') ? anchor.querySelector('img').src : '';
+    const b = document.createElement('button'); b.className = 'sm-item'; b.setAttribute('role', 'menuitem'); b.id = 'smSync';
+    b.innerHTML = (icon ? '<img src="' + icon + '" alt="">' : '') + '<span>Cloud sync</span>'; b.onclick = () => { closeMenus(); syncDialog(); };
+    anchor.after(b);
+  }
+  const clock = $('#clock');
+  if (clock) { const sb = document.createElement('button'); sb.id = 'syncBtn'; sb.className = 'syncbtn'; sb.hidden = true; sb.onclick = syncDialog; clock.before(sb); }
+  setSync(syncOn() ? 'ok' : 'off', syncOn() ? 'waiting' : '');
+  if (syncOn() && syncCfg().auto) syncSoon(2500);
+  setInterval(() => { if (syncOn() && syncCfg().auto && document.visibilityState === 'visible') syncNow(false); }, 3 * 60e3);
+  document.addEventListener('visibilitychange', () => { if (!syncOn() || !syncCfg().auto) return; if (document.visibilityState === 'visible') syncSoon(800); else syncNow(false); });
+  addEventListener('online', () => syncSoon(1000));
+}, 0);
+window.__sync = syncNow;
 /* ---------- paths & storage ---------- */
 const EXT = { trad: 'sdt', vector: 'sdv', pixel: 'sdp' }, EXT_MODE = { sdt: 'trad', sdv: 'vector', sdp: 'pixel' };
 const TYPE_LABEL = { trad: 'Traditional animation', vector: 'Vector animation', pixel: 'Pixel art animation' };
@@ -5917,7 +6155,7 @@ const webStore = (() => {
       return Promise.resolve(out);
     },
     read: p => Promise.resolve(g(F + p)),
-    write(p, t) { try { put(F + p, t); put(M + p, String(Date.now())); return Promise.resolve(true); } catch (e) { return Promise.reject(e); } },
+    write(p, t) { try { put(F + p, t); put(M + p, String(Date.now())); const ds = dirs(), need = []; for (let d = dirName(p); d && !ds.includes(d); d = dirName(d)) need.push(d); if (need.length) setDirs(ds.concat(need)); return Promise.resolve(true); } catch (e) { return Promise.reject(e); } },
     writeSync(p, t) { try { put(F + p, t); return true; } catch (e) { return false; } },
     mkdir(dir, name) { const p = free(dir, cleanName(name) || 'New folder', ''); setDirs(dirs().concat([p])); return Promise.resolve(p); },
     rename(p, name) {
@@ -6017,7 +6255,7 @@ function save() {
     doc.lastSnap = now;
     store.snapWrite(p, text, L.snapKeep).catch(() => {});
   }
-  return store.write(p, text).then(() => { if (S.inEditor) setStatus('Saved'); }, () => setStatus(desk ? 'Could not save the file' : 'Not saved: browser storage is full', true));
+  return store.write(p, text).then(() => { if (S.inEditor) setStatus('Saved'); if (typeof syncSoon === 'function') syncSoon(); }, () => setStatus(desk ? 'Could not save the file' : 'Not saved: browser storage is full', true));
 }
 function flushSave() { if (saveT) { clearTimeout(saveT); return save(); } return Promise.resolve(); }
 function saveNow() { clearTimeout(saveT); setStatus('Saving…'); save(); }

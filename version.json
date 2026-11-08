@@ -1,6 +1,15 @@
 {
- "version": "1.25.0",
+ "version": "1.26.0",
  "changelog": [
+  {
+   "v": "1.26.0",
+   "date": "2026-11-08",
+   "items": [
+    "Cloud sync: the same animations on your computer and phone (Start → Cloud sync). Files are kept in your own private GitHub storage",
+    "Syncs by itself after saving, every few minutes and when the app opens; the ☁ button on the taskbar shows the state",
+    "If one file was changed on two devices, both versions are kept"
+   ]
+  },
   {
    "v": "1.25.0",
    "date": "2026-11-08",
