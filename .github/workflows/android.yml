@@ -22,8 +22,6 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - name: 4 Android SDK
-        uses: android-actions/setup-android@v3
       - name: 5 Prepare web files
         run: |
           set -ex
