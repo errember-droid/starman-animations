@@ -1,6 +1,16 @@
 {
- "version": "1.27.0",
+ "version": "1.27.1",
  "changelog": [
+  {
+   "v": "1.27.1",
+   "date": "2026-11-08",
+   "items": [
+    "Phone: pinch zoom is smooth (pixel art snaps to a whole zoom when you let go)",
+    "Phone: onion skins no longer lag behind when you move the canvas with two fingers",
+    "Phone: big animations play without filling the memory (no more crashes when playing)",
+    "Very big files are skipped by cloud sync instead of crashing it"
+   ]
+  },
   {
    "v": "1.27.0",
    "date": "2026-11-08",

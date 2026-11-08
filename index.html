@@ -4951,7 +4951,7 @@ function playNeedsPrep() { if (playCache.ver === upVer && playCache.pics && play
 async function playPrep() {
   if (prepBusy) { prepBusy = false; return false; }
   const n = S.frames.length, sc = playScale(), bytes = n * W * H * sc * sc * 4;
-  if (bytes > 500e6) { playCache = { ver: upVer, sc, pics: null, live: true }; return true; }   // too big to keep: play live
+  if (bytes > (document.body.classList.contains('mobile') || isCap() ? 90e6 : 500e6)) { playCache = { ver: upVer, sc, pics: null, live: true }; return true; }   // too big to keep: play live
   prepBusy = true; const box = $('#playPrep'), bar = box.querySelector('i'), txt = box.querySelector('span'); box.hidden = false;
   const pics = [], ver = upVer;
   for (let i = 0; i < n; i++) {
@@ -5699,9 +5699,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.27.0';
+const APP_VERSION = '1.27.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.27.1', date: '2026-11-08', items: ['Phone: pinch zoom is smooth (pixel art snaps to a whole zoom when you let go)', 'Phone: onion skins no longer lag behind when you move the canvas with two fingers', 'Phone: big animations play without filling the memory (no more crashes when playing)', 'Very big files are skipped by cloud sync instead of crashing it'] },
   { v: '1.27.0', date: '2026-11-08', items: ['Phone: .sdt / .sdp / .sdv / .sdz and Aseprite files can be picked for import again', 'Files without a proper name are recognised by what is inside', '“Open with Starman Does Animations”: double-click .sdt / .sdp / .sdv / .sdz files in Explorer, and open .aseprite files with it (the Android app too)', 'Computer updates now also update the program part, not only the page'] },
   { v: '1.26.0', date: '2026-11-08', items: ['Cloud sync: the same animations on your computer and phone (Start → Cloud sync). Files are kept in your own private GitHub storage', 'Syncs by itself after saving, every few minutes and when the app opens; the ☁ button on the taskbar shows the state', 'If one file was changed on two devices, both versions are kept'] },
   { v: '1.25.0', date: '2026-11-08', items: ['Phone and tablet layout: full-screen canvas, tools at the bottom, palette, settings and timeline slide up', 'Touch: two fingers zoom and move the canvas, two-finger tap = undo, three-finger tap = redo', 'Install on Android as an app (from the web page, or the APK)', 'This “What’s new” window, and “Check for updates” in the Start menu', 'Big animations no longer hit the 5 MB browser limit (files are kept in IndexedDB)'] },
@@ -5831,17 +5832,26 @@ view.addEventListener('pointermove', e => {
   if (!gest) return; e.stopImmediatePropagation();
   const pts = [...touches.values()]; if (pts.length < 2) return; const [a, b] = pts;
   if (pts.some(q => Math.hypot(q.x - q.x0, q.y - q.y0) > 12)) gest.moved = true;
-  const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2, d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
-  S.zoom.x += cx - gest.cx; S.zoom.y += cy - gest.cy; gest.cx = cx; gest.cy = cy;   // two fingers move the canvas
-  const want = gest.s0 * d / gest.d0, [sx, sy] = stageXY(cx, cy); if (Math.abs(want / S.zoom.scale - 1) > 0.01) zoomAt(want > S.zoom.scale ? 1 : -1, sx, sy, want / S.zoom.scale);   // and pinch zooms
-  render();
+  const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2, d = Math.hypot(a.x - b.x, a.y - b.y) || 1, z = S.zoom;
+  z.x += cx - gest.cx; z.y += cy - gest.cy; gest.cx = cx; gest.cy = cy;   // two fingers move the canvas
+  // and pinch zooms smoothly (pixel art snaps to a whole zoom when the fingers are lifted)
+  const ns = clamp(gest.s0 * d / gest.d0, 0.02, MODE === 'pixel' ? 128 : 32), [sx, sy] = stageXY(cx, cy);
+  if (Math.abs(ns / z.scale - 1) > 0.002) { z.x = sx - (sx - z.x) * (ns / z.scale); z.y = sy - (sy - z.y) * (ns / z.scale); z.scale = ns; z.fit = false; gest.zoomed = true; }
+  gestFrame();
 }, true);
 const touchEnd = e => {
   if (e.pointerType !== 'touch' || !touches.has(e.pointerId)) return;
   touches.delete(e.pointerId);
   if (!gest) return; e.stopImmediatePropagation();
-  if (!touches.size) { const g = gest; gest = null; if (!g.moved && performance.now() - g.t0 < 350) { if (g.n === 2) { undo(); flash('Undo'); } else if (g.n >= 3) { redo(); flash('Redo'); } } }
+  if (!touches.size) { const g = gest; gest = null; if (g.zoomed) snapPinch(g); if (!g.moved && performance.now() - g.t0 < 350) { if (g.n === 2) { undo(); flash('Undo'); } else if (g.n >= 3) { redo(); flash('Redo'); } } }
 };
+let gestRaf = 0;
+function gestFrame() { if (gestRaf) return; gestRaf = requestAnimationFrame(() => { gestRaf = 0; layout(); }); }   // one redraw per screen frame, onion skins move too
+function snapPinch(g) {
+  const z = S.zoom; if (MODE !== 'pixel' || z.scale < 1) { gestFrame(); return; }
+  const ns = Math.max(1, Math.round(z.scale)), [sx, sy] = stageXY(g.cx, g.cy);
+  z.x = sx - (sx - z.x) * (ns / z.scale); z.y = sy - (sy - z.y) * (ns / z.scale); z.scale = ns; gestFrame();
+}
 view.addEventListener('pointerup', touchEnd, true); view.addEventListener('pointercancel', touchEnd, true);
 /* ================= v26: cloud sync between computer and phone (a private GitHub repository is the storage) ================= */
 const SYNC_API = 'https://api.github.com';
@@ -5852,6 +5862,7 @@ const syncBaseKey = () => { const c = syncCfg(); return 'syncBase.' + c.owner + 
 let syncState = 'off', syncMsg = '', syncBusy = null, syncAgain = false, syncTimer = 0;
 const SYNC_DIR = 'files/';
 const ANIM_RX = /\.(sdt|sdv|sdp)$/i;
+const syncMax = () => (document.body.classList.contains('mobile') || isCap() ? 35e6 : 70e6);
 
 /* --- bytes, base64, git hashes --- */
 const utf8 = new TextEncoder(), utf8d = new TextDecoder();
@@ -5881,7 +5892,7 @@ function syncErrText(e) {
 
 /* --- local side: every animation file with its git id (cached by modified time) --- */
 async function localFiles() {
-  const out = new Map(), cache = (() => { try { return JSON.parse(localStorage.getItem('sda.syncHash') || '{}'); } catch (e) { return {}; } })(), next = {};
+  const out = Object.assign(new Map(), { skip: new Set() }), cache = (() => { try { return JSON.parse(localStorage.getItem('sda.syncHash') || '{}'); } catch (e) { return {}; } })(), next = {};
   const walk = async dir => {
     let list; try { list = await store.list(dir); } catch (e) { return; }
     for (const it of list) {
@@ -5890,6 +5901,7 @@ async function localFiles() {
       const c = cache[it.path];
       if (c && c.m === it.mtime && it.mtime) { out.set(it.path, c.s); next[it.path] = c; continue; }
       const text = await store.read(it.path); if (text == null) continue;
+      if (text.length > syncMax()) { out.skip.add(it.path); continue; }   // too big to send in one piece: left alone
       const s = await gitSha(utf8.encode(text)); out.set(it.path, s); next[it.path] = { m: it.mtime, s };
     }
   };
@@ -5929,10 +5941,13 @@ async function syncRun() {
   for (const t of tree.tree || []) if (t.type === 'blob' && t.path.startsWith(SYNC_DIR) && ANIM_RX.test(t.path)) remote.set(t.path.slice(SYNC_DIR.length), t.sha);
   await flushSave().catch(() => {});
   const local = await localFiles();
+  for (const t of tree.tree || []) if (t.size > syncMax() && t.path.startsWith(SYNC_DIR)) local.skip.add(t.path.slice(SYNC_DIR.length));
   let base = prefGet(syncBaseKey(), {}) || {};
+  let skipped = 0;
   const nb = {}, up = [], put = [], downs = [], dels = [], trashes = [], copies = [];
   const taken = new Set([...local.keys(), ...remote.keys()]);
   for (const p of new Set([...local.keys(), ...remote.keys(), ...Object.keys(base)])) {
+    if (local.skip.has(p)) { if (base[p]) nb[p] = base[p]; skipped++; continue; }
     const L_ = local.get(p) || null, R = remote.get(p) || null, B = base[p] || null;
     if (L_ === R) { if (L_) nb[p] = L_; continue; }
     if (R === B) { if (L_) { up.push(p); nb[p] = L_; } else dels.push(p); continue; }          // changed only here
@@ -5969,6 +5984,7 @@ async function syncRun() {
   for (const p of dels) delete nb[p];
   prefSet(syncBaseKey(), nb);
   if (downs.length || copies.length || trashes.length) refreshAll();
+  if (skipped) setTimeout(() => toast(skipped + ' very big file' + (skipped > 1 ? 's are' : ' is') + ' not synced (too big for one upload)'), 3500);
   if (copies.length) toast('Changed on both devices: the other version is kept as “' + baseName(copies[0][0]) + '”');
   else if (downs.length) toast('Synced: ' + downs.length + ' file' + (downs.length > 1 ? 's' : '') + ' updated from the cloud');
   return { up: up.length, down: downs.length, del: dels.length + trashes.length };
@@ -6133,6 +6149,7 @@ setTimeout(() => {
     setTimeout(() => { try { App.getLaunchUrl().then(r => { if (r && r.url) openCapUrl(r.url); }).catch(() => {}); } catch (e) {} }, 1500);
   }
 }, 0);
+window.__S = S;
 /* ---------- paths & storage ---------- */
 const EXT = { trad: 'sdt', vector: 'sdv', pixel: 'sdp' }, EXT_MODE = { sdt: 'trad', sdv: 'vector', sdp: 'pixel' };
 const TYPE_LABEL = { trad: 'Traditional animation', vector: 'Vector animation', pixel: 'Pixel art animation' };
