@@ -1,6 +1,15 @@
 {
- "version": "1.27.1",
+ "version": "1.28.0",
  "changelog": [
+  {
+   "v": "1.28.0",
+   "date": "2026-11-08",
+   "items": [
+    "Phone: zoom and moving the canvas follow your fingers instantly (the picture is redrawn when you stop)",
+    "Phone: ✋ Hand button — move around the canvas with one finger, without zooming or drawing",
+    "Phone: all tools fit on the screen (two rows), bigger buttons, windows no longer go off the screen"
+   ]
+  },
   {
    "v": "1.27.1",
    "date": "2026-11-08",

@@ -562,11 +562,18 @@ body.mobile #app>.split,body.mobile #app>.top{display:none!important}
 body.mobile #app>.palette,body.mobile #app>.side,body.mobile #app>.time{position:fixed!important;left:0;right:0;bottom:calc(var(--tbh) + 50px);max-height:60vh;z-index:25;transform:translateY(130%);visibility:hidden;transition:transform .16s ease-out;box-shadow:0 -4px 0 rgba(0,0,0,.45);overflow:auto}
 body.mobile #app>.time{height:48vh}
 body.mobile[data-drawer=pal] #app>.palette,body.mobile[data-drawer=side] #app>.side,body.mobile[data-drawer=time] #app>.time{transform:none;visibility:visible}
-body.mobile #app>.tools{grid-area:tools;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden;justify-content:flex-start!important;padding:3px!important;gap:3px!important;scrollbar-width:none}
-body.mobile #app>.tools .tb{min-width:40px;height:40px;flex:0 0 auto}
-body.mobile #app>.tools .sep{width:2px!important;height:28px!important;margin:0 3px!important;flex:0 0 auto}
-body.mobile .mnav{grid-area:mnav;display:flex;gap:3px;padding:3px}
-body.mobile .mnav .pb{flex:1;min-width:0;height:42px;font-size:12px;padding:0 2px}
+body.mobile #app>.tools{grid-area:tools;display:grid!important;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));overflow:hidden;padding:3px!important;gap:3px!important;max-width:100%;box-sizing:border-box}
+body.mobile #app>.tools .tb{width:auto!important;min-width:0!important;height:38px!important;margin:0!important}
+body.mobile #app>.tools .sep,body.mobile #app>.tools #undoBtn,body.mobile #app>.tools #redoBtn{display:none!important}
+body.mobile .mnav{grid-area:mnav;display:flex;gap:3px;padding:3px;max-width:100%;box-sizing:border-box}
+body.mobile .mnav .pb{flex:1 1 0;min-width:0;height:42px;font-size:11px;padding:0 1px;overflow:hidden;text-overflow:clip;white-space:nowrap}
+body.mobile .mnav .pb[data-m]{flex:1.6 1 0}
+.handbtn{display:none;font-size:18px;line-height:1}body.mobile .handbtn{display:block}.handbtn.on{outline:2px solid #ffce57;outline-offset:-2px}
+#view.handing{cursor:grab;touch-action:none}
+body.mobile #app>.time .tb,body.mobile #app>.time button{min-height:30px;min-width:30px}
+body.mobile #app>.side,body.mobile #app>.palette,body.mobile #app>.time{max-width:100vw;box-sizing:border-box}
+body.mobile dialog{max-width:calc(100vw - 16px)!important;max-height:calc(100vh - 16px)!important;box-sizing:border-box;overflow:auto}
+body.mobile .startmenu{max-height:calc(100vh - var(--tbh) - 8px);overflow:auto}
 body.mobile .mnav .pb.on{outline:2px solid #ffce57;outline-offset:-2px}
 body.mobile .clipbar{font-size:10px}
 body.mobile .tip{display:none!important}
@@ -842,7 +849,7 @@ body.filedrag #stage,body.filedrag #icons{outline:3px dashed var(--accent);outli
   <div class="split h" id="splitH" role="separator" aria-orientation="horizontal" aria-label="Resize timeline" data-tip="Drag to resize|Double-click to reset"></div>
   <nav class="mnav box" id="mnav" aria-label="Phone controls">
     <button class="pb" data-m="pal" title="Colors">Colors</button>
-    <button class="pb" data-m="side" title="Brush, animation, render and export settings">Settings</button>
+    <button class="pb" data-m="side" title="Brush, animation, render and export settings">Options</button>
     <button class="pb" data-m="time" title="Layers and frames">Frames</button>
     <button class="pb" data-a="undo" title="Undo (two-finger tap)" data-icon="undo"></button>
     <button class="pb" data-a="redo" title="Redo (three-finger tap)" data-icon="redo"></button>
@@ -5699,9 +5706,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.27.1';
+const APP_VERSION = '1.28.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.28.0', date: '2026-11-08', items: ['Phone: zoom and moving the canvas follow your fingers instantly (the picture is redrawn when you stop)', 'Phone: ✋ Hand button — move around the canvas with one finger, without zooming or drawing', 'Phone: all tools fit on the screen (two rows), bigger buttons, windows no longer go off the screen'] },
   { v: '1.27.1', date: '2026-11-08', items: ['Phone: pinch zoom is smooth (pixel art snaps to a whole zoom when you let go)', 'Phone: onion skins no longer lag behind when you move the canvas with two fingers', 'Phone: big animations play without filling the memory (no more crashes when playing)', 'Very big files are skipped by cloud sync instead of crashing it'] },
   { v: '1.27.0', date: '2026-11-08', items: ['Phone: .sdt / .sdp / .sdv / .sdz and Aseprite files can be picked for import again', 'Files without a proper name are recognised by what is inside', '“Open with Starman Does Animations”: double-click .sdt / .sdp / .sdv / .sdz files in Explorer, and open .aseprite files with it (the Android app too)', 'Computer updates now also update the program part, not only the page'] },
   { v: '1.26.0', date: '2026-11-08', items: ['Cloud sync: the same animations on your computer and phone (Start → Cloud sync). Files are kept in your own private GitHub storage', 'Syncs by itself after saving, every few minutes and when the app opens; the ☁ button on the taskbar shows the state', 'If one file was changed on two devices, both versions are kept'] },
@@ -5809,50 +5817,75 @@ view.addEventListener('pointerdown', () => { if (document.body.classList.contain
 addEventListener('resize', () => { clearTimeout(applyMobile.t); applyMobile.t = setTimeout(applyMobile, 150); });
 applyMobile();
 
-/* ---------- touch gestures on the canvas ---------- */
-const touches = new Map(); let gest = null;
+/* ---------- touch gestures on the canvas ----------
+   two fingers: move + pinch zoom; one finger with the hand on: move only.
+   While the fingers move, the already drawn picture is only shifted/scaled on screen (fast);
+   the real redraw happens when the fingers stop for a moment or are lifted. */
+const touches = new Map(); let gest = null, handOn = false, gestShown = null, gestT = 0;
 const stageXY = (x, y) => { const r = stage.getBoundingClientRect(); return [x - r.left, y - r.top]; };
 function abortStroke() {
   if (stroke) { stroke = null; mirrors = []; buffer.clear(); }
   shapeDrag = null; if (selDrag) selDrag = null; extDrag = null; gradDrag = null; render();
 }
+function gestShow() {   // cheap: move the drawn picture with CSS
+  const z = S.zoom, r = gestShown; if (!r) return; const k = z.scale / r.scale;
+  view.style.transformOrigin = '0 0'; view.style.transform = 'translate(' + (z.x - r.x * k) + 'px,' + (z.y - r.y * k) + 'px) scale(' + k + ')';
+  clearTimeout(gestT); gestT = setTimeout(gestRedraw, 160);
+}
+function gestRedraw() { clearTimeout(gestT); view.style.transform = ''; layout(); updBrushDot(); if (gestShown) gestShown = { x: S.zoom.x, y: S.zoom.y, scale: S.zoom.scale }; }
+function gestBegin(n, pts) {
+  const [a, b] = pts.length > 1 ? pts : [pts[0], pts[0]];
+  gest = { n, t0: Math.min(...pts.map(p => p.t)), moved: false, d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, s0: S.zoom.scale, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+  if (S.zoom.fit) S.zoom.fit = false;
+  gestShown = { x: S.zoom.x, y: S.zoom.y, scale: S.zoom.scale };
+}
 view.addEventListener('pointerdown', e => {
-  if (e.pointerType !== 'touch') return;
+  const pan = handOn && (e.pointerType !== 'mouse' || e.button === 0);
+  if (e.pointerType !== 'touch' && !pan) return;
   touches.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, t: performance.now() });
-  if (touches.size >= 2) {
+  if (touches.size >= 2 || pan) {
     e.stopImmediatePropagation(); e.preventDefault(); abortStroke();
-    const pts = [...touches.values()], [a, b] = pts;
-    gest = { n: touches.size, t0: Math.min(...pts.map(p => p.t)), moved: false, d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, s0: S.zoom.scale, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
-    if (S.zoom.fit) S.zoom.fit = false;
+    try { view.setPointerCapture(e.pointerId); } catch (err) {}
+    gestBegin(touches.size, [...touches.values()]);
   }
 }, true);
 view.addEventListener('pointermove', e => {
-  if (e.pointerType !== 'touch' || !touches.has(e.pointerId)) return;
+  if (!touches.has(e.pointerId)) return;
   const p = touches.get(e.pointerId); p.x = e.clientX; p.y = e.clientY;
   if (!gest) return; e.stopImmediatePropagation();
-  const pts = [...touches.values()]; if (pts.length < 2) return; const [a, b] = pts;
+  const pts = [...touches.values()], z = S.zoom;
   if (pts.some(q => Math.hypot(q.x - q.x0, q.y - q.y0) > 12)) gest.moved = true;
-  const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2, d = Math.hypot(a.x - b.x, a.y - b.y) || 1, z = S.zoom;
-  z.x += cx - gest.cx; z.y += cy - gest.cy; gest.cx = cx; gest.cy = cy;   // two fingers move the canvas
-  // and pinch zooms smoothly (pixel art snaps to a whole zoom when the fingers are lifted)
-  const ns = clamp(gest.s0 * d / gest.d0, 0.02, MODE === 'pixel' ? 128 : 32), [sx, sy] = stageXY(cx, cy);
-  if (Math.abs(ns / z.scale - 1) > 0.002) { z.x = sx - (sx - z.x) * (ns / z.scale); z.y = sy - (sy - z.y) * (ns / z.scale); z.scale = ns; z.fit = false; gest.zoomed = true; }
-  gestFrame();
+  const [a, b] = pts.length > 1 ? pts : [pts[0], pts[0]];
+  const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+  z.x += cx - gest.cx; z.y += cy - gest.cy; gest.cx = cx; gest.cy = cy;
+  if (pts.length > 1) {
+    const d = Math.hypot(a.x - b.x, a.y - b.y) || 1, ns = clamp(gest.s0 * d / gest.d0, 0.02, MODE === 'pixel' ? 128 : 32), [sx, sy] = stageXY(cx, cy);
+    if (Math.abs(ns / z.scale - 1) > 0.001) { z.x = sx - (sx - z.x) * (ns / z.scale); z.y = sy - (sy - z.y) * (ns / z.scale); z.scale = ns; gest.zoomed = true; }
+  }
+  gestShow();
 }, true);
 const touchEnd = e => {
-  if (e.pointerType !== 'touch' || !touches.has(e.pointerId)) return;
+  if (!touches.has(e.pointerId)) return;
   touches.delete(e.pointerId);
   if (!gest) return; e.stopImmediatePropagation();
-  if (!touches.size) { const g = gest; gest = null; if (g.zoomed) snapPinch(g); if (!g.moved && performance.now() - g.t0 < 350) { if (g.n === 2) { undo(); flash('Undo'); } else if (g.n >= 3) { redo(); flash('Redo'); } } }
+  if (touches.size) { const zm = gest.zoomed, mv = gest.moved, t0 = gest.t0, n0 = gest.n; gestBegin(touches.size, [...touches.values()]); Object.assign(gest, { zoomed: zm, moved: mv, t0, n: n0 }); gestShown = gestShown && { x: S.zoom.x, y: S.zoom.y, scale: S.zoom.scale }; gestRedraw(); return; }
+  const g = gest; gest = null;
+  if (g.zoomed && MODE === 'pixel' && S.zoom.scale >= 1) {   // pixel art: settle on a whole zoom so pixels stay sharp
+    const z = S.zoom, ns = Math.max(1, Math.round(z.scale)), [sx, sy] = stageXY(g.cx, g.cy);
+    z.x = sx - (sx - z.x) * (ns / z.scale); z.y = sy - (sy - z.y) * (ns / z.scale); z.scale = ns;
+  }
+  gestShown = null; gestRedraw();
+  if (!g.moved && g.n >= 2 && performance.now() - g.t0 < 350) { if (g.n === 2) { undo(); flash('Undo'); } else { redo(); flash('Redo'); } }
 };
-let gestRaf = 0;
-function gestFrame() { if (gestRaf) return; gestRaf = requestAnimationFrame(() => { gestRaf = 0; layout(); }); }   // one redraw per screen frame, onion skins move too
-function snapPinch(g) {
-  const z = S.zoom; if (MODE !== 'pixel' || z.scale < 1) { gestFrame(); return; }
-  const ns = Math.max(1, Math.round(z.scale)), [sx, sy] = stageXY(g.cx, g.cy);
-  z.x = sx - (sx - z.x) * (ns / z.scale); z.y = sy - (sy - z.y) * (ns / z.scale); z.scale = ns; gestFrame();
-}
 view.addEventListener('pointerup', touchEnd, true); view.addEventListener('pointercancel', touchEnd, true);
+// the hand: move around the canvas with one finger, without zooming or drawing
+(() => {
+  const tools = document.querySelector('#app > .tools'); if (!tools) return;
+  const h = document.createElement('button'); h.className = 'tb handbtn'; h.id = 'handBtn'; h.title = 'Hand: move around the canvas with one finger (tap again to draw)'; h.textContent = '✋';
+  h.onclick = () => { handOn = !handOn; h.classList.toggle('on', handOn); view.classList.toggle('handing', handOn); flash(handOn ? 'Hand: drag to move the canvas' : 'Drawing'); };
+  const sep = tools.querySelector('.sep'); (sep || tools.firstChild).after(h);
+  document.querySelectorAll('#app > .tools [data-tool]').forEach(t => t.addEventListener('click', () => { if (handOn) h.click(); }));
+})();
 /* ================= v26: cloud sync between computer and phone (a private GitHub repository is the storage) ================= */
 const SYNC_API = 'https://api.github.com';
 const syncCfg = () => Object.assign({ token: '', owner: '', repo: 'starman-files', branch: '', auto: true, last: 0 }, prefGet('sync', {}) || {});
