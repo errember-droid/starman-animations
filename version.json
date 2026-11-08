@@ -1,6 +1,13 @@
 {
- "version": "1.28.0",
+ "version": "1.28.1",
  "changelog": [
+  {
+   "v": "1.28.1",
+   "date": "2026-11-08",
+   "items": [
+    "Phone: pinch zoom in pixel art no longer jumps 100% → 200%: it stays exactly where you leave it"
+   ]
+  },
   {
    "v": "1.28.0",
    "date": "2026-11-08",

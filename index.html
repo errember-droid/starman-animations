@@ -5706,9 +5706,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.28.0';
+const APP_VERSION = '1.28.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.28.1', date: '2026-11-08', items: ['Phone: pinch zoom in pixel art no longer jumps 100% → 200%: it stays exactly where you leave it'] },
   { v: '1.28.0', date: '2026-11-08', items: ['Phone: zoom and moving the canvas follow your fingers instantly (the picture is redrawn when you stop)', 'Phone: ✋ Hand button — move around the canvas with one finger, without zooming or drawing', 'Phone: all tools fit on the screen (two rows), bigger buttons, windows no longer go off the screen'] },
   { v: '1.27.1', date: '2026-11-08', items: ['Phone: pinch zoom is smooth (pixel art snaps to a whole zoom when you let go)', 'Phone: onion skins no longer lag behind when you move the canvas with two fingers', 'Phone: big animations play without filling the memory (no more crashes when playing)', 'Very big files are skipped by cloud sync instead of crashing it'] },
   { v: '1.27.0', date: '2026-11-08', items: ['Phone: .sdt / .sdp / .sdv / .sdz and Aseprite files can be picked for import again', 'Files without a proper name are recognised by what is inside', '“Open with Starman Does Animations”: double-click .sdt / .sdp / .sdv / .sdz files in Explorer, and open .aseprite files with it (the Android app too)', 'Computer updates now also update the program part, not only the page'] },
@@ -5818,7 +5819,7 @@ addEventListener('resize', () => { clearTimeout(applyMobile.t); applyMobile.t = 
 applyMobile();
 
 /* ---------- touch gestures on the canvas ----------
-   two fingers: move + pinch zoom; one finger with the hand on: move only.
+   two fingers: move + smooth pinch zoom (any zoom, also between 100% and 200% in pixel art); one finger with the hand on: move only.
    While the fingers move, the already drawn picture is only shifted/scaled on screen (fast);
    the real redraw happens when the fingers stop for a moment or are lifted. */
 const touches = new Map(); let gest = null, handOn = false, gestShown = null, gestT = 0;
@@ -5870,10 +5871,6 @@ const touchEnd = e => {
   if (!gest) return; e.stopImmediatePropagation();
   if (touches.size) { const zm = gest.zoomed, mv = gest.moved, t0 = gest.t0, n0 = gest.n; gestBegin(touches.size, [...touches.values()]); Object.assign(gest, { zoomed: zm, moved: mv, t0, n: n0 }); gestShown = gestShown && { x: S.zoom.x, y: S.zoom.y, scale: S.zoom.scale }; gestRedraw(); return; }
   const g = gest; gest = null;
-  if (g.zoomed && MODE === 'pixel' && S.zoom.scale >= 1) {   // pixel art: settle on a whole zoom so pixels stay sharp
-    const z = S.zoom, ns = Math.max(1, Math.round(z.scale)), [sx, sy] = stageXY(g.cx, g.cy);
-    z.x = sx - (sx - z.x) * (ns / z.scale); z.y = sy - (sy - z.y) * (ns / z.scale); z.scale = ns;
-  }
   gestShown = null; gestRedraw();
   if (!g.moved && g.n >= 2 && performance.now() - g.t0 < 350) { if (g.n === 2) { undo(); flash('Undo'); } else { redo(); flash('Redo'); } }
 };
