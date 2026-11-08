@@ -1,0 +1,38 @@
+const { contextBridge, ipcRenderer } = require('electron');
+const call = (ch, ...a) => ipcRenderer.invoke(ch, ...a);
+
+contextBridge.exposeInMainWorld('desktop', {
+  saveFile: (name, bytes) => call('save-file', { name, bytes }),
+  list: dir => call('fs-list', dir),
+  read: f => call('fs-read', f),
+  write: (f, text) => call('fs-write', f, text),
+  writeSync: (f, text) => ipcRenderer.sendSync('fs-write-sync', f, text),
+  mkdir: (dir, name) => call('fs-mkdir', dir, name),
+  rename: (p, name) => call('fs-rename', p, name),
+  move: (p, toDir) => call('fs-move', p, toDir),
+  trash: p => call('fs-trash', p),
+  trashList: () => call('fs-trash-list'),
+  restore: id => call('fs-restore', id),
+  purge: id => call('fs-purge', id),
+  emptyTrash: () => call('fs-empty'),
+  showFolder: dir => call('fs-folder', dir),
+  importFile: dir => call('fs-import', dir),
+  layoutRead: () => call('layout-read'),
+  layoutWrite: data => call('layout-write', data),
+  snapWrite: (p, text, keep) => call('snap-write', p, text, keep),
+  snapList: () => call('snap-list'),
+  snapRead: id => call('snap-read', id),
+  snapDelete: id => call('snap-delete', id),
+  snapClear: () => call('snap-clear'),
+  sessionStart: () => call('session-start'),
+  discordConfig: c => call('discord-config', c),
+  discordInfo: i => call('discord-info', i),
+  discordStatus: () => call('discord-status'),
+  discordSend: o => call('discord-send', o),
+  updateCheck: url => call('app-update-check', url),
+  updateInstall: url => call('app-update-install', url),
+  openExternal: url => call('open-external', url),
+  takeOpenFiles: () => call('take-open-files'),
+  onOpenFiles: cb => { ipcRenderer.on('open-files', () => cb()); },
+  appVersion: 3
+});

@@ -44,12 +44,36 @@ jobs:
         working-directory: build
         run: |
           set -ex
-          npm install --no-audit --no-fund @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/filesystem@6 @capacitor/share@6
+          npm install --no-audit --no-fund @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/filesystem@6 @capacitor/share@6 @capacitor/app@6
       - name: 7 Make Android project
         working-directory: build
         run: |
           set -ex
           npx cap add android
+          python3 - <<'PY'
+          import re
+          p = 'android/app/src/main/AndroidManifest.xml'
+          s = open(p).read()
+          f = '''<intent-filter>
+                  <action android:name="android.intent.action.VIEW" />
+                  <category android:name="android.intent.category.DEFAULT" />
+                  <category android:name="android.intent.category.BROWSABLE" />
+                  <data android:scheme="content" />
+                  <data android:scheme="file" />
+                  <data android:mimeType="application/octet-stream" />
+                  <data android:mimeType="application/json" />
+                  <data android:mimeType="application/zip" />
+                  <data android:mimeType="application/x-zip-compressed" />
+                  <data android:mimeType="application/x-aseprite" />
+                  <data android:mimeType="image/x-aseprite" />
+                  <data android:mimeType="text/plain" />
+              </intent-filter>
+          '''
+          i = s.index('</activity>')
+          s = s[:i] + f + s[i:]
+          open(p, 'w').write(s)
+          print(s)
+          PY
           npx cap sync android
           sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"$VERSION\"/" android/app/build.gradle
       - name: 8 App icon

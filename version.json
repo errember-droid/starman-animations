@@ -1,6 +1,16 @@
 {
- "version": "1.26.0",
+ "version": "1.27.0",
  "changelog": [
+  {
+   "v": "1.27.0",
+   "date": "2026-11-08",
+   "items": [
+    "Phone: .sdt / .sdp / .sdv / .sdz and Aseprite files can be picked for import again",
+    "Files without a proper name are recognised by what is inside",
+    "“Open with Starman Does Animations”: double-click .sdt / .sdp / .sdv / .sdz files in Explorer, and open .aseprite files with it (the Android app too)",
+    "Computer updates now also update the program part, not only the page"
+   ]
+  },
   {
    "v": "1.26.0",
    "date": "2026-11-08",

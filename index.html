@@ -5699,9 +5699,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.26.0';
+const APP_VERSION = '1.27.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.27.0', date: '2026-11-08', items: ['Phone: .sdt / .sdp / .sdv / .sdz and Aseprite files can be picked for import again', 'Files without a proper name are recognised by what is inside', '“Open with Starman Does Animations”: double-click .sdt / .sdp / .sdv / .sdz files in Explorer, and open .aseprite files with it (the Android app too)', 'Computer updates now also update the program part, not only the page'] },
   { v: '1.26.0', date: '2026-11-08', items: ['Cloud sync: the same animations on your computer and phone (Start → Cloud sync). Files are kept in your own private GitHub storage', 'Syncs by itself after saving, every few minutes and when the app opens; the ☁ button on the taskbar shows the state', 'If one file was changed on two devices, both versions are kept'] },
   { v: '1.25.0', date: '2026-11-08', items: ['Phone and tablet layout: full-screen canvas, tools at the bottom, palette, settings and timeline slide up', 'Touch: two fingers zoom and move the canvas, two-finger tap = undo, three-finger tap = redo', 'Install on Android as an app (from the web page, or the APK)', 'This “What’s new” window, and “Check for updates” in the Start menu', 'Big animations no longer hit the 5 MB browser limit (files are kept in IndexedDB)'] },
   { v: '1.24.0', date: '2026-11-06', items: ['Sprite layers: animated clips with their own tab, ◆ keys choose idle / run / jump…', 'Hide a sprite on some frames, remove keys on selected frames', '◆ motion keys for any layer with the Move tool (“Whole layer”)'] },
@@ -6077,6 +6078,61 @@ setTimeout(() => {
   addEventListener('online', () => syncSoon(1000));
 }, 0);
 window.__sync = syncNow;
+
+/* ================= opening files: names the phone hides, "Open with Starman Does Animations" ================= */
+const KNOWN_RX = /\.(sdt|sdv|sdp|sda|lbx|sdz|ase|aseprite|json|xml|png|gif|jpe?g|webp|bmp)$/i;
+// phones often hand over files without a name or with a strange one: look inside to know what it is
+async function sniffFile(f) {
+  const nm = String(f.name || '');
+  if (KNOWN_RX.test(nm)) return f;
+  let h; try { h = new Uint8Array(await f.slice(0, 64).arrayBuffer()); } catch (e) { return f; }
+  let ext = '';
+  if (h[4] === 0xE0 && h[5] === 0xA5) ext = 'aseprite';
+  else if (h[0] === 0x50 && h[1] === 0x4B) ext = 'sdz';
+  else if (h[0] === 0x89 && h[1] === 0x50) ext = 'png';
+  else if (h[0] === 0x47 && h[1] === 0x49) ext = 'gif';
+  else if (h[0] === 0xFF && h[1] === 0xD8) ext = 'jpg';
+  else {
+    const head = utf8d.decode(h).trimStart();
+    if (head[0] === '{') { const t = await f.slice(0, 4000).text(); const m = /"mode":"(\w+)"/.exec(t); ext = m && m[1] === 'pixel' ? 'sdp' : m && m[1] === 'vector' ? 'sdv' : 'sdt'; }
+    else if (head[0] === '<') ext = 'xml';
+  }
+  if (!ext) return f;
+  const base = nm.replace(/\.[^.]{0,12}$/, '').replace(/^.*[\/:]/, '') || 'Opened file';
+  return new File([f], base + '.' + ext, { type: f.type || '' });
+}
+async function importAndOpen(files) {
+  const ok = await importFiles(files, '');
+  if (ok && ok.length) { const p = ok[0]; if (/\.(sdt|sdv|sdp)$/i.test(p)) await openEntry(p, 'file'); }
+}
+// computer: files double-clicked in Explorer
+async function takeDesktopOpen() {
+  const dk = window.desktop; if (!dk || !dk.takeOpenFiles) return;
+  let list = []; try { list = await dk.takeOpenFiles(); } catch (e) { return; }
+  for (const it of list || []) {
+    if (it.rel) { await openFile(it.rel); continue; }
+    await importAndOpen([await sniffFile(new File([b64ToBytes(it.b64)], it.name))]);
+  }
+}
+// Android app: files opened from a file manager / Telegram / Downloads
+async function openCapUrl(url) {
+  if (!url || /^https?:/i.test(url)) return;
+  const P = window.Capacitor && window.Capacitor.Plugins; let bytes = null;
+  try { if (P && P.Filesystem) { const r = await P.Filesystem.readFile({ path: url }); bytes = typeof r.data === 'string' ? b64ToBytes(r.data) : new Uint8Array(await r.data.arrayBuffer()); } } catch (e) {}
+  if (!bytes) { try { const r = await fetch(window.Capacitor.convertFileSrc(url)); if (r.ok) bytes = new Uint8Array(await r.arrayBuffer()); } catch (e) {} }
+  if (!bytes) { toast('Could not read that file'); return; }
+  let name = ''; try { name = decodeURIComponent(url.split('?')[0]).replace(/^.*[\/:]/, ''); } catch (e) {}
+  await importAndOpen([await sniffFile(new File([bytes], name || 'Opened file'))]);
+}
+setTimeout(() => {
+  const dk = window.desktop;
+  if (dk && dk.onOpenFiles) { dk.onOpenFiles(() => takeDesktopOpen()); setTimeout(takeDesktopOpen, 1200); }
+  const App = isCap() && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+  if (App) {
+    try { App.addListener('appUrlOpen', e => openCapUrl(e && e.url)); } catch (e) {}
+    setTimeout(() => { try { App.getLaunchUrl().then(r => { if (r && r.url) openCapUrl(r.url); }).catch(() => {}); } catch (e) {} }, 1500);
+  }
+}, 0);
 /* ---------- paths & storage ---------- */
 const EXT = { trad: 'sdt', vector: 'sdv', pixel: 'sdp' }, EXT_MODE = { sdt: 'trad', sdv: 'vector', sdp: 'pixel' };
 const TYPE_LABEL = { trad: 'Traditional animation', vector: 'Vector animation', pixel: 'Pixel art animation' };
@@ -6741,6 +6797,8 @@ function iconMenu(el, x, y) {
 }
 function importInto(dir) {
   const inp = $('#importInput'); inp.value = '';
+  // phones grey out files with unknown types (.sdt, .aseprite…) when a list is given: let them pick anything
+  if (!window.desktop && (isCap() || matchMedia('(pointer: coarse)').matches || document.body.classList.contains('mobile'))) inp.removeAttribute('accept');
   inp.onchange = () => importFiles([...inp.files], dir);
   inp.click();
 }
@@ -6818,9 +6876,10 @@ async function xmlPairs(files) {
   }
   return { pairs: out, used };
 }
-const isProjFile = f => /\.(sdt|sdp|sdv|ase|aseprite|json|sdz)$/i.test(f.name || '');
+const isProjFile = f => /\.(sdt|sdp|sdv|sda|lbx|ase|aseprite|json|sdz)$/i.test(f.name || '');
 async function importFiles(files, dir) {
     if (!files.length) return;
+    files = await Promise.all(files.map(f => sniffFile(f).catch(() => f)));
     const packs = files.filter(f => /\.sdz$/i.test(f.name || '')); files = files.filter(f => !/\.sdz$/i.test(f.name || ''));
     let fromPacks = []; for (const pk of packs) { try { fromPacks = fromPacks.concat(await unpackSdz(pk, dir)); } catch (err) { toast(pk.name + ': ' + (err && err.message || 'cannot read')); } }
     if (!files.length) { if (fromPacks.length) { selected = fromPacks[fromPacks.length - 1]; refreshAll(); toast('Unpacked ' + fromPacks.length + (fromPacks.length === 1 ? ' animation' : ' animations')); } return fromPacks; }
