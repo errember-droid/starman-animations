@@ -1,0 +1,46 @@
+# Builds the Android app (APK) every time the files change.
+# The newest APK is always at: https://github.com/<you>/<repo>/releases/latest/download/starman.apk
+name: Android APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Make the Android project
+        run: |
+          VERSION=$(node -p "require('./version.json').version")
+          mkdir -p build/www build/assets
+          cp index.html manifest.webmanifest icon-192.png icon-512.png build/www/
+          cp icon-1024.png build/assets/icon-only.png
+          cp icon-1024.png build/assets/icon-foreground.png
+          cd build
+          npm init -y > /dev/null
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/filesystem@6 @capacitor/share@6 @capacitor/assets
+          npx cap init "Starman Does Animations" com.starman.animations --web-dir www
+          npx cap add android
+          npx capacitor-assets generate --android --iconBackgroundColor '#1d1d36' --splashBackgroundColor '#1d1d36' || true
+          npx cap sync android
+          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"$VERSION\"/" android/app/build.gradle
+          cd android && ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../../starman.apk
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}-${{ github.run_number }}
+          name: Starman Does Animations ${{ env.VERSION }}
+          body: Install starman.apk on your Android phone (allow installing from this source when asked).
+          files: starman.apk
+          make_latest: true
