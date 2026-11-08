@@ -1,6 +1,13 @@
 {
- "version": "1.28.1",
+ "version": "1.28.2",
  "changelog": [
+  {
+   "v": "1.28.2",
+   "date": "2026-11-08",
+   "items": [
+    "Phone: no black frames around the canvas while zooming out or moving"
+   ]
+  },
   {
    "v": "1.28.1",
    "date": "2026-11-08",

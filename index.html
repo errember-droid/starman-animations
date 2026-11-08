@@ -5706,9 +5706,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.28.1';
+const APP_VERSION = '1.28.2';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.28.2', date: '2026-11-08', items: ['Phone: no black frames around the canvas while zooming out or moving'] },
   { v: '1.28.1', date: '2026-11-08', items: ['Phone: pinch zoom in pixel art no longer jumps 100% → 200%: it stays exactly where you leave it'] },
   { v: '1.28.0', date: '2026-11-08', items: ['Phone: zoom and moving the canvas follow your fingers instantly (the picture is redrawn when you stop)', 'Phone: ✋ Hand button — move around the canvas with one finger, without zooming or drawing', 'Phone: all tools fit on the screen (two rows), bigger buttons, windows no longer go off the screen'] },
   { v: '1.27.1', date: '2026-11-08', items: ['Phone: pinch zoom is smooth (pixel art snaps to a whole zoom when you let go)', 'Phone: onion skins no longer lag behind when you move the canvas with two fingers', 'Phone: big animations play without filling the memory (no more crashes when playing)', 'Very big files are skipped by cloud sync instead of crashing it'] },
@@ -5828,17 +5829,25 @@ function abortStroke() {
   if (stroke) { stroke = null; mirrors = []; buffer.clear(); }
   shapeDrag = null; if (selDrag) selDrag = null; extDrag = null; gradDrag = null; render();
 }
-function gestShow() {   // cheap: move the drawn picture with CSS
-  const z = S.zoom, r = gestShown; if (!r) return; const k = z.scale / r.scale;
-  view.style.transformOrigin = '0 0'; view.style.transform = 'translate(' + (z.x - r.x * k) + 'px,' + (z.y - r.y * k) + 'px) scale(' + k + ')';
+const gestSnap = document.createElement('canvas'); let gestBg = '#9a9aa6';
+function gestTake() {   // a copy of what is on screen now, to slide around while the fingers move
+  if (gestSnap.width !== view.width || gestSnap.height !== view.height) { gestSnap.width = view.width; gestSnap.height = view.height; }
+  const g = gestSnap.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, gestSnap.width, gestSnap.height); g.drawImage(view, 0, 0);
+  try { const d = view.getContext('2d').getImageData(1, 1, 1, 1).data; gestBg = 'rgb(' + d[0] + ',' + d[1] + ',' + d[2] + ')'; } catch (e) {}
+  gestShown = { x: S.zoom.x, y: S.zoom.y, scale: S.zoom.scale };
+}
+function gestShow() {   // cheap: draw the copy moved/scaled, the uncovered edges get the normal background (no black frames)
+  const z = S.zoom, r = gestShown; if (!r) return; const k = z.scale / r.scale, c = view.getContext('2d');
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = gestBg; c.fillRect(0, 0, view.width, view.height);
+  c.imageSmoothingEnabled = MODE !== 'pixel'; c.setTransform(k, 0, 0, k, (z.x - r.x * k) * dpr, (z.y - r.y * k) * dpr); c.drawImage(gestSnap, 0, 0); c.restore();
   clearTimeout(gestT); gestT = setTimeout(gestRedraw, 160);
 }
-function gestRedraw() { clearTimeout(gestT); view.style.transform = ''; layout(); updBrushDot(); if (gestShown) gestShown = { x: S.zoom.x, y: S.zoom.y, scale: S.zoom.scale }; }
+function gestRedraw() { clearTimeout(gestT); layout(); updBrushDot(); if (gestShown) gestTake(); }
 function gestBegin(n, pts) {
   const [a, b] = pts.length > 1 ? pts : [pts[0], pts[0]];
   gest = { n, t0: Math.min(...pts.map(p => p.t)), moved: false, d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, s0: S.zoom.scale, cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
   if (S.zoom.fit) S.zoom.fit = false;
-  gestShown = { x: S.zoom.x, y: S.zoom.y, scale: S.zoom.scale };
+  gestTake();
 }
 view.addEventListener('pointerdown', e => {
   const pan = handOn && (e.pointerType !== 'mouse' || e.button === 0);
@@ -5869,7 +5878,7 @@ const touchEnd = e => {
   if (!touches.has(e.pointerId)) return;
   touches.delete(e.pointerId);
   if (!gest) return; e.stopImmediatePropagation();
-  if (touches.size) { const zm = gest.zoomed, mv = gest.moved, t0 = gest.t0, n0 = gest.n; gestBegin(touches.size, [...touches.values()]); Object.assign(gest, { zoomed: zm, moved: mv, t0, n: n0 }); gestShown = gestShown && { x: S.zoom.x, y: S.zoom.y, scale: S.zoom.scale }; gestRedraw(); return; }
+  if (touches.size) { const zm = gest.zoomed, mv = gest.moved, t0 = gest.t0, n0 = gest.n; gestBegin(touches.size, [...touches.values()]); Object.assign(gest, { zoomed: zm, moved: mv, t0, n: n0 }); gestRedraw(); return; }
   const g = gest; gest = null;
   gestShown = null; gestRedraw();
   if (!g.moved && g.n >= 2 && performance.now() - g.t0 < 350) { if (g.n === 2) { undo(); flash('Undo'); } else { redo(); flash('Redo'); } }
