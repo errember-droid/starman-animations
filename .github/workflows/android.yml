@@ -9,35 +9,71 @@ permissions:
   contents: write
 jobs:
   apk:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: 1 Get files
+        uses: actions/checkout@v5
+      - name: 2 Node
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
-      - uses: actions/setup-java@v4
+          node-version: 22
+      - name: 3 Java
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
-      - name: Make the Android project
+          java-version: 21
+      - name: 4 Android SDK
+        uses: android-actions/setup-android@v3
+      - name: 5 Prepare web files
         run: |
+          set -ex
           VERSION=$(node -p "require('./version.json').version")
-          mkdir -p build/www build/assets
-          cp index.html manifest.webmanifest icon-192.png icon-512.png build/www/
-          cp icon-1024.png build/assets/icon-only.png
-          cp icon-1024.png build/assets/icon-foreground.png
-          cd build
-          npm init -y > /dev/null
-          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/filesystem@6 @capacitor/share@6 @capacitor/assets
-          npx cap init "Starman Does Animations" com.starman.animations --web-dir www
-          npx cap add android
-          npx capacitor-assets generate --android --iconBackgroundColor '#1d1d36' --splashBackgroundColor '#1d1d36' || true
-          npx cap sync android
-          sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"$VERSION\"/" android/app/build.gradle
-          cd android && ./gradlew assembleDebug --no-daemon
-          cp app/build/outputs/apk/debug/app-debug.apk ../../starman.apk
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-      - uses: softprops/action-gh-release@v2
+          mkdir -p build/www build/assets
+          cp index.html build/www/
+          cp manifest.webmanifest icon-192.png icon-512.png build/www/ || true
+          cp icon-1024.png build/assets/icon-only.png || true
+          cp icon-1024.png build/assets/icon-foreground.png || true
+          cp icon-1024.png build/assets/icon-background.png || true
+          cd build
+          cat > package.json <<'EOF'
+          { "name": "starman", "version": "1.0.0", "private": true }
+          EOF
+          cat > capacitor.config.json <<'EOF'
+          { "appId": "com.starman.animations", "appName": "Starman Does Animations", "webDir": "www" }
+          EOF
+      - name: 6 Install Capacitor
+        working-directory: build
+        run: |
+          set -ex
+          npm install --no-audit --no-fund @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/filesystem@6 @capacitor/share@6
+      - name: 7 Make Android project
+        working-directory: build
+        run: |
+          set -ex
+          npx cap add android
+          npx cap sync android
+          sed -i "s/versionCode 1$/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"$VERSION\"/" android/app/build.gradle
+      - name: 8 App icon
+        working-directory: build
+        continue-on-error: true
+        run: |
+          npm install --no-audit --no-fund @capacitor/assets
+          npx capacitor-assets generate --android --iconBackgroundColor '#1d1d36' --splashBackgroundColor '#1d1d36'
+      - name: 9 Build APK
+        working-directory: build/android
+        run: |
+          set -ex
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          cp app/build/outputs/apk/debug/app-debug.apk ../../starman.apk
+      - name: 10 Keep APK (download from this page too)
+        uses: actions/upload-artifact@v4
+        with:
+          name: starman-apk
+          path: starman.apk
+      - name: 11 Publish release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION }}-${{ github.run_number }}
           name: Starman Does Animations ${{ env.VERSION }}
