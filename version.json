@@ -1,0 +1,44 @@
+{
+ "version": "1.25.0",
+ "changelog": [
+  {
+   "v": "1.25.0",
+   "date": "2026-11-08",
+   "items": [
+    "Phone and tablet layout: full-screen canvas, tools at the bottom, palette, settings and timeline slide up",
+    "Touch: two fingers zoom and move the canvas, two-finger tap = undo, three-finger tap = redo",
+    "Install on Android as an app (from the web page, or the APK)",
+    "This “What’s new” window, and “Check for updates” in the Start menu",
+    "Big animations no longer hit the 5 MB browser limit (files are kept in IndexedDB)"
+   ]
+  },
+  {
+   "v": "1.24.0",
+   "date": "2026-11-06",
+   "items": [
+    "Sprite layers: animated clips with their own tab, ◆ keys choose idle / run / jump…",
+    "Hide a sprite on some frames, remove keys on selected frames",
+    "◆ motion keys for any layer with the Move tool (“Whole layer”)"
+   ]
+  },
+  {
+   "v": "1.23.0",
+   "date": "2026-11-06",
+   "items": [
+    "Hue / Saturation window (Ctrl+U) like Aseprite",
+    "More export formats: Animated PNG, MP4, sheet + JSON, WebP / JPEG",
+    ".sdz packages to move animations to another computer"
+   ]
+  },
+  {
+   "v": "1.22.0",
+   "date": "2026-11-05",
+   "items": [
+    "Free transform: scale, turn, slant (Ctrl), one corner (Alt)",
+    "Templates gallery with tags and layer colors",
+    "Camera zoom and turn while playing"
+   ]
+  }
+ ],
+ "apk": "https://github.com/errember-droid/starman-animations/releases/latest/download/starman.apk"
+}
