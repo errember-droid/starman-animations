@@ -584,7 +584,7 @@ body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-t
 .vfs{display:flex;gap:8px;align-items:center;margin:4px 0 8px}.vsw{position:relative;width:34px;height:34px;padding:0;border:1px solid #16162b;background:#fff;cursor:pointer}.vsw i{position:absolute;inset:3px;display:block}
 .vsw.stroke i{background:transparent!important;border:7px solid #000;inset:3px}.vsw.on{outline:2px solid var(--accent);outline-offset:1px}.vfsr{display:flex;flex-direction:column;gap:2px}.vfsr .pb{padding:1px 6px}
 #vecShapeSet input[type=color]{width:34px;height:22px;padding:0;border:1px solid #555;background:none;margin-left:4px}#vecShapeSet select{margin:0 4px}
-#vecShapeSet .vbtns{gap:3px;flex-wrap:wrap}#vecShapeSet .vbtns .pb{flex:1;min-width:0;padding:2px 3px}.vsel-info{color:var(--accent)!important}#vecShapeSet .vxy input.num{width:54px}#vecShapeSet .vxy{gap:4px}.vfxbox{margin:0 0 6px 14px;padding-left:6px;border-left:2px solid rgba(255,255,255,.15)}.vfxbox[hidden]{display:none}#vecShapeSet input[type=color][hidden]{display:none}
+#vecShapeSet .vbtns{gap:3px;flex-wrap:wrap}#vecShapeSet .vbtns .pb{flex:1;min-width:0;padding:2px 3px}.vsel-info{color:var(--accent)!important}.vlight{display:flex;gap:8px;align-items:center}.vlight .vlr{flex:1;min-width:0}#vLiBall{width:96px;height:96px;cursor:crosshair;flex:0 0 auto;touch-action:none}.cel.vkey{position:relative}.cel.vkey::before{content:'◆';position:absolute;left:1px;top:-1px;font-size:9px;line-height:1;color:#34c28a;pointer-events:none}.cel.vgen{background-image:linear-gradient(90deg,rgba(52,194,138,.0) 0,rgba(52,194,138,.45) 0);background-size:100% 3px;background-repeat:no-repeat;background-position:0 100%}#vecShapeSet .vxy input.num{width:54px}#vecShapeSet .vxy{gap:4px}.vfxbox{margin:0 0 6px 14px;padding-left:6px;border-left:2px solid rgba(255,255,255,.15)}.vfxbox[hidden]{display:none}#vecShapeSet input[type=color][hidden]{display:none}
 body[data-mode=vector] #app>.tools .sep{display:none!important}
 body.floatpanels:not(.mobile) #app{grid-template-columns:var(--palW) 5px 34px minmax(0,1fr) 0 0!important}
 body.floatpanels:not(.mobile) #side,body.floatpanels:not(.mobile) #splitR{display:none!important}
@@ -1114,7 +1114,7 @@ document.querySelectorAll('[data-icon]').forEach(el => { const k = el.dataset.ic
 const view = $('#view');
 let vctx = view.getContext('2d');
 let dpr = window.devicePixelRatio || 1;
-const VTOOLS = ['vbrush', 'vselect', 'vdirect', 'pen', 'rect', 'ellipse', 'poly', 'star', 'line', 'picker'], VTOOLS_ONLY = ['vbrush', 'vselect', 'vdirect', 'pen', 'poly', 'star'];   // vector art tools
+const VTOOLS = ['liquify', 'scissors', 'bucket', 'vgrad', 'spiral', 'vbrush', 'vselect', 'vdirect', 'pen', 'rect', 'ellipse', 'poly', 'star', 'line', 'picker'], VTOOLS_ONLY = ['liquify', 'scissors', 'bucket', 'vgrad', 'spiral', 'vbrush', 'vselect', 'vdirect', 'pen', 'poly', 'star'];   // vector art tools
 
 /* ---------- sparse tiled surface: the canvas is endless, memory is spent only where you draw ---------- */
 const TS = 256;
@@ -1487,8 +1487,8 @@ function applyAct(a, dir) {
   if (a.li != null && a.li < S.layers.length) S.layer = a.li;
   cellChanged(a.f); markTimeline();
 }
-function undo() { const a = hist.pop(); if (!a) return; stopPlay(); applyAct(a, 0); redoS.push(a); touched(); updateUndo(); }
-function redo() { const a = redoS.pop(); if (!a) return; stopPlay(); applyAct(a, 1); hist.push(a); touched(); updateUndo(); }
+function undo() { const a = hist.pop(); if (!a) return; stopPlay(); applyAct(a, 0); redoS.push(a); touched(); updateUndo(); if (MODE === 'vector') vAfterHist(a); }
+function redo() { const a = redoS.pop(); if (!a) return; stopPlay(); applyAct(a, 1); hist.push(a); touched(); updateUndo(); if (MODE === 'vector') vAfterHist(a); }
 /* Ctrl+Z for settings too: color, brush size and opacity, palette, speed. Quick changes in a row (dragging the picker) are one step */
 const uiLast = {}; let uiQuiet = false;
 function uiRec(k, v) {
@@ -2248,7 +2248,7 @@ view.addEventListener('pointerdown', e => {
   if (!isDraw(l)) { flash(isSprite(l) ? 'A sprite is drawn in its clip: right-click it → Edit clip. Here the Move tool (V) moves, scales and turns it' : 'Pick a drawing layer to draw on'); return; }
   { const ef = effOf(S.layer); if (!l.visible || !ef.vis) { flash('“' + l.name + '” is hidden'); return; }
     if (l.locked || ef.locked) { flash('“' + l.name + '” is locked'); return; } }
-  { const ET = MODE === 'vector' ? VEC_TOOL[S.tool] : EXT_TOOL[S.tool]; if (ET) { view.setPointerCapture(e.pointerId); extDrag = ET(p, e) || null; render(); return; } }
+  { const ET = MODE === 'vector' ? VEC_TOOL[S.tool] : EXT_TOOL[S.tool]; if (ET) { if (MODE === 'vector') vLiveEnd(); view.setPointerCapture(e.pointerId); extDrag = ET(p, e) || null; render(); return; } }
   if ((S.tool === 'fill' || S.tool === 'gradient') && layerTurned()) { flash('This layer is turned or scaled by motion keys on this frame'); return; }
   if (S.tool === 'fill') { MODE === 'vector' ? recolor(p) : fill(p); return; }
   view.setPointerCapture(e.pointerId);
@@ -3893,7 +3893,7 @@ tg.addEventListener('contextmenu', e => {
 });
 
 /* ---------- saving & loading (format 5: endless canvas in tiles, layer types, camera size) ---------- */
-function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg', 'ns', 'cls', 'op', 'fx', 'sal', 'a0', 'a1', 'dl'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
+function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg', 'ns', 'cls', 'op', 'fx', 'sal', 'a0', 'a1', 'dl', 'id'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
 function deStroke(o) { const p = []; for (let i = 0; i + 2 < o.p.length; i += 3) p.push([o.p[i], o.p[i + 1], o.p[i + 2]]); const st = { color: o.c, opacity: o.o == null ? 1 : o.o, pts: p }; if (o.k === 'square') st.cap = 'square'; if (o.sh) { st.shape = o.sh; st.fc = o.fc || null; st.ol = !!o.ol; st.rr = o.rr || 0; if (o.x) Object.assign(st, o.x); } return st; }
 function serSurf(s) {
   const out = [];
@@ -3925,7 +3925,7 @@ function projectData() {
       return o;
     }),
     frames: S.frames.map((f, fi) => ({ h: f.hold, ms: f.ms || undefined, cam: f.cam ? { x: f.cam.x, y: f.cam.y, z: f.cam.z, r: f.cam.r || undefined, e: f.cam.e || 'smooth' } : undefined, fk: saveFxKeys(f), sk: saveSpriteKeys(f), lk: saveLayerKeys(f), cels: f.cels.map((c, i) => { if (!c) return null;
-      const seen = linkSeen(c, i, fi); if (seen != null) return { l: seen };   /* a linked cel: the same drawing as an earlier frame */ const o = MODE === 'vector' ? { s: c.strokes.map(serStroke) } : (celEmpty(c) ? {} : { t: serSurf(c.s) }); if (c.op != null && c.op < 1) o.o = c.op; return o; }) })) };
+      const seen = linkSeen(c, i, fi); if (seen != null) return { l: seen };   /* a linked cel: the same drawing as an earlier frame */ const o = MODE === 'vector' ? { s: c.strokes.map(serStroke) } : (celEmpty(c) ? {} : { t: serSurf(c.s) }); if (c.vkey) { o.vk = 1; if (c.vez) o.ve = c.vez; } if (c.vgen) o.vg = 1; if (c.op != null && c.op < 1) o.o = c.op; return o; }) })) };
 }
 const loadImg = src => new Promise(res => { if (!src) { res(null); return; } const img = new Image(); img.onload = () => res(img); img.onerror = () => res(null); img.src = src; });
 function loadProject(pp) {
@@ -3967,7 +3967,7 @@ function loadProject(pp) {
   if (MODE === 'vector') {
     return done(d.frames.map(fr => {
       const cs = celsOf(fr);
-      const f = newFrame(S.layers.map((l, li) => { if (!isDraw(l)) return null; const c = cs[li] || {}, cel = { strokes: (c.s || []).map(deStroke), dirty: true }; if (c.o >= 0 && c.o < 1) cel.op = +c.o; return cel; }));
+      const f = newFrame(S.layers.map((l, li) => { if (!isDraw(l)) return null; const c = cs[li] || {}, cel = { strokes: (c.s || []).map(deStroke), dirty: true }; if (c.o >= 0 && c.o < 1) cel.op = +c.o; if (c.vk) { cel.vkey = true; if (c.ve) cel.vez = c.ve; } if (c.vg) cel.vgen = true; return cel; }));
       f.hold = fr.h || 1; if (fr.ms > 0) f.ms = clamp(fr.ms | 0, 1, 600000); return f;
     }));
   }
@@ -4246,7 +4246,7 @@ function celMenuExtra(fi, li) {
   return [
     { label: 'Link with previous frame', disabled: fi === 0 || !celOk(li) || (fi > 0 && S.frames[fi - 1].cels[li] === c), action: () => linkCel(fi, li, fi - 1) },
     { label: 'Unlink', disabled: !linked, action: () => unlinkCel(fi, li) },
-    ...celMotionItems(fi, li)];
+    ...celMotionItems(fi, li), ...vKeyItems(fi, li)];
 }
 function dupLinked() { stopPlay(); frameOp(() => { const src = curFrame(); const f = newFrame(src.cels.slice()); f.hold = src.hold; f.ms = src.ms; S.frames.splice(S.cur + 1, 0, f); S.cur++; }); flash('Frame duplicated with linked cels: draw on one and both change'); }
 
@@ -4285,7 +4285,7 @@ function fhExtra(i) {
 function celExtra(f, fi, li) {
   const l = S.layers[li]; let c = '';
   if (f.lk && l && f.lk[l.id]) c += ' tkey';
-  const cel = f.cels[li]; if (cel && !celEmpty(cel) && ((fi > 0 && S.frames[fi - 1].cels[li] === cel) || (fi + 1 < S.frames.length && S.frames[fi + 1].cels[li] === cel))) c += ' linked';
+  const cel = f.cels[li]; if (cel && cel.vkey) c += ' vkey'; else if (cel && cel.vgen) c += ' vgen'; if (cel && !celEmpty(cel) && ((fi > 0 && S.frames[fi - 1].cels[li] === cel) || (fi + 1 < S.frames.length && S.frames[fi + 1].cels[li] === cel))) c += ' linked';
   if (inRange(fi, li) && tlRange.l0 >= 0) c += ' rsel';
   return c;
 }
@@ -5733,9 +5733,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.31.1';
+const APP_VERSION = '1.32.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.32.0', date: '2026-11-09', items: ['Vector: shape animation ◆ — make a key on a later frame (Shift+K), change the shapes there, the frames in between move by themselves (every point follows), with easing', 'Vector: clicking a shape takes you to its layer; Ctrl+A selects shapes on all layers, the selection box works across layers', 'Vector effects: Light & 3D with a ball to place the sun (highlight, shade, sun glint, edge bevel), inner shadow, inner glow, materials: glass, metal, chrome, gold, plastic, satin', 'Vector tools: Liquify (W: push, twirl, pinch, puff up), Scissors (C), Paint bucket (G), Gradient by dragging (Shift+G), Spiral (Shift+S)', 'Vector: polygon is now Y (N adds a frame again), Alt + arrows move shapes (arrows change frames)'] },
   { v: '1.31.1', date: '2026-11-09', items: ['Joined / cut shapes: the outline now follows the real edge, no more notches where the shapes meet'] },
   { v: '1.31.0', date: '2026-11-09', items: ['Vector brush (B): draw freely, the line becomes points you can move with A; smooth curves or sharp zigzag, smoothness setting', 'Points: make one point or the whole shape smooth or sharp, double-click a line (A) to add a point', 'Combine shapes: Join, Cut out (the top shape cuts itself out), Overlap, Hole (the overlap becomes empty), Take apart', 'Snapping to the points and the outlines of other shapes', 'Stroke width stays the same when scaling (can be switched off), stroke inside / outside, custom dashes, arrows and dots on line ends, round gradients', 'Position and size fields (X, Y, W, H, turn)', 'Effects: shadow, glow, blur, blend modes, textures (dots, stripes, hatching, grain…) or your own picture'] },
   { v: '1.30.0', date: '2026-11-09', items: ['Brush, Animation, Render and Export settings are now separate windows: F5, F6, F7, F8 (or the ☰ button). Move them anywhere, they remember their place. The canvas gets the space', 'Vector art: Selection (V) — move, scale, turn, Alt-drag copies; Direct selection (A) — edit points and curves; Pen (P); Rectangle, Ellipse, Polygon, Star, Line; Eyedropper', 'Vector art: fill and stroke colors (X switches, Shift+X swaps), gradient fill, dashed / dotted strokes, ends and corners, round corners', 'Vector art: arrange (Ctrl+[ ]), align and spread evenly, flip, turn 90°, copy / paste / duplicate, smart guides that stick to other shapes and the camera'] },
@@ -6236,7 +6237,17 @@ const KAPPA = 0.5522847;
 const vcel = () => { const c = curCel(); return c && c.strokes ? c : null; };
 const mapPt = (M, x, y) => [M.a * x + M.c * y + M.e, M.b * x + M.d * y + M.f];
 const vtol = () => 6 / Math.max(0.01, S.zoom.scale);
-function vSelList() { const c = vcel(); if (!c) { vsel = new Set(); return []; } const out = c.strokes.filter(s => vsel.has(s)); if (out.length !== vsel.size) vsel = new Set(out); return out; }
+// shapes on every visible, unlocked vector layer of this frame can be selected together
+function vCelsAll(all) { const f = curFrame(), out = []; if (!f) return out; S.layers.forEach((l, li) => { const c = f.cels[li]; if (c && c.strokes && isDraw(l) && (all || (l.visible && !l.locked && effOf(li).vis && !effOf(li).locked))) out.push({ c, li }); }); return out; }
+function vOwner(st) { for (const o of vCelsAll(true)) if (o.c.strokes.includes(st)) return o; return null; }
+function vSelList() { const out = []; for (const o of vCelsAll()) for (const st of o.c.strokes) if (vsel.has(st)) out.push(st); if (out.length !== vsel.size) vsel = new Set(out); return out; }
+function vGoLayer(li) { if (li == null || li === S.layer) return; S.layer = li; markTimeline(); applyLayerUI(); }
+function vCommitMulti(list, extra) {   // one undo step for changes on several layers
+  if (vlive && !list.__live) { const L = vlive; if (L.cels.every(x => x.c.strokes === x.last)) vLiveEnd(); else vlive = null; }
+  const L = list.filter(x => x.before !== x.after); if (!L.length) return false;
+  const put = dir => { L.forEach(x => { x.c.strokes = dir ? x.after : x.before; x.c.dirty = true; }); vAfterEdit(L.map(x => x.li)); vRefresh(); };
+  L.forEach(x => { x.c.strokes = x.after; x.c.dirty = true; }); vAfterEdit(L.map(x => x.li), L.map(x => x.c)); pushX(put); vRefresh(); updateDots(curFrame()); renderPreview(); return true;
+}
 function vClone(st, patch) { const o = Object.assign({}, st, patch); delete o.box; return o; }
 
 /* ---------- geometry ---------- */
@@ -6326,6 +6337,11 @@ function vHit(st, x, y, tol) {
   hctx.lineWidth = (st.ol ? st.pts[0][2] : 0) + tol * 2; hctx.lineJoin = 'round'; return hctx.isPointInStroke(st.shape === 'compound' ? vEdge(st) : p, x, y);
 }
 function hitVShape(st, x, y, r) { return vHit(st, x, y, r); }
+function vTopAtE(e) {   // the shape under the pointer on any visible, unlocked layer (top layer first)
+  const raw = posRaw(e), t = vtol(), L = vCelsAll();
+  for (let k = L.length - 1; k >= 0; k--) { const o = L[k], M = layerMat(S.layers[o.li], S.cur); let x = raw.x, y = raw.y; if (M) { const q = invPt(M, x, y); x = q[0]; y = q[1]; } for (let i = o.c.strokes.length - 1; i >= 0; i--) { const st = o.c.strokes[i]; if (st.shape ? vHit(st, x, y, t) : hitStroke(st, x, y, t)) return { st, li: o.li }; } }
+  return null;
+}
 function vTopAt(x, y) { const c = vcel(); if (!c) return null; const t = vtol(); for (let i = c.strokes.length - 1; i >= 0; i--) { const st = c.strokes[i]; if (st.shape ? vHit(st, x, y, t) : hitStroke(st, x, y, t)) return st; } return null; }
 
 /* ---------- new shapes ---------- */
@@ -6341,34 +6357,36 @@ function vPolyShape(cx, cy, r, ang, star) {
 function vLineShape(x0, y0, x1, y1) { const a = [x0, y0, VSH.lw], b = [x1, y1, VSH.lw]; return Object.assign(vStyle(), { shape: 'path', pts: [a, a.slice(), a.slice(), b, b.slice(), b.slice()], cl: false, fc: null, fg: undefined, ol: true, color: VSH.lc }); }
 
 /* ---------- changing the cel ---------- */
-function vRefresh() { vhover = null; const c = vcel(); if (c) c.dirty = true; invComp(); onionValid = false; render(); }
-function vPush(c, before, after) { c.strokes = after; c.dirty = true; push({ t: 'v', f: curFrame(), cel: c, li: S.layer, before, after }); vRefresh(); updateDots(curFrame()); renderPreview(); }
+function vRefresh() { vhover = null; vCelsAll(true).forEach(o => { o.c.dirty = true; }); invComp(); onionValid = false; render(); }
+function vPush(c, before, after) { const o = vCelsAll(true).find(x => x.c === c); vCommitMulti([{ c, li: o ? o.li : S.layer, before, after }]); }
 function vEditSel(fn) {   // one undo step: change every selected shape
-  const c = vcel(); if (!c || !vlayerOk() || !vSelList().length) return false;
-  const before = c.strokes, nsel = new Set(); let changed = false;
-  const after = before.map(st => { if (!vsel.has(st)) return st; const n = fn(st); nsel.add(n); if (n !== st) changed = true; return n; });
-  if (!changed) return false; vsel = nsel; vPush(c, before, after); return true;
+  if (!vSelList().length) return false; const nsel = new Set(), list = [];
+  for (const o of vCelsAll()) { if (!o.c.strokes.some(st => vsel.has(st))) continue; const before = o.c.strokes; list.push({ c: o.c, li: o.li, before, after: before.map(st => { if (!vsel.has(st)) return st; const n = fn(st); nsel.add(n); return n; }) }); }
+  if (!list.some(x => x.after.some((st, i) => st !== x.before[i]))) return false; vsel = nsel; return vCommitMulti(list);
 }
 const vlayerOk = () => { const l = S.layers[S.layer]; return !!(l && isDraw(l) && l.visible && !l.locked); };
 // live changes (sliders, color picker): shown at once, saved as one undo step when you stop
 let vlive = null;
 function vLive(fn) {
-  const c = vcel(); if (!c || !vlayerOk()) return; if (!vlive && !vSelList().length) return;
-  if (!vlive || vlive.c !== c) vlive = { c, before: c.strokes, sel: new Set(vsel) };
-  const nsel = new Set(); c.strokes = vlive.before.map(st => { if (!vlive.sel.has(st)) return st; const n = fn(st); nsel.add(n); return n; });
+  if (vlive && vlive.cels.some(x => x.c.strokes !== x.last)) vLiveEnd();   // something else changed the cel meanwhile
+  if (!vlive && !vSelList().length) return;
+  if (!vlive) vlive = { cels: vCelsAll().filter(o => o.c.strokes.some(st => vsel.has(st))).map(o => ({ c: o.c, li: o.li, before: o.c.strokes })), sel: new Set(vsel) };
+  const nsel = new Set(); vlive.cels.forEach(x => { x.c.strokes = x.last = x.before.map(st => { if (!vlive.sel.has(st)) return st; const n = fn(st); nsel.add(n); return n; }); });
   vsel = nsel; vRefresh(); clearTimeout(vlive.t); vlive.t = setTimeout(vLiveEnd, 700);
 }
-function vLiveEnd() { const L = vlive; vlive = null; if (!L) return; clearTimeout(L.t); if (L.c.strokes !== L.before) { push({ t: 'v', f: curFrame(), cel: L.c, li: S.layer, before: L.before, after: L.c.strokes }); updateDots(curFrame()); renderPreview(); } }
+function vLiveEnd() { const L = vlive; vlive = null; if (!L) return; clearTimeout(L.t); const list = L.cels.map(x => ({ c: x.c, li: x.li, before: x.before, after: x.c.strokes })); list.__live = true; vCommitMulti(list); }
 function vAddShapes(list) {
   const c = vcel(); if (!c || !vlayerOk()) { flash('Pick a visible, unlocked drawing layer'); return; }
+  list = list.map(st => st.shape ? vClone(st, { id: vNewId() }) : st);
   vPush(c, c.strokes, c.strokes.concat(list)); vsel = new Set(list);
 }
 
 /* ---------- overlay ---------- */
-function w2s(x, y) { const M = layerMat(S.layers[S.layer], S.cur); if (M) { const q = mapPt(M, x, y); x = q[0]; y = q[1]; } return toScreen(x, y); }
+let vLayerOv = null;
+function w2s(x, y) { const M = layerMat(S.layers[vLayerOv != null ? vLayerOv : S.layer], S.cur); if (M) { const q = mapPt(M, x, y); x = q[0]; y = q[1]; } return toScreen(x, y); }
 function withWorld(fn) { const o = w2s(0, 0), ex = w2s(1, 0), ey = w2s(0, 1); vctx.save(); vctx.setTransform(ex[0] - o[0], ex[1] - o[1], ey[0] - o[0], ey[1] - o[1], o[0], o[1]); const k = Math.hypot(ex[0] - o[0], ex[1] - o[1]) || 1; fn(k); vctx.restore(); }
 const VA = '#2f8cff';
-function outlineOf(st, color, k, w) { withWorld(kk => { vctx.lineWidth = (w || 1) * dpr / kk; vctx.strokeStyle = color; vctx.setLineDash([]); vctx.stroke(st.shape === 'compound' ? vEdge(st) : vGeom(st)); }); }
+function outlineOf(st, color, k, w) { const o = vOwner(st); vLayerOv = o ? o.li : null; withWorld(kk => { vctx.lineWidth = (w || 1) * dpr / kk; vctx.strokeStyle = color; vctx.setLineDash([]); vctx.stroke(st.shape === 'compound' ? vEdge(st) : vGeom(st)); }); vLayerOv = null; }
 function vSelHandles(b) {
   const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
   return [[b.x0, b.y0], [cx, b.y0], [b.x1, b.y0], [b.x1, cy], [b.x1, b.y1], [cx, b.y1], [b.x0, b.y1], [b.x0, cy]];
@@ -6380,7 +6398,7 @@ function drawVecOverlay() {
   const ln = (a, b, col) => { const p = w2s(a[0], a[1]), q = w2s(b[0], b[1]); vctx.beginPath(); vctx.moveTo(p[0], p[1]); vctx.lineTo(q[0], q[1]); vctx.strokeStyle = col || VA; vctx.lineWidth = dpr; vctx.stroke(); };
   if (vprev) withWorld(() => { vctx.globalAlpha = 0.9; (Array.isArray(vprev) ? vprev : [vprev]).forEach(st => drawVShape(vctx, st)); vctx.globalAlpha = 1; });
   const sel = vSelList();
-  const cc = vcel(); if (vhover && cc && cc.strokes.includes(vhover) && !sel.includes(vhover) && (S.tool === 'vselect' || S.tool === 'vdirect')) outlineOf(vhover, VA, 0, 1.5);
+  if (vhover && vOwner(vhover) && !sel.includes(vhover) && (S.tool === 'vselect' || S.tool === 'vdirect')) outlineOf(vhover, VA, 0, 1.5);
   sel.forEach(st => outlineOf(st, VA, 0, 1));
   if (S.tool === 'vselect' && sel.length) {
     const b = vUnion(sel), H = vSelHandles(b), C = [H[0], H[2], H[4], H[6]];
@@ -6415,9 +6433,9 @@ function drawVecOverlay() {
 
 /* ---------- smart guides: edges and middles stick to other shapes and to the camera frame ---------- */
 function vSnapTargets(skip) {
-  const xs = [], ys = [], c = vcel(); if (!c) return { xs, ys };
+  const xs = [], ys = [];
   const add = b => { xs.push(b.x0, (b.x0 + b.x1) / 2, b.x1); ys.push(b.y0, (b.y0 + b.y1) / 2, b.y1); };
-  c.strokes.forEach(st => { if (st.shape && !skip.has(st)) add(vBounds(st)); });
+  vCelsAll().forEach(o => o.c.strokes.forEach(st => { if (st.shape && !skip.has(st)) add(vBounds(st)); }));
   const cb = camBox(); add({ x0: cb.x0, y0: cb.y0, x1: cb.x0 + cb.w, y1: cb.y0 + cb.h });
   return { xs, ys };
 }
@@ -6435,7 +6453,7 @@ function vSnap(b, T) {
 /* ---------- tools ---------- */
 var VEC_TOOL = {};
 function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selection (Alt while moving: copy)
-  const c = vcel(); const base = c.strokes, sel = new Set(vSelList()), b = vUnion([...sel]);
+  const c = vcel(); const sel = new Set(vSelList()), b = vUnion([...sel]); const cels = vCelsAll().filter(o => o.c.strokes.some(st => sel.has(st))).map(o => ({ c: o.c, li: o.li, base: o.c.strokes })); const base = c ? c.strokes : [];
   if (!b) return null;
   const T = mode === 'move' ? vSnapTargets(sel) : null;
   let last = e0, moved = false, copies = null;
@@ -6463,16 +6481,15 @@ function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selectio
         M = mRot(t, cx, cy);
       }
       const nsel = new Set();
-      if (mode === 'move' && e.altKey) { copies = [...sel].map(st => { const n = vApply(st, M); nsel.add(n); return n; }); c.strokes = base.concat(copies); }
-      else { copies = null; c.strokes = base.map(st => { if (!sel.has(st)) return st; const n = vApply(st, M); nsel.add(n); return n; }); }
+      cels.forEach(x => { if (mode === 'move' && e.altKey) { const cp = x.base.filter(st => sel.has(st)).map(st => { const n = vClone(vApply(st, M), { id: vNewId() }); nsel.add(n); return n; }); x.c.strokes = x.base.concat(cp); } else x.c.strokes = x.base.map(st => { if (!sel.has(st)) return st; const n = vApply(st, M); nsel.add(n); return n; }); });
       vsel = nsel; vRefresh();
     },
     up() {
       vguides = []; vmark = null;
-      if (!moved) { const hit = vTopAt(p0.x, p0.y); if (mode === 'move' && hit && !e0.shiftKey) vsel = new Set([hit]); render(); return; }
-      push({ t: 'v', f: curFrame(), cel: c, li: S.layer, before: base, after: c.strokes }); c.dirty = true; updateDots(curFrame()); renderPreview(); syncVecUI(); render();
+      if (!moved) { const h = vTopAtE(e0); if (mode === 'move' && h && !e0.shiftKey) vsel = new Set([h.st]); render(); return; }
+      vCommitMulti(cels.map(x => ({ c: x.c, li: x.li, before: x.base, after: x.c.strokes }))); syncVecUI(); render();
     },
-    cancel() { c.strokes = base; vsel = sel; vguides = []; vRefresh(); }
+    cancel() { cels.forEach(x => { x.c.strokes = x.base; }); vsel = sel; vguides = []; vRefresh(); }
   };
 }
 function vHandleAt(p) {
@@ -6487,9 +6504,9 @@ function vMarquee(p0, e0, onDone) {
   return {
     move(e) { const p = pos(e); vmarq.x1 = p.x; vmarq.y1 = p.y; render(); },
     up() {
-      const m = vmarq; vmarq = null; const x0 = Math.min(m.x0, m.x1), x1 = Math.max(m.x0, m.x1), y0 = Math.min(m.y0, m.y1), y1 = Math.max(m.y0, m.y1), c = vcel();
+      const m = vmarq; vmarq = null; const x0 = Math.min(m.x0, m.x1), x1 = Math.max(m.x0, m.x1), y0 = Math.min(m.y0, m.y1), y1 = Math.max(m.y0, m.y1);
       const out = new Set(keep);
-      if (c && (x1 - x0 > vtol() / 2 || y1 - y0 > vtol() / 2)) c.strokes.forEach(st => { if (!st.shape) return; const b = vBounds(st); if (b.x1 >= x0 && b.x0 <= x1 && b.y1 >= y0 && b.y0 <= y1) out.add(st); });
+      if (x1 - x0 > vtol() / 2 || y1 - y0 > vtol() / 2) vCelsAll().flatMap(o => o.c.strokes).forEach(st => { if (!st.shape) return; const b = vBounds(st); if (b.x1 >= x0 && b.x0 <= x1 && b.y1 >= y0 && b.y0 <= y1) out.add(st); });
       vsel = out; vnode = null; if (onDone) onDone(); syncVecUI(); render();
     },
     cancel() { vmarq = null; render(); }
@@ -6497,8 +6514,9 @@ function vMarquee(p0, e0, onDone) {
 }
 VEC_TOOL.vselect = (p, e) => {
   const hd = vHandleAt(p); if (hd) return vActive = vDragTransform(p, e, hd.mode, hd.h);
-  const hit = vTopAt(p.x, p.y);
+  const hh = vTopAtE(e), hit = hh && hh.st;
   if (hit) {
+    if (!e.shiftKey && hh.li !== S.layer) vGoLayer(hh.li);
     if (e.shiftKey) { if (vsel.has(hit)) vsel.delete(hit); else vsel.add(hit); syncVecUI(); render(); if (!vsel.has(hit)) return null; }
     else if (!vsel.has(hit)) { vsel = new Set([hit]); syncVecUI(); }
     if (!hit.shape) { render(); return null; }   // an old brush line: can be selected and deleted, not moved
@@ -6551,7 +6569,7 @@ function vNodeAt(p) {
   return null;
 }
 VEC_TOOL.vdirect = (p0, e0) => {
-  const hitN = vNodeAt(p0), c = vcel();
+  const hitN = vNodeAt(p0); if (hitN) { const ow = vOwner(hitN.st); if (ow) vGoLayer(ow.li); } const c = vcel();
   if (hitN) {
     let st = hitN.st; const base = c.strokes;
     if (e0.altKey && hitN.k === 0) {   // Alt + click a point: sharp corner ↔ smooth curve
@@ -6576,12 +6594,12 @@ VEC_TOOL.vdirect = (p0, e0) => {
         }
         const n = vClone(path0, { pts }); c.strokes = base.map(x => x === st ? n : x); cur = n; vsel = new Set([n]); vnode = { st: n, i: hitN.i }; vRefresh();
       },
-      up() { vmark = null; if (moved) { push({ t: 'v', f: curFrame(), cel: c, li: S.layer, before: base, after: c.strokes }); updateDots(curFrame()); renderPreview(); } render(); },
+      up() { vmark = null; if (moved) { const aft = c.strokes; c.strokes = base; vCommitMulti([{ c, li: S.layer, before: base, after: aft }]); } render(); },
       cancel() { c.strokes = base; vsel = new Set([st]); vnode = null; vRefresh(); }
     };
   }
-  const hit = vTopAt(p0.x, p0.y);
-  if (hit) { vnode = null; if (e0.shiftKey) vsel.add(hit); else if (!vsel.has(hit)) vsel = new Set([hit]); syncVecUI(); render(); return hit.shape ? (vActive = vDragTransform(p0, e0, 'move')) : null; }
+  const hh = vTopAtE(e0), hit = hh && hh.st;
+  if (hit) { vnode = null; if (hh.li !== S.layer) { vGoLayer(hh.li); if (!e0.shiftKey) vsel = new Set([hit]); syncVecUI(); render(); return null; } if (e0.shiftKey) vsel.add(hit); else if (!vsel.has(hit)) vsel = new Set([hit]); syncVecUI(); render(); return hit.shape ? (vActive = vDragTransform(p0, e0, 'move')) : null; }
   vnode = null; return vActive = vMarquee(p0, e0);
 };
 // pen: click = sharp point, drag = curve, click the first point = closed shape, Enter / Esc / double-click = done
@@ -6617,7 +6635,7 @@ view.addEventListener('pointermove', e => {
     const h = S.tool === 'vselect' ? vHandleAt(p) : null;
     if (h) cur = h.mode === 'rot' ? 'alias' : ['nwse-resize', 'ns-resize', 'nesw-resize', 'ew-resize'][h.h % 4];
     else if (S.tool === 'vdirect' && vNodeAt(p)) cur = 'pointer';
-    const hv = h ? null : vTopAt(p.x, p.y); if (hv !== vhover) { vhover = hv; render(); }
+    const hh = h ? null : vTopAtE(e), hv = hh && hh.st; if (hv !== vhover) { vhover = hv; render(); }
     if (!cur) cur = hv ? 'move' : 'default';
   } else if (S.tool === 'pen') cur = vpen && vpen.closeHint ? 'cell' : 'crosshair';
   else if (S.tool === 'picker') cur = 'copy';
@@ -6627,24 +6645,27 @@ view.addEventListener('pointermove', e => {
 
 /* ---------- commands ---------- */
 function vDelete() {
-  const c = vcel(); if (!c || !vlayerOk()) return false;
-  const sel = vSelList(); if (!sel.length) return false;
-  const s = new Set(sel); vPush(c, c.strokes, c.strokes.filter(st => !s.has(st))); vsel = new Set(); vnode = null; syncVecUI(true); return true;
+  const sel = vSelList(); if (!sel.length) return false; const s = new Set(sel);
+  vCommitMulti(vCelsAll().map(o => ({ c: o.c, li: o.li, before: o.c.strokes, after: o.c.strokes.some(st => s.has(st)) ? o.c.strokes.filter(st => !s.has(st)) : o.c.strokes }))); vsel = new Set(); vnode = null; syncVecUI(true); return true;
 }
 function vDeletePoint() {
-  const c = vcel(); if (!c || !vnode || !vnode.st.shape) return false;
+  const ow = vnode && vOwner(vnode.st), c = ow ? ow.c : null; if (!c || !vnode || !vnode.st.shape) return false;
   const st = vnode.st; if (st.shape === 'compound') { flash('Take the combined shape apart first to remove points'); return true; } const path = vToPath(st), N = vNodes(path); if (N.length <= 2) return false;
   const pts = path.pts.slice(); pts.splice(vnode.i * 3, 3); const n = vClone(path, { pts }), base = c.strokes;
   vsel = new Set([n]); vnode = null; vPush(c, base, base.map(x => x === st ? n : x)); return true;
 }
 function vNudge(dx, dy) { return vEditSel(st => st.shape ? vApply(st, mTrans(dx, dy)) : st); }
 function vArrange(how) {
-  const c = vcel(); if (!c || !vsel.size || !vlayerOk()) return;
-  const a = c.strokes.slice(), sel = vsel;
-  if (how === 'front') { const s = a.filter(x => sel.has(x)); vPush(c, c.strokes, a.filter(x => !sel.has(x)).concat(s)); }
-  else if (how === 'back') { const s = a.filter(x => sel.has(x)); vPush(c, c.strokes, s.concat(a.filter(x => !sel.has(x)))); }
-  else if (how === 'fwd') { for (let i = a.length - 2; i >= 0; i--) if (sel.has(a[i]) && !sel.has(a[i + 1])) [a[i], a[i + 1]] = [a[i + 1], a[i]]; vPush(c, c.strokes, a); }
-  else { for (let i = 1; i < a.length; i++) if (sel.has(a[i]) && !sel.has(a[i - 1])) [a[i], a[i - 1]] = [a[i - 1], a[i]]; vPush(c, c.strokes, a); }
+  if (!vSelList().length) return; const sel = vsel, list = [];
+  for (const o of vCelsAll()) {
+    const c = o.c; if (!c.strokes.some(x => sel.has(x))) continue; const a = c.strokes.slice(); let after;
+    if (how === 'front') { const s = a.filter(x => sel.has(x)); after = a.filter(x => !sel.has(x)).concat(s); }
+    else if (how === 'back') { const s = a.filter(x => sel.has(x)); after = s.concat(a.filter(x => !sel.has(x))); }
+    else if (how === 'fwd') { for (let i = a.length - 2; i >= 0; i--) if (sel.has(a[i]) && !sel.has(a[i + 1])) [a[i], a[i + 1]] = [a[i + 1], a[i]]; after = a; }
+    else { for (let i = 1; i < a.length; i++) if (sel.has(a[i]) && !sel.has(a[i - 1])) [a[i], a[i - 1]] = [a[i - 1], a[i]]; after = a; }
+    list.push({ c, li: o.li, before: c.strokes, after });
+  }
+  vCommitMulti(list);
 }
 function vAlign(how) {
   const sel = vSelList().filter(s => s.shape); if (!sel.length) return;
@@ -6673,7 +6694,7 @@ function vFlipRot(how) {
 function vCopy(cut) { const sel = vSelList(); if (!sel.length) return false; vclip = sel.map(st => vClone(st, {})); vpasteN = 0; if (cut) vDelete(); flash(sel.length + ' shape' + (sel.length > 1 ? 's' : '') + (cut ? ' cut' : ' copied')); return true; }
 function vPaste(inPlace) { if (!vclip || !vclip.length) return false; vpasteN = inPlace ? 0 : vpasteN + 1; const d = 10 * vpasteN; vAddShapes(vclip.map(st => st.shape ? vApply(st, mTrans(d, d)) : vClone(st, {}))); syncVecUI(); return true; }
 function vDuplicate() { const sel = vSelList(); if (!sel.length) return; vAddShapes(sel.map(st => st.shape ? vApply(st, mTrans(10, 10)) : vClone(st, {}))); syncVecUI(); }
-function vSelectAll() { const c = vcel(); if (!c) return; vsel = new Set(c.strokes); setTool('vselect'); syncVecUI(); render(); }
+function vSelectAll(onlyLayer) { const c = vcel(); vsel = new Set(onlyLayer ? (c ? c.strokes : []) : vCelsAll().flatMap(o => o.c.strokes)); setTool('vselect'); syncVecUI(); render(); }
 // a color picked in the palette goes to the Fill or the Stroke (and to the selected shapes)
 function vecColorPicked(col) {
   if (VSH.target === 'stroke') VSH.lc = col; else { VSH.fc = col; VSH.fill = true; }
@@ -6702,13 +6723,13 @@ function vApplyStyle(keys) {   // a style setting changed in the panel: the sele
 }
 
 /* ---------- keys (vector files only) ---------- */
-const VKEYS = { KeyB: 'vbrush', KeyV: 'vselect', KeyA: 'vdirect', KeyP: 'pen', KeyU: 'rect', KeyM: 'rect', KeyL: 'ellipse', KeyN: 'poly', KeyS: 'star', Backslash: 'line', KeyI: 'picker' };
+const VKEYS = { KeyB: 'vbrush', KeyV: 'vselect', KeyA: 'vdirect', KeyP: 'pen', KeyU: 'rect', KeyM: 'rect', KeyL: 'ellipse', KeyY: 'poly', KeyS: 'star', Backslash: 'line', KeyI: 'picker' };
 window.addEventListener('keydown', e => {
   if (MODE !== 'vector' || !S.inEditor || document.querySelector('dialog[open]')) return;
   const t = e.target; if (t.closest && t.closest('input:not([type=range]):not([type=checkbox]):not([type=radio]),textarea,select,[contenteditable]')) return;
   const c = e.code, mod = e.ctrlKey || e.metaKey, done = () => { e.preventDefault(); e.stopImmediatePropagation(); };
   if (mod) {
-    if (c === 'KeyA') { done(); vSelectAll(); return; }
+    if (c === 'KeyA') { done(); vSelectAll(e.shiftKey); return; }
     if (c === 'KeyC' && !e.shiftKey && vsel.size) { done(); vCopy(false); return; }
     if (c === 'KeyX' && vsel.size) { done(); vCopy(true); return; }
     if (c === 'KeyV' && !e.shiftKey && vclip) { done(); vPaste(false); return; }
@@ -6721,7 +6742,7 @@ window.addEventListener('keydown', e => {
   if (vpen && (c === 'Enter' || c === 'Escape')) { done(); vPenDone(false); return; }
   if (c === 'Escape' && (vsel.size || vnode)) { done(); vsel = new Set(); vnode = null; syncVecUI(); render(); return; }
   if ((c === 'Delete' || c === 'Backspace') && (vsel.size || vnode)) { done(); if (S.tool === 'vdirect' && vnode && vDeletePoint()) return; vDelete(); return; }
-  if (c.startsWith('Arrow') && vsel.size) { done(); const s = e.shiftKey ? 10 : 1; vNudge(c === 'ArrowLeft' ? -s : c === 'ArrowRight' ? s : 0, c === 'ArrowUp' ? -s : c === 'ArrowDown' ? s : 0); return; }
+  if (c.startsWith('Arrow') && vsel.size && e.altKey) { done(); const s = e.shiftKey ? 10 : 1; vNudge(c === 'ArrowLeft' ? -s : c === 'ArrowRight' ? s : 0, c === 'ArrowUp' ? -s : c === 'ArrowDown' ? s : 0); return; }
   if (c === 'KeyX') { done(); if (e.shiftKey) { const f = VSH.fc; VSH.fc = VSH.lc; VSH.lc = f; vshSave(); if (vsel.size) vEditSel(st => st.shape ? vClone(st, { fc: st.fc ? st.color : null, color: st.fc || st.color }) : st); } else VSH.target = VSH.target === 'fill' ? 'stroke' : 'fill'; syncVecUI(); return; }
   if (e.shiftKey && c === 'KeyH') { done(); vFlipRot('fh'); return; }
   if (e.shiftKey && c === 'KeyV') { done(); vFlipRot('fv'); return; }
@@ -6734,7 +6755,7 @@ window.addEventListener('keydown', e => {
 const VT_BTNS = [['vbrush', '✎', 'Vector brush (B)|Draw freely: the line becomes points you can move later with A. Smooth or sharp points, smoothness in the Shape window'], ['vselect', '➤', 'Selection (V)|Click a shape to select it, drag to move it. Handles scale it, just outside a corner turns it. Shift adds to the selection, Alt + drag makes a copy'],
   ['vdirect', '⌖', 'Direct selection (A)|Drag the points and curve handles of a shape. Alt + click a point: sharp ↔ smooth. Delete removes a point'],
   ['pen', '✒', 'Pen (P)|Click for sharp points, drag for curves. Click the first point to close the shape. Enter, Esc or a double-click ends it'],
-  ['poly', '⬡', 'Polygon (N)|Drag from the middle. The number of sides is in the Shape panel'],
+  ['poly', '⬡', 'Polygon (Y)|Drag from the middle. The number of sides is in the Shape panel'],
   ['star', '★', 'Star (S)|Drag from the middle. Points and inner size are in the Shape panel']];
 (() => {
   const tools = document.querySelector('#app > .tools'); if (!tools) return;
@@ -6768,7 +6789,7 @@ const VT_BTNS = [['vbrush', '✎', 'Vector brush (B)|Draw freely: the line becom
       '<div class="arow vbtns"><button type="button" class="pb" data-vc="dup" title="Duplicate (Ctrl+D)">Duplicate</button><button type="button" class="pb" data-vc="path" title="Turn into a free path, to edit its points (A)">To path</button><button type="button" class="pb" data-vc="del" title="Delete (Delete)">Delete</button></div>' +
     '</fieldset>' +
     '<p class="ainfo vsel-info" id="vSelInfo"></p>' +
-    '<p class="ainfo">V select · A points · P pen · U rectangle · L ellipse · N polygon · S star · \\ line · I eyedropper. Ctrl+C / V / D copy, paste, duplicate. Arrows move (Shift: 10). Shapes stick to each other and to the camera (hold Ctrl to stop it).</p>';
+    '<p class="ainfo">V select · A points · P pen · U rectangle · L ellipse · Y polygon · S star · \\ line · I eyedropper. Ctrl+C / V / D copy, paste, duplicate. Alt + arrows move (Alt+Shift: 10). Shapes stick to each other and to the camera (hold Ctrl to stop it).</p>';
   page.prepend(fs);
   const q = s => fs.querySelector(s), on = (id, ev, fn) => q(id).addEventListener(ev, fn);
   q('#vSwFill').onclick = () => { if (VSH.target === 'fill') { q('#vFillC').click(); } VSH.target = 'fill'; vshSave(); syncVecUI(); };
@@ -6830,7 +6851,7 @@ VSH = Object.assign({ keepLw: true, sal: 'center', a0: 'none', a1: 'none', dlen:
   fx: { blend: 'normal', shadow: { on: false, x: 6, y: 6, b: 8, c: '#000000', o: 0.45 }, glow: { on: false, b: 12, c: '#ffce57', o: 0.9 }, blur: 0, tex: { k: 'none', c: '#000000', o: 0.35, s: 1, img: '' } } }, VSH);
 VSH.fx = Object.assign({ blend: 'normal', blur: 0 }, VSH.fx); ['shadow', 'glow', 'tex'].forEach(k => { if (!VSH.fx[k]) VSH.fx[k] = {}; });
 const fxCopy = fx => JSON.parse(JSON.stringify(fx));
-const fxUsed = fx => !!fx && ((fx.blend && fx.blend !== 'normal') || fx.blur > 0 || (fx.shadow && fx.shadow.on) || (fx.glow && fx.glow.on) || (fx.tex && fx.tex.k && fx.tex.k !== 'none'));
+var fxUsed = fx => !!fx && ((fx.blend && fx.blend !== 'normal') || fx.blur > 0 || (fx.shadow && fx.shadow.on) || (fx.glow && fx.glow.on) || (fx.tex && fx.tex.k && fx.tex.k !== 'none'));
 function hexA(c, o) { const n = parseInt(String(c || '#000').slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + (o == null ? 1 : o) + ')'; }
 
 /* ---------- regions of combined shapes ---------- */
@@ -6971,6 +6992,7 @@ function vDrawFull(ctx, st) {
     ctx.fillStyle = vFillStyle(ctx, st); vFillRegion(ctx, st);
     const t = fx.tex; if (t && t.k && t.k !== 'none') { const pat = vPattern(ctx, t); if (pat) { ctx.save(); vClipRegion(ctx, st); ctx.globalAlpha *= t.o == null ? 0.35 : t.o; if (t.mode) ctx.globalCompositeOperation = t.mode; ctx.fillStyle = pat; const b = vBounds(st); ctx.fillRect(b.x0 - 2, b.y0 - 2, b.x1 - b.x0 + 4, b.y1 - b.y0 + 4); ctx.restore(); } }
   }
+  if (st.fc) vDrawInner(ctx, st, fx, k);
   vStrokeAll(ctx, st);
   ctx.restore();
 }
@@ -7000,9 +7022,9 @@ function vLoadMore(st) {
 /* ---------- snapping to points and outlines ---------- */
 function vAnchorsOf(st) { const p = vToPath(st); const out = []; for (let i = 0; i < p.pts.length; i += 3) out.push(p.pts[i]); if (st.shape !== 'path' && st.shape !== 'compound') { const b = vBounds(st); out.push([(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2]); } return out; }
 function vSnapPt(p, skip) {
-  vmark = null; const c = vcel(); if (!c) return p;
+  vmark = null; const all = vCelsAll().flatMap(o => o.c.strokes);
   const t = vtol() * 1.3; let best = null, bd = t;
-  const pool = skip ? c.strokes.filter(st => st.shape && !skip.has(st)) : c.strokes.filter(st => st.shape);
+  const pool = all.filter(st => st.shape && !(skip && skip.has(st)));
   if (VSH.snapPts) for (const st of pool) for (const a of vAnchorsOf(st)) { const d = Math.hypot(a[0] - p.x, a[1] - p.y); if (d < bd) { bd = d; best = { x: a[0], y: a[1] }; } }
   if (!best && VSH.snapLine) for (const st of pool) for (const a of vSamplePts(st)) { const d = Math.hypot(a[0] - p.x, a[1] - p.y); if (d < bd) { bd = d; best = { x: a[0], y: a[1] }; } }
   if (best) { vmark = best; return Object.assign({}, p, best); }
@@ -7010,10 +7032,10 @@ function vSnapPt(p, skip) {
 }
 function vSnapMove(sel, dx, dy) {   // the selection's points stick to the points (or outlines) of other shapes
   if (!VSH.snapPts && !VSH.snapLine) return null;
-  const c = vcel(); if (!c) return null; const t = vtol() * 1.3, mine = [];
+  const t = vtol() * 1.3, mine = [];
   for (const st of sel) { if (!st.shape) continue; for (const a of vAnchorsOf(st)) { mine.push(a); if (mine.length > 300) break; } }
   const targets = [];
-  for (const st of c.strokes) { if (!st.shape || sel.has(st)) continue; if (VSH.snapPts) targets.push(...vAnchorsOf(st)); if (VSH.snapLine) targets.push(...vSamplePts(st)); if (targets.length > 6000) break; }
+  for (const st of vCelsAll().flatMap(o => o.c.strokes)) { if (!st.shape || sel.has(st)) continue; if (VSH.snapPts) targets.push(...vAnchorsOf(st)); if (VSH.snapLine) targets.push(...vSamplePts(st)); if (targets.length > 6000) break; }
   let best = null, bd = t;
   for (const a of mine) { const x = a[0] + dx, y = a[1] + dy; for (const q of targets) { const d = Math.abs(q[0] - x) + Math.abs(q[1] - y); if (d < bd) { bd = d; best = { dx: q[0] - a[0], dy: q[1] - a[1], x: q[0], y: q[1] }; } } }
   if (best) { vmark = { x: best.x, y: best.y }; return best; }
@@ -7071,7 +7093,7 @@ function vSetNodeType(smooth, wholeShape) {
     });
     return vClone(st, { pts });
   };
-  if (one) { const c = vcel(), base = c.strokes, n2 = conv(one.st, one.i); vsel = new Set([n2]); vnode = { st: n2, i: one.i }; vPush(c, base, base.map(x => x === one.st ? n2 : x)); return; }
+  if (one) { const c = (vOwner(one.st) || {}).c; if (!c) return; const base = c.strokes, n2 = conv(one.st, one.i); vsel = new Set([n2]); vnode = { st: n2, i: one.i }; vPush(c, base, base.map(x => x === one.st ? n2 : x)); return; }
   if (!vEditSel(st => conv(st, null))) flash('Select shapes first (V or A)');
 }
 view.addEventListener('dblclick', e => {   // A tool: double-click the line to add a point there
@@ -7221,6 +7243,342 @@ function syncVecExtra() {
   if (b) { if (document.activeElement !== q('#vX')) q('#vX').value = r1(b.x0); if (document.activeElement !== q('#vY')) q('#vY').value = r1(b.y0); if (document.activeElement !== q('#vW')) q('#vW').value = r1(b.x1 - b.x0); if (document.activeElement !== q('#vH')) q('#vH').value = r1(b.y1 - b.y0); }
   else ['#vX', '#vY', '#vW', '#vH'].forEach(id => { q(id).value = ''; });
 }
+/* ================= v32: vector art — shape keys ◆ (in-betweens), inner effects, light & 3D, materials, more tools ================= */
+let vIdN = 0;
+function vNewId() { return Date.now().toString(36) + (vIdN++).toString(36) + Math.random().toString(36).slice(2, 5); }
+
+/* ---------- shape keys: frames between two ◆ keys of a layer are made by the program ---------- */
+const EASE = { linear: t => t, in: t => t * t, out: t => 1 - (1 - t) * (1 - t), inout: t => t < 0.5 ? 2 * t * t : 1 - 2 * (1 - t) * (1 - t), hold: t => 0 };
+function mixHex(a, b, t) { const p = parseInt(a.slice(1), 16), q = parseInt(b.slice(1), 16), m = s => Math.round(((p >> s) & 255) + (((q >> s) & 255) - ((p >> s) & 255)) * t); return '#' + ((1 << 24) | (m(16) << 16) | (m(8) << 8) | m(0)).toString(16).slice(1); }
+const DISCRETE = new Set(['shape', 'id', 'cl', 'ns', 'cls', 'op', 'dash', 'lcap', 'ljoin', 'sal', 'a0', 'a1', 'k', 'mode', 'img', 't', 'blend', 'mat']);
+function lerpAny(x, y, t, key) {
+  if (DISCRETE.has(key)) return t < 0.5 ? x : y;
+  if (typeof x === 'number' && typeof y === 'number') return x + (y - x) * t;
+  if (typeof x === 'string' && typeof y === 'string' && /^#[0-9a-f]{6}$/i.test(x) && /^#[0-9a-f]{6}$/i.test(y)) return mixHex(x, y, t);
+  if (Array.isArray(x) && Array.isArray(y) && x.length === y.length) return x.map((v, i) => lerpAny(v, y[i], t));
+  if (x && y && typeof x === 'object' && typeof y === 'object' && !Array.isArray(x) && !Array.isArray(y)) { const o = {}; for (const k of new Set([...Object.keys(x), ...Object.keys(y)])) o[k] = k in x && k in y ? lerpAny(x[k], y[k], t, k) : (t < 0.5 ? x[k] : y[k]); return o; }
+  return t < 0.5 ? x : y;
+}
+function vTweenShape(a, b, t) {
+  if (t <= 0) return a; if (t >= 1) return b;
+  let A = a, B = b;
+  if (A.shape !== B.shape || A.pts.length !== B.pts.length) { A = vToPath(a); B = vToPath(b); if (A.pts.length !== B.pts.length || (A.shape === 'compound') !== (B.shape === 'compound')) return t < 0.5 ? a : b; }
+  const o = {};
+  for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) { if (k === 'box') continue; o[k] = k in A && k in B ? lerpAny(A[k], B[k], t, k) : (t < 0.5 ? A[k] : B[k]); }
+  if (A.shape !== 'path' && A.shape !== 'compound') { let d = (B.rot || 0) - (A.rot || 0); d = Math.atan2(Math.sin(d), Math.cos(d)); o.rot = (A.rot || 0) + d * t; }
+  if (A.fc && !B.fc) o.fc = t < 0.5 ? A.fc : null; if (!A.fc && B.fc) o.fc = t < 0.5 ? null : B.fc;
+  return o;
+}
+function vTweenList(As, Bs, t) {
+  const byId = new Map(); Bs.forEach(s => { if (s.id) byId.set(s.id, s); });
+  const out = As.map(a => { const b = a.id && byId.get(a.id); return b ? vTweenShape(a, b, t) : a; });
+  return out;
+}
+function vRetween(li) {
+  const F = S.frames, keys = []; F.forEach((f, fi) => { const c = f.cels[li]; if (c && c.vkey) keys.push(fi); });
+  let any = false;
+  for (let k = 0; k < keys.length - 1; k++) {
+    const a = keys[k], b = keys[k + 1]; if (b - a < 2) continue; const A = F[a].cels[li], B = F[b].cels[li], ez = EASE[A.vez] || EASE.linear;
+    for (let fi = a + 1; fi < b; fi++) {
+      const old = F[fi].cels[li], c = { strokes: vTweenList(A.strokes, B.strokes, ez((fi - a) / (b - a))), dirty: true, vgen: true }; if (old && old.op != null) c.op = old.op;
+      F[fi].cels[li] = c; any = true;
+    }
+  }
+  return any;
+}
+function vAfterEdit(lis, cels) {   // after a change: an edited in-between becomes a key, then the in-betweens are made again
+  const done = new Set();
+  (cels || []).forEach(c => { if (c && c.vgen) { c.vgen = false; c.vkey = true; } });
+  for (const li of lis || []) { if (done.has(li)) continue; done.add(li); if (S.frames.some(f => f.cels[li] && f.cels[li].vkey)) { const fi = S.cur, before = S.frames.map(f => f.cels[li]); vRetween(li); if (S.frames.some((f, i) => f.cels[li] !== before[i])) { invComp(); onionValid = false; buildTimeline(); } } }
+}
+function vAfterHist(a) {
+  vsel = new Set(vSelList()); vnode = null;
+  const lis = new Set(); S.layers.forEach((l, li) => { if (S.frames.some(f => f.cels[li] && f.cels[li].vkey)) lis.add(li); });
+  lis.forEach(li => vRetween(li)); if (lis.size) { invComp(); onionValid = false; buildTimeline(); render(); }
+}
+function vLayerSnap(li) { return S.frames.map(f => { const c = f.cels[li]; return { f, c, strokes: c && c.strokes, vkey: c && c.vkey, vgen: c && c.vgen, vez: c && c.vez }; }); }
+function vLayerRestore(sn, li) { sn.forEach(x => { x.f.cels[li] = x.c; if (x.c) { x.c.strokes = x.strokes; x.c.vkey = x.vkey; x.c.vgen = x.vgen; x.c.vez = x.vez; x.c.dirty = true; } }); }
+function vKeyOp(li, fn, msg) {
+  const before = vLayerSnap(li); fn(); vRetween(li); const after = vLayerSnap(li);
+  const put = dir => { vLayerRestore(dir ? after : before, li); invComp(); onionValid = false; buildTimeline(); render(); renderPreview(); };
+  put(1); pushX(put); if (msg) flash(msg);
+}
+function withIds(c) { if (c.strokes.some(st => st.shape && !st.id)) c.strokes = c.strokes.map(st => st.shape && !st.id ? vClone(st, { id: vNewId() }) : st); }
+function vMakeKey(fi, li) {
+  const l = S.layers[li]; if (!l || !isDraw(l) || MODE !== 'vector') return;
+  const F = S.frames; if (!F[fi]) return;
+  vKeyOp(li, () => {
+    let prev = -1; for (let i = fi - 1; i >= 0; i--) { const c = F[i].cels[li]; if (c && (c.vkey || (c.strokes && c.strokes.length && !c.vgen))) { prev = i; break; } }
+    if (prev >= 0) { const pc = F[prev].cels[li]; if (!pc.vkey) { const n = { strokes: pc.strokes, dirty: true, vkey: true }; if (pc.op != null) n.op = pc.op; F[prev].cels[li] = n; } withIds(F[prev].cels[li]); }
+    const cur = F[fi].cels[li], src = cur && cur.strokes && cur.strokes.length && !cur.vgen ? cur : (prev >= 0 ? F[prev].cels[li] : cur);
+    const shown = cur && cur.vgen ? cur.strokes : (src ? src.strokes : []);
+    const n = { strokes: shown.slice(), dirty: true, vkey: true }; if (cur && cur.op != null) n.op = cur.op; withIds(n); F[fi].cels[li] = n;
+    if (prev >= 0 && src === F[prev].cels[li]) n.strokes = F[prev].cels[li].strokes.slice();
+  }, '◆ Shape key on frame ' + (fi + 1) + ' — change the shapes here, the frames in between follow');
+}
+function vRemoveKey(fi, li) {
+  const c = S.frames[fi] && S.frames[fi].cels[li]; if (!c || !c.vkey) return;
+  vKeyOp(li, () => { const n = { strokes: c.strokes, dirty: true }; if (c.op != null) n.op = c.op; S.frames[fi].cels[li] = n;
+    // frames that were in-betweens next to it stay as they are (plain drawings)
+    S.frames.forEach(f => { const x = f.cels[li]; if (x && x.vgen) { const keysAround = S.frames.some((g, i) => g.cels[li] && g.cels[li].vkey); if (!keysAround) x.vgen = false; } });
+  }, 'Shape key removed');
+}
+function vSetEase(fi, li, ez) { const c = S.frames[fi].cels[li]; if (!c || !c.vkey) return; vKeyOp(li, () => { c.vez = ez === 'linear' ? undefined : ez; }, 'Motion: ' + ez); }
+function vKeyItems(fi, li) {
+  const l = S.layers[li]; if (MODE !== 'vector' || !l || !isDraw(l)) return [];
+  const c = S.frames[fi].cels[li], key = c && c.vkey;
+  return [{ sep: true },
+    { label: key ? '◆ Shape key (this frame)' : '◆ Shape key here (Shift+K)', disabled: !!key, action: () => vMakeKey(fi, li) },
+    { label: 'Remove shape key', disabled: !key, action: () => vRemoveKey(fi, li) },
+    { label: 'Motion to the next key', disabled: !key, sub: [['linear', 'Even'], ['in', 'Slow start'], ['out', 'Slow end'], ['inout', 'Slow start and end'], ['hold', 'Hold (jump at the key)']].map(([k, n]) => ({ label: ((c && (c.vez || 'linear') === k) ? '✓ ' : '') + n, action: () => vSetEase(fi, li, k) })) }];
+}
+
+/* ---------- inner shadow, inner glow, light & 3D, materials ---------- */
+function shadeHex(c, amt) { return amt >= 0 ? mixHex(c, '#ffffff', amt) : mixHex(c, '#000000', -amt); }
+function vOutsideOf(st) { return vOutside(st.shape === 'compound' ? vEdge(st) : vGeom(st)); }
+function vDrawInner(ctx, st, fx, k) {
+  const b = vBounds(st), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, R = Math.max(b.x1 - b.x0, b.y1 - b.y0) / 2 || 1, W = b.x1 - b.x0 + 8, H = b.y1 - b.y0 + 8;
+  const L = fx.light || {}, ang = (L.ang == null ? 225 : L.ang) * Math.PI / 180, dx = Math.cos(ang), dy = Math.sin(ang), el = L.el == null ? 0.45 : L.el;
+  const inner = (col, o, blur, ox, oy) => { ctx.save(); vClipRegion(ctx, st); ctx.shadowColor = hexA(col, o); ctx.shadowBlur = blur * k; ctx.shadowOffsetX = ox * k; ctx.shadowOffsetY = oy * k; ctx.fillStyle = '#000'; ctx.fill(vOutsideOf(st), 'evenodd'); ctx.restore(); };
+  const inClip = fn => { ctx.save(); vClipRegion(ctx, st); fn(); ctx.restore(); };
+  const mat = fx.mat;
+  if (mat && mat !== 'none') inClip(() => {
+    const c = st.fc || '#888888', ca = Math.cos(ang + Math.PI / 2), sa = Math.sin(ang + Math.PI / 2), Lx = Math.abs(W * ca) / 2 + Math.abs(H * sa) / 2;
+    const band = stops => { const g = ctx.createLinearGradient(cx - dx * R, cy - dy * R, cx + dx * R, cy + dy * R); stops.forEach(([p, col]) => g.addColorStop(p, col)); ctx.fillStyle = g; ctx.fillRect(b.x0 - 4, b.y0 - 4, W, H); };
+    if (mat === 'metal') { band([[0, shadeHex(c, 0.55)], [0.25, shadeHex(c, 0.1)], [0.5, shadeHex(c, -0.35)], [0.62, shadeHex(c, 0.35)], [1, shadeHex(c, -0.45)]]); const pat = vPattern(ctx, { k: 'brushed', c: '#000000', s: 1 }); if (pat) { ctx.globalAlpha = 0.18; ctx.fillStyle = pat; ctx.fillRect(b.x0 - 4, b.y0 - 4, W, H); ctx.globalAlpha = 1; } }
+    else if (mat === 'chrome') { band([[0, '#ffffff'], [0.35, shadeHex(c, 0.6)], [0.48, '#2a2a33'], [0.52, shadeHex(c, -0.2)], [0.7, '#f4f4f8'], [1, shadeHex(c, -0.5)]]); }
+    else if (mat === 'gold') { band([[0, '#fff6c8'], [0.3, '#f2c94c'], [0.5, '#9a6a12'], [0.65, '#ffe07a'], [1, '#7a4f0a']]); ctx.globalCompositeOperation = 'color'; ctx.globalAlpha = 0.25; ctx.fillStyle = c; ctx.fillRect(b.x0 - 4, b.y0 - 4, W, H); }
+    else if (mat === 'glass') {
+      ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0,0,0,0.55)'; ctx.fillRect(b.x0 - 4, b.y0 - 4, W, H); ctx.globalCompositeOperation = 'source-over';
+      const g = ctx.createLinearGradient(cx - dx * R, cy - dy * R, cx + dx * R * 0.2, cy + dy * R * 0.2); g.addColorStop(0, 'rgba(255,255,255,0.75)'); g.addColorStop(0.45, 'rgba(255,255,255,0.15)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(b.x0 - 4, b.y0 - 4, W, H);
+      ctx.beginPath(); ctx.ellipse(cx + dx * R * 0.35, cy + dy * R * 0.45, R * 0.55, R * 0.18, ang + Math.PI / 2, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,0.28)'; ctx.fill();
+    }
+    else if (mat === 'plastic' || mat === 'satin') { const g = ctx.createRadialGradient(cx + dx * R * 0.4, cy + dy * R * 0.4, 0, cx, cy, R * 1.3); g.addColorStop(0, mat === 'plastic' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.3)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(0,0,0,' + (mat === 'plastic' ? 0.35 : 0.25) + ')'); ctx.fillStyle = g; ctx.fillRect(b.x0 - 4, b.y0 - 4, W, H); }
+  });
+  if (L.on) inClip(() => {   // light & 3D: soft highlight on the lit side, shade on the other, an edge bevel and a sun glint
+    const off = (1 - el) * 0.75 * R, lx = cx + dx * off, ly = cy + dy * off, hi = L.hi == null ? 0.6 : L.hi, sh = L.sh == null ? 0.5 : L.sh;
+    const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, R * 2); g.addColorStop(0, 'rgba(255,255,255,' + hi * 0.7 + ')'); g.addColorStop(0.35, 'rgba(255,255,255,0)'); g.addColorStop(0.6, 'rgba(0,0,0,' + sh * 0.15 + ')'); g.addColorStop(1, 'rgba(0,0,0,' + sh * 0.7 + ')');
+    ctx.fillStyle = g; ctx.fillRect(b.x0 - 4, b.y0 - 4, W, H);
+  });
+  if (L.on && L.rim > 0) { const r = L.rim * R * 0.12; inner('#ffffff', 0.7 * (L.hi == null ? 0.6 : L.hi) + 0.2, r * 0.8, -dx * r, -dy * r); inner('#000000', 0.55 * (L.sh == null ? 0.5 : L.sh) + 0.15, r * 0.8, dx * r, dy * r); }
+  if (fx.inner && fx.inner.on) inner(fx.inner.c || '#000000', fx.inner.o == null ? 0.6 : fx.inner.o, fx.inner.b == null ? 10 : fx.inner.b, fx.inner.x || 0, fx.inner.y || 0);
+  if (fx.iglow && fx.iglow.on) { inner(fx.iglow.c || '#ffffff', fx.iglow.o == null ? 0.9 : fx.iglow.o, fx.iglow.b == null ? 14 : fx.iglow.b, 0, 0); }
+  if ((L.on && L.glint > 0) || mat === 'glass' || mat === 'chrome' || mat === 'plastic') inClip(() => {   // the sun glint
+    const gs = (L.on ? (L.glint || 0) : 0.5) * R * 0.22 + R * 0.04, gx = cx + dx * R * (0.25 + (1 - el) * 0.4), gy = cy + dy * R * (0.25 + (1 - el) * 0.4);
+    const g = ctx.createRadialGradient(gx, gy, 0, gx, gy, gs); g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.35, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(gx - gs, gy - gs, gs * 2, gs * 2);
+  });
+}
+// the brushed-metal texture
+const _texCanvas = texCanvas;
+texCanvas = function (k, c) {
+  if (k !== 'brushed') return _texCanvas(k, c);
+  const key = k + c; if (texCache.has(key)) return texCache.get(key);
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 32; const g = cv.getContext('2d'); let seed = 3; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let y = 0; y < 32; y++) { g.fillStyle = 'rgba(0,0,0,' + (rnd() * 0.8).toFixed(2) + ')'; g.fillRect(0, y, 64, 1); }
+  texCache.set(key, cv); return cv;
+};
+
+/* ---------- tools ---------- */
+VSH = Object.assign({ lq: { mode: 'push', r: 60, s: 0.6 }, turns: 3 }, VSH);
+['inner', 'iglow', 'light'].forEach(k => { if (!VSH.fx[k]) VSH.fx[k] = {}; });
+VSH.fx.inner = Object.assign({ on: false, c: '#000000', o: 0.6, b: 10, x: 4, y: 4 }, VSH.fx.inner);
+VSH.fx.iglow = Object.assign({ on: false, c: '#ffffff', o: 0.9, b: 14 }, VSH.fx.iglow);
+VSH.fx.light = Object.assign({ on: false, ang: 225, el: 0.45, hi: 0.6, sh: 0.5, glint: 0.5, rim: 0.4 }, VSH.fx.light);
+const _fxUsed = fxUsed;
+fxUsed = fx => _fxUsed(fx) || !!(fx && ((fx.inner && fx.inner.on) || (fx.iglow && fx.iglow.on) || (fx.light && fx.light.on) || (fx.mat && fx.mat !== 'none')));
+// path helpers
+function bezSplit(a, c1, c2, b, t) { const L = (p, q) => [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t], p01 = L(a, c1), p12 = L(c1, c2), p23 = L(c2, b), p012 = L(p01, p12), p123 = L(p12, p23), m = L(p012, p123); return { p01, p012, m, p123, p23 }; }
+function vDensify(st, maxLen) {   // more points, so a soft brush can bend the shape smoothly
+  const p = vToPath(st); if (p.shape === 'compound') return p; const N = vNodes(p), w = p.pts[0][2], out = []; const segs = N.length - (p.cl ? 0 : 1);
+  const nodes = N.map(n => [n[0].slice(), n[1].slice(), n[2].slice()]);
+  const res = [];
+  for (let i = 0; i < N.length; i++) {
+    const a = nodes[i]; res.push(a); if (i >= segs) continue; const b = nodes[(i + 1) % N.length];
+    const len = Math.hypot(a[2][0] - a[0][0], a[2][1] - a[0][1]) + Math.hypot(b[1][0] - a[2][0], b[1][1] - a[2][1]) + Math.hypot(b[0][0] - b[1][0], b[0][1] - b[1][1]);
+    const n = Math.min(40, Math.ceil(len / maxLen)); if (n < 2) continue;
+    let A = a[0], C1 = a[2], C2 = b[1], B = b[0], prev = a;
+    for (let k = n; k > 1; k--) { const s = bezSplit(A, C1, C2, B, 1 / k); prev[2] = [s.p01[0], s.p01[1], w]; const mid = [[s.m[0], s.m[1], w], [s.p012[0], s.p012[1], w], [s.p123[0], s.p123[1], w]]; res.push(mid); prev = mid; A = s.m; C1 = s.p123; C2 = s.p23; }
+    b[1] = [C2[0], C2[1], w];
+  }
+  return vClone(p, { pts: res.flat().map(q => [q[0], q[1], q[2] == null ? w : q[2]]) });
+}
+let vRing = null;
+VEC_TOOL.liquify = (p0, e0) => {
+  const c = vcel(); if (!c) return null; const R = VSH.lq.r / Math.max(0.01, S.zoom.scale), mode = e0.altKey ? ({ pucker: 'bloat', bloat: 'pucker', twirl: 'twirlr' }[VSH.lq.mode] || VSH.lq.mode) : VSH.lq.mode;
+  const base = c.strokes, sel = vSelList().filter(st => c.strokes.includes(st));
+  const targets = new Set(sel.length ? sel : c.strokes.filter(st => st.shape));
+  let work = base.map(st => targets.has(st) ? vDensify(st, Math.max(1, R / 4)) : st), last = p0, moved = false;
+  const nsel = () => new Set(work.filter((st, i) => targets.has(base[i])));
+  return vActive = {
+    move(e) {
+      const p = pos(e), ddx = p.x - last.x, ddy = p.y - last.y; last = p; moved = true; vRing = p; const s = VSH.lq.s;
+      work = work.map((st, i) => {
+        if (!targets.has(base[i]) || !st.shape) return st;
+        const b = vBounds(st); if (b.x1 < p.x - R || b.x0 > p.x + R || b.y1 < p.y - R || b.y0 > p.y + R) return st;
+        return vClone(st, { pts: st.pts.map(q => {
+          const d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d >= R) return q; const w = (1 - d / R) * (1 - d / R) * s;
+          if (mode === 'push') return [q[0] + ddx * w, q[1] + ddy * w, q[2]];
+          if (mode === 'pucker' || mode === 'bloat') { const k = (mode === 'pucker' ? 0.12 : -0.12) * w; return [q[0] + (p.x - q[0]) * k, q[1] + (p.y - q[1]) * k, q[2]]; }
+          const a = (mode === 'twirlr' ? -0.09 : 0.09) * w, ca = Math.cos(a), sa = Math.sin(a), x = q[0] - p.x, y = q[1] - p.y; return [p.x + x * ca - y * sa, p.y + x * sa + y * ca, q[2]];
+        }) });
+      });
+      c.strokes = work; vsel = nsel(); vRefresh();
+    },
+    up() { if (moved) { const aft = work; c.strokes = base; vCommitMulti([{ c, li: S.layer, before: base, after: aft }]); vsel = new Set(aft.filter((st, i) => targets.has(base[i]))); } render(); },
+    cancel() { c.strokes = base; vRefresh(); }
+  };
+};
+function vNearestOnPath(p, list) {   // the closest place on a line: shape, segment, t
+  const t = vtol() * 1.6; let best = null;
+  for (const st0 of list) {
+    if (!st0.shape || st0.shape === 'compound') continue; const st = vToPath(st0), N = vNodes(st), segs = N.length - 1 + (st.cl ? 1 : 0);
+    for (let i = 0; i < segs; i++) { const a = N[i], b = N[(i + 1) % N.length]; for (let k = 0; k <= 40; k++) { const u = k / 40, s = bezSplit(a[0], a[2], b[1], b[0], u), d = Math.hypot(s.m[0] - p.x, s.m[1] - p.y); if (d < t && (!best || d < best.d)) best = { d, st0, st, i, u }; } }
+  }
+  return best;
+}
+VEC_TOOL.scissors = p => {   // cut a line where you click
+  const c = vcel(); if (!c) return null; const hit = vNearestOnPath(p, c.strokes); if (!hit) { flash('Click on a line to cut it'); return null; }
+  const { st, i, st0 } = hit; let u = hit.u; const N = vNodes(st).map(n => n.map(q => q.slice())), w = st.pts[0][2], j = (i + 1) % N.length;
+  let cutAt;   // index of the node at the cut
+  if (u < 0.02) cutAt = i; else if (u > 0.98) cutAt = j;
+  else { const s = bezSplit(N[i][0], N[i][2], N[j][1], N[j][0], u); N[i][2] = [s.p01[0], s.p01[1], w]; N[j][1] = [s.p23[0], s.p23[1], w]; N.splice(i + 1, 0, [[s.m[0], s.m[1], w], [s.p012[0], s.p012[1], w], [s.p123[0], s.p123[1], w]]); cutAt = i + 1; }
+  let out;
+  if (st.cl) { const r = N.slice(cutAt).concat(N.slice(0, cutAt)), first = r[0]; r.push([first[0].slice(), first[1].slice(), first[2].slice()]); r[0][1] = r[0][0].slice(); r[r.length - 1][2] = r[r.length - 1][0].slice(); out = [vClone(st, { pts: r.flat(), cl: false })]; }
+  else { if (cutAt === 0 || cutAt === N.length - 1) { flash('That is already the end of the line'); return null; } const A = N.slice(0, cutAt + 1), B = N.slice(cutAt).map(n => n.map(q => q.slice())); A[A.length - 1][2] = A[A.length - 1][0].slice(); B[0][1] = B[0][0].slice(); out = [vClone(st, { pts: A.flat() }), vClone(st, { pts: B.flat(), id: vNewId() })]; }
+  const base = c.strokes, idx = base.indexOf(st0), after = base.slice(0, idx).concat(out, base.slice(idx + 1));
+  vsel = new Set(out); vPush(c, base, after); flash(st.cl ? 'Opened the shape there' : 'Cut in two'); return null;
+};
+VEC_TOOL.bucket = (p, e) => {   // paint a shape: click = fill color, Shift = stroke color, Alt = the whole look
+  const h = vTopAtE(e); if (!h || !h.st.shape) { flash('Click a shape to paint it'); return null; }
+  vGoLayer(h.li); const c = vcel(), st = h.st;
+  const n = e.altKey ? vClone(st, Object.assign({}, vStyle(), { id: st.id, pts: st.pts.map(q => [q[0], q[1], VSH.lw]) })) : e.shiftKey ? vClone(st, { color: VSH.lc, ol: true }) : vClone(st, { fc: VSH.fc, fg: VSH.ftype === 'grad' ? vStyle().fg : st.fg });
+  vPush(c, c.strokes, c.strokes.map(x => x === st ? n : x)); vsel = new Set([n]); syncVecUI(true); return null;
+};
+VEC_TOOL.vgrad = (p0, e0) => {   // drag over a shape: its gradient goes that way (Shift: round)
+  let targets = vSelList().filter(st => st.shape); if (!targets.length) { const h = vTopAtE(e0); if (h && h.st.shape) { vGoLayer(h.li); vsel = new Set([h.st]); targets = [h.st]; } }
+  if (!targets.length) { flash('Select a shape or drag across one'); return null; }
+  return vActive = {
+    move(e) { const p = pos(e), ang = Math.round(Math.atan2(p.y - p0.y, p.x - p0.x) * 180 / Math.PI + 360) % 360; VSH.ftype = 'grad'; VSH.fill = true; VSH.fang = ang; VSH.gtype = e.shiftKey ? 'radial' : 'linear'; vLive(st => st.shape ? vClone(st, { fc: st.fc || VSH.fc, fg: { c2: (st.fg && st.fg.c2) || VSH.fc2, ang, t: e.shiftKey ? 'radial' : undefined } }) : st); vprevLine = [p0, p]; },
+    up() { vprevLine = null; vLiveEnd(); vshSave(); syncVecUI(true); render(); },
+    cancel() { vprevLine = null; }
+  };
+};
+let vprevLine = null;
+VEC_TOOL.spiral = (p0, e0) => {
+  let last = e0;
+  const make = e => { const p = pos(e), R = Math.hypot(p.x - p0.x, p.y - p0.y), a0 = Math.atan2(p.y - p0.y, p.x - p0.x), turns = Math.max(0.5, VSH.turns), n = Math.round(turns * 8), A = [];
+    for (let i = 0; i <= n; i++) { const t = i / n, r = R * t, a = a0 - t * turns * Math.PI * 2 * (e.altKey ? -1 : 1); A.push([p0.x + Math.cos(a) * r, p0.y + Math.sin(a) * r]); }
+    A.reverse(); const N = smoothNodes(A, false, 1); return Object.assign(vStyle(), { shape: 'path', pts: N.flat().map(q => [q[0], q[1], VSH.lw]), cl: false, fc: null, fg: undefined, ol: true }); };
+  return vActive = { move(e) { last = e; vprev = make(e); render(); }, up() { vprev = null; const p = pos(last); if (Math.hypot(p.x - p0.x, p.y - p0.y) > vtol()) { vAddShapes([make(last)]); syncVecUI(true); } render(); }, cancel() { vprev = null; render(); } };
+};
+const _drawVecOverlayMore = drawVecOverlayMore;
+drawVecOverlayMore = function (sq, dot, ln) {
+  if (S.tool === 'liquify' && vRing) { const p = w2s(vRing.x, vRing.y), r = VSH.lq.r * dpr; vctx.beginPath(); vctx.arc(p[0], p[1], r, 0, Math.PI * 2); vctx.strokeStyle = 'rgba(255,255,255,.9)'; vctx.lineWidth = 2 * dpr; vctx.stroke(); vctx.strokeStyle = '#16162b'; vctx.lineWidth = dpr; vctx.stroke(); }
+  if (vprevLine) { ln([vprevLine[0].x, vprevLine[0].y], [vprevLine[1].x, vprevLine[1].y], '#ffce57'); dot(vprevLine[0].x, vprevLine[0].y); dot(vprevLine[1].x, vprevLine[1].y); }
+};
+view.addEventListener('pointermove', e => { if (MODE === 'vector' && S.tool === 'liquify') { vRing = pos(e); render(); } });
+view.addEventListener('pointerleave', () => { if (vRing) { vRing = null; render(); } });
+Object.assign(VKEYS, { KeyW: 'liquify', KeyC: 'scissors', KeyG: 'bucket' });
+window.addEventListener('keydown', e => {
+  if (MODE !== 'vector' || !S.inEditor || document.querySelector('dialog[open]') || e.ctrlKey || e.metaKey || !e.shiftKey) return;
+  const t = e.target; if (t.closest && t.closest('input:not([type=range]):not([type=checkbox]),textarea,select')) return;
+  const go = fn => { e.preventDefault(); e.stopImmediatePropagation(); fn(); };
+  if (e.code === 'KeyK') go(() => vMakeKey(S.cur, S.layer));
+  else if (e.code === 'KeyG') go(() => { setTool('vgrad'); syncVecUI(true); });
+  else if (e.code === 'KeyS') go(() => { setTool('spiral'); syncVecUI(true); });
+}, true);
+
+/* ---------- buttons and panel ---------- */
+(() => {
+  const tools = document.querySelector('#app > .tools'), first = tools && tools.querySelector('[data-tool="rect"]');
+  [['liquify', '◍', 'Liquify (W)|Drag over shapes to push, twirl, pinch or puff them up (mode and size in the Shape window). Alt: the other way. Only the selected shapes, or all on this layer'],
+   ['scissors', '✂', 'Scissors (C)|Click a line: a closed shape opens there, an open line is cut in two'],
+   ['bucket', '◩', 'Paint bucket (G)|Click a shape: fill color. Shift: stroke color. Alt: the whole look with effects'],
+   ['vgrad', '◐', 'Gradient (Shift+G)|Drag across a shape: the gradient goes that way. Shift: round gradient'],
+   ['spiral', '@', 'Spiral (Shift+S)|Drag from the middle. Turns are in the Shape window. Alt: the other way round']].forEach(([t, ic, tip]) => {
+    if (!tools) return; const b = document.createElement('button'); b.className = 'tb vt'; b.dataset.tool = t; b.dataset.tip = tip; b.title = tip.split('|')[0]; b.textContent = ic;
+    b.onclick = () => { if (vpen) vPenDone(false); setTool(t); syncVecUI(true); }; (first || tools.lastChild).before(b);
+  });
+  const fs = $('#vecShapeSet'); if (!fs) return;
+  const sel = (id, list) => '<select id="' + id + '">' + list.map(([k, n]) => '<option value="' + k + '">' + n + '</option>').join('') + '</select>';
+  const rng = (id, label, min, max, step) => '<div class="bopt"><label for="' + id + '">' + label + '</label><output id="' + id + 'Out"></output><input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + (step || 1) + '"></div>';
+  const fxSetFs = [...fs.querySelectorAll('fieldset')].find(f => /Effects/.test(f.querySelector('legend').textContent));
+  const box = document.createElement('div'); box.innerHTML =
+    '<div class="arow">Material ' + sel('vMat', [['none', 'None'], ['glass', 'Glass'], ['metal', 'Metal'], ['chrome', 'Chrome'], ['gold', 'Gold'], ['plastic', 'Plastic'], ['satin', 'Satin']]) + '</div>' +
+    '<label class="toggle"><input type="checkbox" id="vLiOn"> Light &amp; 3D (sun)</label><div id="vLiBox" class="vfxbox"><div class="vlight"><canvas id="vLiBall" width="96" height="96" title="Drag the light on the ball"></canvas><div class="vlr">' + rng('vLiEl', 'Sun height', 0, 100) + rng('vLiHi', 'Highlight', 0, 100) + '</div></div>' + rng('vLiSh', 'Shade', 0, 100) + rng('vLiGl', 'Sun glint', 0, 100) + rng('vLiRim', 'Edge bevel', 0, 100) + '</div>' +
+    '<label class="toggle"><input type="checkbox" id="vInOn"> Inner shadow</label><div id="vInBox" class="vfxbox"><div class="arow">Color <input type="color" id="vInC"></div>' + rng('vInX', 'Move →', -40, 40) + rng('vInY', 'Move ↓', -40, 40) + rng('vInB', 'Softness', 0, 60) + rng('vInO', 'Strength', 5, 100) + '</div>' +
+    '<label class="toggle"><input type="checkbox" id="vIgOn"> Inner glow (edge light)</label><div id="vIgBox" class="vfxbox"><div class="arow">Color <input type="color" id="vIgC"></div>' + rng('vIgB', 'Size', 1, 80) + rng('vIgO', 'Strength', 5, 100) + '</div>';
+  if (fxSetFs) fxSetFs.insertBefore(box, fxSetFs.querySelector('.ainfo:last-of-type'));
+  const add = html => { const f = document.createElement('fieldset'); f.className = 'aset'; f.innerHTML = html; fs.insertBefore(f, $('#vSelInfo')); return f; };
+  add('<legend>Shape animation ◆</legend><div class="arow vbtns"><button type="button" class="pb" id="vKeyAdd" title="Shift+K">◆ Key on this frame</button><button type="button" class="pb" id="vKeyDel">Remove key</button></div><div class="arow">Motion to the next key ' + sel('vKeyEz', [['linear', 'Even'], ['in', 'Slow start'], ['out', 'Slow end'], ['inout', 'Slow start & end'], ['hold', 'Hold']]) + '</div><p class="ainfo">Draw on a frame. Go to a later frame, press ◆ (Shift+K) and change the shapes there — move them, or drag their points with A. The frames in between move by themselves, every point follows. Editing an in-between frame makes it a key too.</p>');
+  add('<legend>More tools</legend><div class="arow">Liquify ' + sel('vLqM', [['push', 'Push'], ['twirl', 'Twirl'], ['pucker', 'Pinch'], ['bloat', 'Puff up']]) + '</div>' + rng('vLqR', 'Brush size', 10, 300) + rng('vLqS', 'Strength', 5, 100) + '<div class="arow">Spiral turns <input class="num" type="number" id="vTurns" min="0.5" max="20" step="0.5" style="width:56px"></div><p class="ainfo">W liquify · C scissors · G paint bucket · Shift+G gradient · Shift+S spiral · B brush. A click on a shape takes you to its layer; Ctrl+A selects shapes on all layers (Ctrl+Shift+A: only this layer).</p>');
+  const q = s => fs.querySelector(s), on = (id, ev, fn) => { const el = q(id); if (el) el.addEventListener(ev, fn); };
+  fs.querySelectorAll('input[type=number]').forEach(n => n.addEventListener('keydown', e => e.stopPropagation()));
+  const fxSet = fn => { fn(VSH.fx); vshSave(); vApplyStyle(['fx']); syncVecMore(); };
+  on('#vMat', 'change', e => fxSet(f => { f.mat = e.target.value === 'none' ? undefined : e.target.value; }));
+  on('#vLiOn', 'change', e => fxSet(f => { f.light.on = e.target.checked; }));
+  on('#vLiEl', 'input', e => fxSet(f => { f.light.el = +e.target.value / 100; f.light.on = true; }));
+  on('#vLiHi', 'input', e => fxSet(f => { f.light.hi = +e.target.value / 100; f.light.on = true; }));
+  on('#vLiSh', 'input', e => fxSet(f => { f.light.sh = +e.target.value / 100; f.light.on = true; }));
+  on('#vLiGl', 'input', e => fxSet(f => { f.light.glint = +e.target.value / 100; f.light.on = true; }));
+  on('#vLiRim', 'input', e => fxSet(f => { f.light.rim = +e.target.value / 100; f.light.on = true; }));
+  on('#vInOn', 'change', e => fxSet(f => { f.inner.on = e.target.checked; }));
+  on('#vInC', 'input', e => fxSet(f => { f.inner.c = e.target.value; f.inner.on = true; }));
+  on('#vInX', 'input', e => fxSet(f => { f.inner.x = +e.target.value; f.inner.on = true; }));
+  on('#vInY', 'input', e => fxSet(f => { f.inner.y = +e.target.value; f.inner.on = true; }));
+  on('#vInB', 'input', e => fxSet(f => { f.inner.b = +e.target.value; f.inner.on = true; }));
+  on('#vInO', 'input', e => fxSet(f => { f.inner.o = +e.target.value / 100; f.inner.on = true; }));
+  on('#vIgOn', 'change', e => fxSet(f => { f.iglow.on = e.target.checked; }));
+  on('#vIgC', 'input', e => fxSet(f => { f.iglow.c = e.target.value; f.iglow.on = true; }));
+  on('#vIgB', 'input', e => fxSet(f => { f.iglow.b = +e.target.value; f.iglow.on = true; }));
+  on('#vIgO', 'input', e => fxSet(f => { f.iglow.o = +e.target.value / 100; f.iglow.on = true; }));
+  // the light ball: drag where the sun is
+  const ball = q('#vLiBall');
+  if (ball) {
+    const setFrom = ev => { const r = ball.getBoundingClientRect(), x = (ev.clientX - r.left) / r.width * 2 - 1, y = (ev.clientY - r.top) / r.height * 2 - 1, d = Math.min(1, Math.hypot(x, y)); fxSet(f => { f.light.on = true; f.light.ang = Math.round((Math.atan2(y, x) * 180 / Math.PI + 360) % 360); f.light.el = Math.round((1 - d) * 100) / 100; }); };
+    ball.addEventListener('pointerdown', ev => { ball.setPointerCapture(ev.pointerId); setFrom(ev); const mv = e2 => setFrom(e2), up = () => { ball.removeEventListener('pointermove', mv); ball.removeEventListener('pointerup', up); }; ball.addEventListener('pointermove', mv); ball.addEventListener('pointerup', up); });
+  }
+  on('#vKeyAdd', 'click', () => vMakeKey(S.cur, S.layer));
+  on('#vKeyDel', 'click', () => vRemoveKey(S.cur, S.layer));
+  on('#vKeyEz', 'change', e => vSetEase(S.cur, S.layer, e.target.value));
+  on('#vLqM', 'change', e => { VSH.lq.mode = e.target.value; vshSave(); setTool('liquify'); syncVecUI(true); });
+  on('#vLqR', 'input', e => { VSH.lq.r = +e.target.value; vshSave(); syncVecMore(); });
+  on('#vLqS', 'input', e => { VSH.lq.s = +e.target.value / 100; vshSave(); syncVecMore(); });
+  on('#vTurns', 'change', e => { VSH.turns = clamp(+e.target.value || 3, 0.5, 20); vshSave(); });
+})();
+function drawLightBall() {
+  const cv = $('#vLiBall'); if (!cv) return; const g = cv.getContext('2d'), L = VSH.fx.light, r = 44, c = 48, a = (L.ang == null ? 225 : L.ang) * Math.PI / 180, d = 1 - (L.el == null ? 0.45 : L.el);
+  g.clearRect(0, 0, 96, 96); const lx = c + Math.cos(a) * r * d * 0.8, ly = c + Math.sin(a) * r * d * 0.8;
+  const gr = g.createRadialGradient(lx, ly, 2, c, c, r * 1.15); gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.35, VSH.fc || '#e2574c'); gr.addColorStop(1, '#16162b');
+  g.beginPath(); g.arc(c, c, r, 0, Math.PI * 2); g.fillStyle = gr; g.fill(); g.strokeStyle = 'rgba(255,255,255,.35)'; g.stroke();
+  g.beginPath(); g.arc(lx, ly, 5, 0, Math.PI * 2); g.fillStyle = '#ffce57'; g.fill(); g.strokeStyle = '#16162b'; g.lineWidth = 2; g.stroke();
+}
+function syncVecMore() {
+  const fs = $('#vecShapeSet'); if (!fs || MODE !== 'vector') return; const q = s => fs.querySelector(s), f = VSH.fx;
+  const setR = (id, v, txt) => { const el = q(id); if (!el) return; el.value = v; const o = q(id + 'Out'); if (o) o.textContent = txt != null ? txt : v; };
+  const pc = v => Math.round((v || 0) * 100);
+  q('#vMat').value = f.mat || 'none';
+  q('#vLiOn').checked = !!f.light.on; q('#vLiBox').hidden = !f.light.on;
+  setR('#vLiEl', pc(f.light.el), pc(f.light.el) + '%'); setR('#vLiHi', pc(f.light.hi), pc(f.light.hi) + '%'); setR('#vLiSh', pc(f.light.sh), pc(f.light.sh) + '%'); setR('#vLiGl', pc(f.light.glint), pc(f.light.glint) + '%'); setR('#vLiRim', pc(f.light.rim), pc(f.light.rim) + '%');
+  q('#vInOn').checked = !!f.inner.on; q('#vInBox').hidden = !f.inner.on; q('#vInC').value = f.inner.c || '#000000';
+  setR('#vInX', f.inner.x || 0); setR('#vInY', f.inner.y || 0); setR('#vInB', f.inner.b || 0); setR('#vInO', pc(f.inner.o), pc(f.inner.o) + '%');
+  q('#vIgOn').checked = !!f.iglow.on; q('#vIgBox').hidden = !f.iglow.on; q('#vIgC').value = f.iglow.c || '#ffffff';
+  setR('#vIgB', f.iglow.b || 1); setR('#vIgO', pc(f.iglow.o), pc(f.iglow.o) + '%');
+  const c = S.frames[S.cur] && S.frames[S.cur].cels[S.layer];
+  q('#vKeyDel').disabled = !(c && c.vkey); q('#vKeyEz').disabled = !(c && c.vkey); q('#vKeyEz').value = (c && c.vez) || 'linear';
+  q('#vLqM').value = VSH.lq.mode; setR('#vLqR', VSH.lq.r, VSH.lq.r + ' px'); setR('#vLqS', pc(VSH.lq.s), pc(VSH.lq.s) + '%'); q('#vTurns').value = VSH.turns;
+  drawLightBall();
+}
+const _syncVecExtra = syncVecExtra;
+syncVecExtra = function (k) { _syncVecExtra(k); syncVecMore(); };
+const _vLoadMore = vLoadMore;
+vLoadMore = function (st) {
+  _vLoadMore(st);
+  const d = { inner: Object.assign({}, VSH.fx.inner || {}, { on: false }), iglow: Object.assign({}, VSH.fx.iglow || {}, { on: false }), light: Object.assign({ ang: 225, el: 0.45, hi: 0.6, sh: 0.5, glint: 0.5, rim: 0.4 }, VSH.fx.light || {}, { on: false }) };
+  VSH.fx = Object.assign(d, VSH.fx, st.fx ? fxCopy(st.fx) : { mat: undefined });
+  ['inner', 'iglow', 'light'].forEach(k => { if (!st.fx || !st.fx[k]) VSH.fx[k] = d[k]; });
+  if (!st.fx || !st.fx.mat) VSH.fx.mat = undefined;
+};
 /* ================= v30: settings as separate windows (F5–F8) — palette and layers stay where they are ================= */
 const PANELS = [
   { page: 'pageBrush', tab: 'tabBrush', name: () => MODE === 'vector' ? 'Shape' : 'Brush', act: 'panelBrush', key: 'F5', sync: () => { if (typeof syncBrushTab === 'function') syncBrushTab(); syncVecUI(true); } },

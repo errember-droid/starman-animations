@@ -1,6 +1,17 @@
 {
- "version": "1.31.1",
+ "version": "1.32.0",
  "changelog": [
+  {
+   "v": "1.32.0",
+   "date": "2026-11-09",
+   "items": [
+    "Vector: shape animation ◆ — make a key on a later frame (Shift+K), change the shapes there, the frames in between move by themselves (every point follows), with easing",
+    "Vector: clicking a shape takes you to its layer; Ctrl+A selects shapes on all layers, the selection box works across layers",
+    "Vector effects: Light & 3D with a ball to place the sun (highlight, shade, sun glint, edge bevel), inner shadow, inner glow, materials: glass, metal, chrome, gold, plastic, satin",
+    "Vector tools: Liquify (W: push, twirl, pinch, puff up), Scissors (C), Paint bucket (G), Gradient by dragging (Shift+G), Spiral (Shift+S)",
+    "Vector: polygon is now Y (N adds a frame again), Alt + arrows move shapes (arrows change frames)"
+   ]
+  },
   {
    "v": "1.31.1",
    "date": "2026-11-09",
