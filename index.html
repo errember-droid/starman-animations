@@ -580,7 +580,7 @@ body.mobile .tip{display:none!important}
 #vecShapeSet{display:none}body[data-mode=vector] #vecShapeSet{display:block}
 body[data-mode=vector] #pageBrush>*:not(#vecShapeSet){display:none!important}
 body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-tool=ellipse]):not([data-tool=line]):not([data-tool=picker]):not(.vt){display:none!important}
-#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
+#app>.tools .vt.mon{color:#40e0ff!important;background:rgba(64,224,255,.18);outline:1px dashed #40e0ff;outline-offset:-3px}#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
 .vfs{display:flex;gap:8px;align-items:center;margin:4px 0 8px}.vsw{position:relative;width:34px;height:34px;padding:0;border:1px solid #16162b;background:#fff;cursor:pointer}.vsw i{position:absolute;inset:3px;display:block}
 .vsw.stroke i{background:transparent!important;border:7px solid #000;inset:3px}.vsw.on{outline:2px solid var(--accent);outline-offset:1px}.vfsr{display:flex;flex-direction:column;gap:2px}.vfsr .pb{padding:1px 6px}
 #vecShapeSet input[type=color]{width:34px;height:22px;padding:0;border:1px solid #555;background:none;margin-left:4px}#vecShapeSet select{margin:0 4px}
@@ -3923,7 +3923,7 @@ tg.addEventListener('contextmenu', e => {
 });
 
 /* ---------- saving & loading (format 5: endless canvas in tiles, layer types, camera size) ---------- */
-function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg', 'ns', 'cls', 'op', 'fx', 'sal', 'a0', 'a1', 'dl', 'id'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
+function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg', 'ns', 'cls', 'op', 'fx', 'sal', 'a0', 'a1', 'dl', 'id', 'mir'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
 function deStroke(o) { const p = []; for (let i = 0; i + 2 < o.p.length; i += 3) p.push([o.p[i], o.p[i + 1], o.p[i + 2]]); const st = { color: o.c, opacity: o.o == null ? 1 : o.o, pts: p }; if (o.k === 'square') st.cap = 'square'; if (o.sh) { st.shape = o.sh; st.fc = o.fc || null; st.ol = !!o.ol; st.rr = o.rr || 0; if (o.x) Object.assign(st, o.x); } return st; }
 function serSurf(s) {
   const out = [];
@@ -5774,9 +5774,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.36.1';
+const APP_VERSION = '1.37.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.37.0', date: '2026-11-09', items: ['Vector mirror ⇋ (Shift+M): left ↔ right, top ↕ bottom, 4 ways or around like a kaleidoscope (2–24 copies). New shapes get copies that follow the original when you move, reshape or recolor it. Drag the cyan handle to move the mirror — the copies move with it. “Unlink copies” makes them normal shapes'] },
   { v: '1.36.1', date: '2026-11-09', items: ['Video export: new quality “Best (for posting)” — 20 Mbit/s, so social networks have a clean picture to start from'] },
   { v: '1.36.0', date: '2026-11-09', items: ['Scale drawings on all frames at once (Shift+T, the Animation window, or right-click a layer): any size %, width and height separately, around the middle of the drawings, the feet, the canvas, the camera or the corner; this layer or all layers; all, selected or one frame. You see it while you change it, the canvas stays the same size'] },
   { v: '1.35.2', date: '2026-11-09', items: ['Uses much less memory: ready playback pictures have a smaller limit that depends on the computer and are freed as soon as they are out of date, onion ghosts keep only the frames around you, smoothed (Render) pictures are kept only for the frame on screen, big effect pictures are given back'] },
@@ -6400,9 +6401,9 @@ function vHit(st, x, y, tol) {
   hctx.lineWidth = (st.ol ? st.pts[0][2] : 0) + tol * 2; hctx.lineJoin = 'round'; return hctx.isPointInStroke(st.shape === 'compound' ? vEdge(st) : p, x, y);
 }
 function hitVShape(st, x, y, r) { return vHit(st, x, y, r); }
-function vTopAtE(e) {   // the shape under the pointer on any visible, unlocked layer (top layer first)
+function vTopAtE(e) {   // the shape under the pointer on any visible, unlocked layer (top layer first); a mirror copy gives its original
   const raw = posRaw(e), t = vtol(), L = vCelsAll();
-  for (let k = L.length - 1; k >= 0; k--) { const o = L[k], M = layerMat(S.layers[o.li], S.cur); let x = raw.x, y = raw.y; if (M) { const q = invPt(M, x, y); x = q[0]; y = q[1]; } for (let i = o.c.strokes.length - 1; i >= 0; i--) { const st = o.c.strokes[i]; if (st.shape ? vHit(st, x, y, t) : hitStroke(st, x, y, t)) return { st, li: o.li }; } }
+  for (let k = L.length - 1; k >= 0; k--) { const o = L[k], M = layerMat(S.layers[o.li], S.cur); let x = raw.x, y = raw.y; if (M) { const q = invPt(M, x, y); x = q[0]; y = q[1]; } for (let i = o.c.strokes.length - 1; i >= 0; i--) { const st = o.c.strokes[i]; if (st.shape ? vHit(st, x, y, t) : hitStroke(st, x, y, t)) { if (st.mir) { const src = o.c.strokes.find(s => s.id === st.mir.src && !s.mir); if (src) return { st: src, li: o.li }; } return { st, li: o.li }; } } }
   return null;
 }
 function vTopAt(x, y) { const c = vcel(); if (!c) return null; const t = vtol(); for (let i = c.strokes.length - 1; i >= 0; i--) { const st = c.strokes[i]; if (st.shape ? vHit(st, x, y, t) : hitStroke(st, x, y, t)) return st; } return null; }
@@ -6420,7 +6421,7 @@ function vPolyShape(cx, cy, r, ang, star) {
 function vLineShape(x0, y0, x1, y1) { const a = [x0, y0, VSH.lw], b = [x1, y1, VSH.lw]; return Object.assign(vStyle(), { shape: 'path', pts: [a, a.slice(), a.slice(), b, b.slice(), b.slice()], cl: false, fc: null, fg: undefined, ol: true, color: VSH.lc }); }
 
 /* ---------- changing the cel ---------- */
-function vRefresh() { vhover = null; vCelsAll(true).forEach(o => { o.c.dirty = true; }); invComp(); onionValid = false; render(); }
+function vRefresh() { vhover = null; vCelsAll(true).forEach(o => { o.c.dirty = true; const m = vMirrorSync(o.c.strokes); if (m !== o.c.strokes) o.c.strokes = m; }); invComp(); onionValid = false; render(); }
 function vPush(c, before, after) { const o = vCelsAll(true).find(x => x.c === c); vCommitMulti([{ c, li: o ? o.li : S.layer, before, after }]); }
 function vEditSel(fn) {   // one undo step: change every selected shape
   if (!vSelList().length) return false; const nsel = new Set(), list = [];
@@ -6438,10 +6439,11 @@ function vLive(fn) {
   vsel = nsel; vRefresh(); clearTimeout(vlive.t); vlive.t = setTimeout(vLiveEnd, 700);
 }
 function vLiveEnd() { const L = vlive; vlive = null; if (!L) return; clearTimeout(L.t); const list = L.cels.map(x => ({ c: x.c, li: x.li, before: x.before, after: x.c.strokes })); list.__live = true; vCommitMulti(list); }
-function vAddShapes(list) {
+function vAddShapes(list, mirror) {
   const c = vcel(); if (!c || !vlayerOk()) { flash('Pick a visible, unlocked drawing layer'); return; }
-  list = list.map(st => st.shape ? vClone(st, { id: vNewId() }) : st);
-  vPush(c, c.strokes, c.strokes.concat(list)); vsel = new Set(list);
+  list = list.map(st => st.shape ? vClone(st, { id: vNewId(), mir: undefined }) : st);
+  const copies = mirror ? vMirrorCopies(list) : [];
+  vPush(c, c.strokes, c.strokes.concat(list, copies)); vsel = new Set(list);
 }
 
 /* ---------- overlay ---------- */
@@ -6459,7 +6461,7 @@ function drawVecOverlay() {
   const sq = (x, y, fill, size) => { const s = (size || 7) * dpr, p = w2s(x, y); vctx.fillStyle = fill || '#fff'; vctx.strokeStyle = VA; vctx.lineWidth = dpr; vctx.fillRect(Math.round(p[0] - s / 2), Math.round(p[1] - s / 2), s, s); vctx.strokeRect(Math.round(p[0] - s / 2) + 0.5, Math.round(p[1] - s / 2) + 0.5, s - 1, s - 1); };
   const dot = (x, y) => { const p = w2s(x, y); vctx.beginPath(); vctx.arc(p[0], p[1], 3.5 * dpr, 0, Math.PI * 2); vctx.fillStyle = '#fff'; vctx.fill(); vctx.strokeStyle = VA; vctx.lineWidth = dpr; vctx.stroke(); };
   const ln = (a, b, col) => { const p = w2s(a[0], a[1]), q = w2s(b[0], b[1]); vctx.beginPath(); vctx.moveTo(p[0], p[1]); vctx.lineTo(q[0], q[1]); vctx.strokeStyle = col || VA; vctx.lineWidth = dpr; vctx.stroke(); };
-  if (vprev) withWorld(() => { vctx.globalAlpha = 0.9; (Array.isArray(vprev) ? vprev : [vprev]).forEach(st => drawVShape(vctx, st)); vctx.globalAlpha = 1; });
+  if (vprev) withWorld(() => { vctx.globalAlpha = 0.9; vMirPrev(Array.isArray(vprev) ? vprev : [vprev]).forEach(st => drawVShape(vctx, st)); vctx.globalAlpha = 1; });
   const sel = vSelList();
   if (vhover && vOwner(vhover) && !sel.includes(vhover) && (S.tool === 'vselect' || S.tool === 'vdirect')) outlineOf(vhover, VA, 0, 1.5);
   sel.forEach(st => outlineOf(st, VA, 0, 1));
@@ -6569,7 +6571,7 @@ function vMarquee(p0, e0, onDone) {
     up() {
       const m = vmarq; vmarq = null; const x0 = Math.min(m.x0, m.x1), x1 = Math.max(m.x0, m.x1), y0 = Math.min(m.y0, m.y1), y1 = Math.max(m.y0, m.y1);
       const out = new Set(keep);
-      if (x1 - x0 > vtol() / 2 || y1 - y0 > vtol() / 2) vCelsAll().flatMap(o => o.c.strokes).forEach(st => { if (!st.shape) return; const b = vBounds(st); if (b.x1 >= x0 && b.x0 <= x1 && b.y1 >= y0 && b.y0 <= y1) out.add(st); });
+      if (x1 - x0 > vtol() / 2 || y1 - y0 > vtol() / 2) vCelsAll().flatMap(o => o.c.strokes).filter(st => !st.mir).forEach(st => { if (!st.shape) return; const b = vBounds(st); if (b.x1 >= x0 && b.x0 <= x1 && b.y1 >= y0 && b.y0 <= y1) out.add(st); });
       vsel = out; vnode = null; if (onDone) onDone(); syncVecUI(); render();
     },
     cancel() { vmarq = null; render(); }
@@ -6603,7 +6605,7 @@ function vBoxTool(kind) {
         vmark = null; const p = pos(last), small = Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 2; vprev = null;
         if (small) { render(); return; }
         if (kind !== 'line' && !VSH.fill && !(VSH.line && VSH.lw > 0)) { flash('Turn on Fill or Stroke first'); render(); return; }
-        vAddShapes([make(last)]); syncVecUI();
+        vAddShapes([make(last)], true); syncVecUI();
       },
       cancel() { vprev = null; render(); }
     };
@@ -6683,7 +6685,7 @@ function vPenDone(close) {
   if (P.nodes.length < 2) { render(); return; }
   const st = Object.assign(vStyle(), { shape: 'path', pts: P.nodes.flat().map(q => [q[0], q[1], VSH.lw]), cl: !!close });
   if (!close && !st.ol) st.ol = true;
-  vAddShapes([st]); syncVecUI();
+  vAddShapes([st], true); syncVecUI();
 }
 function vecAbort() { if (vActive && vActive.cancel) vActive.cancel(); vActive = null; vprev = null; vmarq = null; vguides = []; }
 view.addEventListener('pointerup', () => { vActive = null; });
@@ -6757,7 +6759,7 @@ function vFlipRot(how) {
 function vCopy(cut) { const sel = vSelList(); if (!sel.length) return false; vclip = sel.map(st => vClone(st, {})); vpasteN = 0; if (cut) vDelete(); flash(sel.length + ' shape' + (sel.length > 1 ? 's' : '') + (cut ? ' cut' : ' copied')); return true; }
 function vPaste(inPlace) { if (!vclip || !vclip.length) return false; vpasteN = inPlace ? 0 : vpasteN + 1; const d = 10 * vpasteN; vAddShapes(vclip.map(st => st.shape ? vApply(st, mTrans(d, d)) : vClone(st, {}))); syncVecUI(); return true; }
 function vDuplicate() { const sel = vSelList(); if (!sel.length) return; vAddShapes(sel.map(st => st.shape ? vApply(st, mTrans(10, 10)) : vClone(st, {}))); syncVecUI(); }
-function vSelectAll(onlyLayer) { const c = vcel(); vsel = new Set(onlyLayer ? (c ? c.strokes : []) : vCelsAll().flatMap(o => o.c.strokes)); setTool('vselect'); syncVecUI(); render(); }
+function vSelectAll(onlyLayer) { const c = vcel(); vsel = new Set((onlyLayer ? (c ? c.strokes : []) : vCelsAll().flatMap(o => o.c.strokes)).filter(st => !st.mir)); setTool('vselect'); syncVecUI(); render(); }
 // a color picked in the palette goes to the Fill or the Stroke (and to the selected shapes)
 function vecColorPicked(col) {
   if (VSH.target === 'stroke') VSH.lc = col; else { VSH.fc = col; VSH.fill = true; }
@@ -7127,7 +7129,7 @@ VEC_TOOL.vbrush = (p0, e0) => {
       const N = VSH.bkind === 'sharp' ? A.map(p => [p, p.slice(), p.slice()]) : smoothNodes(A, closed, 1);
       const st = Object.assign(vStyle(), { shape: 'path', pts: N.flat().map(q => [q[0], q[1], VSH.lw]), cl: closed, ol: true });
       if (!closed) { st.fc = null; st.fg = undefined; }
-      vAddShapes([st]); syncVecUI(true);
+      vAddShapes([st], true); syncVecUI(true);
     },
     cancel() { vprev = null; render(); }
   };
@@ -7550,7 +7552,7 @@ VEC_TOOL.spiral = (p0, e0) => {
   const make = e => { const p = pos(e), R = Math.hypot(p.x - p0.x, p.y - p0.y), a0 = Math.atan2(p.y - p0.y, p.x - p0.x), turns = Math.max(0.5, VSH.turns), n = Math.round(turns * 8), A = [];
     for (let i = 0; i <= n; i++) { const t = i / n, r = R * t, a = a0 - t * turns * Math.PI * 2 * (e.altKey ? -1 : 1); A.push([p0.x + Math.cos(a) * r, p0.y + Math.sin(a) * r]); }
     A.reverse(); const N = smoothNodes(A, false, 1); return Object.assign(vStyle(), { shape: 'path', pts: N.flat().map(q => [q[0], q[1], VSH.lw]), cl: false, fc: null, fg: undefined, ol: true }); };
-  return vActive = { move(e) { last = e; vprev = make(e); render(); }, up() { vprev = null; const p = pos(last); if (Math.hypot(p.x - p0.x, p.y - p0.y) > vtol()) { vAddShapes([make(last)]); syncVecUI(true); } render(); }, cancel() { vprev = null; render(); } };
+  return vActive = { move(e) { last = e; vprev = make(e); render(); }, up() { vprev = null; const p = pos(last); if (Math.hypot(p.x - p0.x, p.y - p0.y) > vtol()) { vAddShapes([make(last)], true); syncVecUI(true); } render(); }, cancel() { vprev = null; render(); } };
 };
 const _drawVecOverlayMore = drawVecOverlayMore;
 drawVecOverlayMore = function (sq, dot, ln) {
@@ -7910,6 +7912,159 @@ function scaleDrawingsUI(onlyLayer) {
 }
 $('#scaleDrawBtn').onclick = () => scaleDrawingsUI();
 ACTIONS.push({ id: 'scaleDraw', label: 'Scale drawings on all frames…', def: 'Shift+KeyT', fn: () => scaleDrawingsUI() }); ACT_BY_ID.scaleDraw = ACTIONS[ACTIONS.length - 1];
+/* ================= v37: vector mirror — a movable mirror line; new shapes get live copies ================= */
+VSH.mir = Object.assign({ mode: 'off', n: 6, x: null, y: null }, VSH.mir || {});
+if (!['off', 'x', 'y', 'xy', 'radial'].includes(VSH.mir.mode)) VSH.mir.mode = 'off';
+const mirBuilt = new WeakMap();   // copy -> the original object it was made from
+function vMirAxis() {
+  const m = VSH.mir; if (m.x != null && m.y != null) return [m.x, m.y];
+  const c = camRect(S.cur); return [(c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2];
+}
+function vMirMat(m) {
+  if (m.t === 'x') return mScale(-1, 1, m.ax, m.ay);
+  if (m.t === 'y') return mScale(1, -1, m.ax, m.ay);
+  if (m.t === 'xy') return mScale(-1, -1, m.ax, m.ay);
+  return mRot(m.ang || 0, m.ax, m.ay);
+}
+function vMirSpecs() {
+  const m = VSH.mir;
+  if (m.mode === 'x') return [{ t: 'x' }];
+  if (m.mode === 'y') return [{ t: 'y' }];
+  if (m.mode === 'xy') return [{ t: 'x' }, { t: 'y' }, { t: 'xy' }];
+  if (m.mode === 'radial') { const n = clamp(Math.round(m.n || 6), 2, 24), out = []; for (let i = 1; i < n; i++) out.push({ t: 'r', ang: Math.PI * 2 * i / n }); return out; }
+  return [];
+}
+function vMirBuild(src, m, id) {
+  const c = vClone(vApply(src, vMirMat(m)), { id: id || vNewId(), mir: m });
+  mirBuilt.set(c, src); return c;
+}
+function vMirrorCopies(list) {
+  const specs = vMirSpecs(); if (!specs.length) return [];
+  const a = vMirAxis(), out = [];
+  list.forEach(st => { if (!st || !st.shape || st.mir) return; specs.forEach((sp, k) => out.push(vMirBuild(st, Object.assign({ src: st.id, k, ax: a[0], ay: a[1] }, sp)))); });
+  return out;
+}
+function vMirrorSync(arr, force) {   // copies follow their original: rebuilt when it changed, dropped when it is gone
+  if (!arr || !arr.some(s => s && s.mir)) return arr;
+  const by = new Map(); arr.forEach(s => { if (s && !s.mir && s.id) by.set(s.id, s); });
+  let ch = false; const out = [];
+  arr.forEach(s => {
+    if (!s || !s.mir) { out.push(s); return; }
+    const src = by.get(s.mir.src);
+    if (!src) { ch = true; return; }
+    if (!force && mirBuilt.get(s) === src) { out.push(s); return; }
+    ch = true; out.push(vMirBuild(src, force ? Object.assign({}, s.mir, force) : s.mir, s.id));
+  });
+  return ch ? out : arr;
+}
+// every commit keeps copies right, so other frames, playback and export see them too
+const _vCommitMulti = vCommitMulti;
+vCommitMulti = function (list, extra) { list.forEach(x => { if (x && x.after) x.after = vMirrorSync(x.after); }); return _vCommitMulti.call(this, list, extra); };
+// the preview while drawing shows the copies too
+function vMirPrev(arr) {
+  if (VSH.mir.mode === 'off') return arr;
+  return arr.concat(vMirrorCopies(arr.filter(s => s && s.shape)));
+}
+
+/* ---------- the mirror line on the canvas, drag its round handle to move it ---------- */
+const mirOn = () => MODE === 'vector' && S.inEditor && VSH.mir.mode !== 'off';
+let mirDrag = null;
+function drawMirror() {
+  if (!mirOn()) return;
+  const a = mirDrag ? mirDrag.now : vMirAxis(), p = w2s(a[0], a[1]), q = w2s(a[0] + 1, a[1]), r = w2s(a[0], a[1] + 1);
+  const ux = [q[0] - p[0], q[1] - p[1]], uy = [r[0] - p[0], r[1] - p[1]], nx = Math.hypot(ux[0], ux[1]) || 1, ny = Math.hypot(uy[0], uy[1]) || 1, L = 6000 * dpr;
+  const ray = (dx, dy, both) => { vctx.beginPath(); vctx.moveTo(p[0] - (both ? dx * L : 0), p[1] - (both ? dy * L : 0)); vctx.lineTo(p[0] + dx * L, p[1] + dy * L); vctx.stroke(); };
+  vctx.save(); vctx.lineWidth = 1.5 * dpr; vctx.setLineDash([7 * dpr, 5 * dpr]);
+  vctx.strokeStyle = 'rgba(64,224,255,.85)';
+  const m = VSH.mir.mode;
+  if (m === 'x' || m === 'xy') ray(uy[0] / ny, uy[1] / ny, true);
+  if (m === 'y' || m === 'xy') ray(ux[0] / nx, ux[1] / nx, true);
+  if (m === 'radial') { const n = clamp(Math.round(VSH.mir.n || 6), 2, 24); for (let i = 0; i < n; i++) { const t = -Math.PI / 2 + Math.PI * 2 * i / n, wx = Math.cos(t), wy = Math.sin(t), dx = ux[0] / nx * wx + uy[0] / ny * wy, dy = ux[1] / nx * wx + uy[1] / ny * wy; ray(dx, dy, false); } }
+  vctx.setLineDash([]); vctx.beginPath(); vctx.arc(p[0], p[1], 7 * dpr, 0, Math.PI * 2); vctx.fillStyle = '#40e0ff'; vctx.fill(); vctx.lineWidth = 2 * dpr; vctx.strokeStyle = '#16162b'; vctx.stroke();
+  vctx.beginPath(); vctx.arc(p[0], p[1], 2.5 * dpr, 0, Math.PI * 2); vctx.fillStyle = '#16162b'; vctx.fill();
+  vctx.restore();
+}
+const _drawVecOverlayMore16 = drawVecOverlayMore;
+drawVecOverlayMore = function () { _drawVecOverlayMore16.apply(this, arguments); drawMirror(); };
+function mirNear(e) {
+  if (!mirOn()) return false; const a = vMirAxis(), p = w2s(a[0], a[1]), r = view.getBoundingClientRect(), sx = view.width / r.width, sy = view.height / r.height;
+  return Math.hypot((e.clientX - r.left) * sx - p[0], (e.clientY - r.top) * sy - p[1]) < 12 * dpr * Math.max(1, (e.pointerType === 'touch' ? 2 : 1));
+}
+function mirMoveAxis(from, to) {   // move the mirror; copies made with the old line follow it, on every frame (one undo step)
+  VSH.mir.x = to[0]; VSH.mir.y = to[1]; vshSave();
+  const same = m => Math.abs(m.ax - from[0]) < 1e-6 && Math.abs(m.ay - from[1]) < 1e-6, ch = [];
+  S.frames.forEach(f => f.cels.forEach((c, li) => {
+    if (!c || !c.strokes || !c.strokes.some(s => s && s.mir && same(s.mir))) return;
+    const by = new Map(); c.strokes.forEach(s => { if (s && !s.mir && s.id) by.set(s.id, s); });
+    const after = c.strokes.map(s => { if (!s || !s.mir || !same(s.mir)) return s; const src = by.get(s.mir.src); return src ? vMirBuild(src, Object.assign({}, s.mir, { ax: to[0], ay: to[1] }), s.id) : s; });
+    ch.push({ c, before: c.strokes, after });
+  }));
+  if (!ch.length) { render(); return; }
+  const put = dir => { ch.forEach(x => { x.c.strokes = dir ? x.after : x.before; x.c.dirty = true; }); vRefresh(); renderPreview(); };
+  put(true); pushX(put);
+}
+view.addEventListener('pointerdown', e => {
+  if (e.button || !mirNear(e)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const from = vMirAxis(); mirDrag = { now: from.slice() };
+  try { view.setPointerCapture(e.pointerId); } catch (er) {}
+  const mv = ev => { const p = pos(ev); let x = p.x, y = p.y; if (ev.shiftKey) { const c = camRect(S.cur), cx = (c.x0 + c.x1) / 2, cy = (c.y0 + c.y1) / 2; if (Math.abs(x - cx) < 12 / S.zoom) x = cx; if (Math.abs(y - cy) < 12 / S.zoom) y = cy; } mirDrag.now = [Math.round(x * 2) / 2, Math.round(y * 2) / 2]; render(); };
+  const up = () => { view.removeEventListener('pointermove', mv, true); view.removeEventListener('pointerup', up, true); view.removeEventListener('pointercancel', up, true); const to = mirDrag.now; mirDrag = null; if (to[0] !== from[0] || to[1] !== from[1]) mirMoveAxis(from, to); else render(); };
+  view.addEventListener('pointermove', mv, true); view.addEventListener('pointerup', up, true); view.addEventListener('pointercancel', up, true);
+}, true);
+view.addEventListener('pointermove', e => { if (!mirOn() || mirDrag || e.buttons) return; const n = mirNear(e); if (n !== !!view.__mirHot) { view.__mirHot = n; view.style.cursor = n ? 'move' : ''; } });
+
+/* ---------- copies: stop following, mirror settings ---------- */
+function vMirDetach() {   // turn the copies of the selected shapes (or all on the frame) into normal shapes
+  const sel = vSelList(), ids = new Set(sel.map(s => s.id)), list = [];
+  vCelsAll().forEach(o => { if (!o.c.strokes.some(s => s && s.mir && (!sel.length || ids.has(s.mir.src)))) return; list.push({ c: o.c, li: o.li, before: o.c.strokes, after: o.c.strokes.map(s => s && s.mir && (!sel.length || ids.has(s.mir.src)) ? vClone(s, { mir: undefined }) : s) }); });
+  if (!list.length) { flash('No mirror copies here'); return; }
+  list.forEach(x => x.after.forEach(s => { if (s && 'mir' in s && s.mir === undefined) delete s.mir; }));
+  vCommitMulti(list); flash('The copies are normal shapes now');
+}
+function vMirSet(mode) { VSH.mir.mode = mode; vshSave(); syncMirUI(); render(); }
+function vMirCenter() { const a = vMirAxis(), c = camRect(S.cur), to = [(c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2]; mirMoveAxis(a, to); VSH.mir.x = null; VSH.mir.y = null; vshSave(); }
+let mirBtn = null;
+(() => {
+  const fs = $('#vecShapeSet'); if (!fs) return;
+  const f = document.createElement('fieldset'); f.className = 'aset'; f.id = 'vMirSet';
+  f.innerHTML = '<legend>Mirror ⇋</legend><div class="arow">Mirror <select id="vMirMode"><option value="off">Off</option><option value="x">Left ↔ right</option><option value="y">Top ↕ bottom</option><option value="xy">4 ways</option><option value="radial">Around (kaleidoscope)</option></select></div>' +
+    '<div class="arow" id="vMirNRow">Copies <input class="num" type="number" id="vMirN" min="2" max="24" step="1" style="width:56px"></div>' +
+    '<div class="arow vbtns"><button type="button" class="pb" id="vMirC" title="Put the mirror line in the middle of the camera">Center on camera</button><button type="button" class="pb" id="vMirD" title="The copies of the selected shapes (or all) stop following">Unlink copies</button></div>' +
+    '<p class="ainfo">Shapes you draw now get copies on the other side of the cyan line. Move, reshape or recolor the original — the copies follow. Drag the round handle to move the mirror (Shift: snap to the camera middle); copies already made move with it. Shift+M turns left ↔ right on and off.</p>';
+  fs.insertBefore(f, $('#vSelInfo'));
+  const q = s => f.querySelector(s);
+  q('#vMirMode').addEventListener('change', e => { vMirSet(e.target.value); e.target.blur(); });
+  q('#vMirN').addEventListener('keydown', e => e.stopPropagation());
+  q('#vMirN').addEventListener('input', e => { if (e.target.value === '') return; VSH.mir.n = clamp(Math.round(+e.target.value), 2, 24); vshSave(); render(); });
+  q('#vMirC').onclick = vMirCenter; q('#vMirD').onclick = vMirDetach;
+  const tools = document.querySelector('#app > .tools'), first = tools && tools.querySelector('[data-tool="rect"]');
+  if (tools) {
+    mirBtn = document.createElement('button'); mirBtn.className = 'tb vt vmir'; mirBtn.id = 'vMirBtn'; mirBtn.textContent = '⇋';
+    mirBtn.dataset.tip = 'Mirror (Shift+M)|New shapes get mirrored copies that follow the original. Drag the cyan handle on the canvas to move the mirror. Right-click: more ways';
+    mirBtn.title = 'Mirror (Shift+M)';
+    mirBtn.onclick = () => vMirSet(VSH.mir.mode === 'off' ? (VSH.mir.last || 'x') : 'off');
+    mirBtn.oncontextmenu = ev => { ev.preventDefault(); const panel = $('#vMirSet'); if (panel) { try { panelShow(PANELS[0], true); } catch (er) {} panel.scrollIntoView({ block: 'nearest' }); } };
+    (first || tools.lastChild).before(mirBtn);
+  }
+})();
+function syncMirUI() {
+  const m = VSH.mir; if (m.mode !== 'off') m.last = m.mode;
+  const s = $('#vMirMode'); if (s) s.value = m.mode;
+  const n = $('#vMirN'); if (n && document.activeElement !== n) n.value = m.n;
+  const r = $('#vMirNRow'); if (r) r.hidden = m.mode !== 'radial';
+  if (mirBtn) { mirBtn.classList.toggle('mon', m.mode !== 'off'); }
+}
+const _syncVecMore16 = syncVecMore;
+syncVecMore = function () { _syncVecMore16.apply(this, arguments); syncMirUI(); };
+window.addEventListener('keydown', e => {
+  if (MODE !== 'vector' || !S.inEditor || document.querySelector('dialog[open]') || e.ctrlKey || e.metaKey || !e.shiftKey || e.altKey || e.code !== 'KeyM') return;
+  const t = e.target; if (t.closest && t.closest('input:not([type=range]):not([type=checkbox]),textarea,select')) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  vMirSet(VSH.mir.mode === 'off' ? (VSH.mir.last || 'x') : 'off'); flash(VSH.mir.mode === 'off' ? 'Mirror off' : 'Mirror on — drag the cyan handle to move it');
+}, true);
+syncMirUI();
+window.__mir = { axis: vMirAxis, w2s, set: vMirSet, detach: () => { vsel = new Set(); vMirDetach(); }, VSH };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {

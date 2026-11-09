@@ -1,6 +1,13 @@
 {
- "version": "1.36.1",
+ "version": "1.37.0",
  "changelog": [
+  {
+   "v": "1.37.0",
+   "date": "2026-11-09",
+   "items": [
+    "Vector mirror ⇋ (Shift+M): left ↔ right, top ↕ bottom, 4 ways or around like a kaleidoscope (2–24 copies). New shapes get copies that follow the original when you move, reshape or recolor it. Drag the cyan handle to move the mirror — the copies move with it. “Unlink copies” makes them normal shapes"
+   ]
+  },
   {
    "v": "1.36.1",
    "date": "2026-11-09",
