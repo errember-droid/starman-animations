@@ -1,6 +1,19 @@
 {
- "version": "1.30.0",
+ "version": "1.31.0",
  "changelog": [
+  {
+   "v": "1.31.0",
+   "date": "2026-11-09",
+   "items": [
+    "Vector brush (B): draw freely, the line becomes points you can move with A; smooth curves or sharp zigzag, smoothness setting",
+    "Points: make one point or the whole shape smooth or sharp, double-click a line (A) to add a point",
+    "Combine shapes: Join, Cut out (the top shape cuts itself out), Overlap, Hole (the overlap becomes empty), Take apart",
+    "Snapping to the points and the outlines of other shapes",
+    "Stroke width stays the same when scaling (can be switched off), stroke inside / outside, custom dashes, arrows and dots on line ends, round gradients",
+    "Position and size fields (X, Y, W, H, turn)",
+    "Effects: shadow, glow, blur, blend modes, textures (dots, stripes, hatching, grain…) or your own picture"
+   ]
+  },
   {
    "v": "1.30.0",
    "date": "2026-11-09",

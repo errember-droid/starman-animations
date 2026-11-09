@@ -584,7 +584,7 @@ body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-t
 .vfs{display:flex;gap:8px;align-items:center;margin:4px 0 8px}.vsw{position:relative;width:34px;height:34px;padding:0;border:1px solid #16162b;background:#fff;cursor:pointer}.vsw i{position:absolute;inset:3px;display:block}
 .vsw.stroke i{background:transparent!important;border:7px solid #000;inset:3px}.vsw.on{outline:2px solid var(--accent);outline-offset:1px}.vfsr{display:flex;flex-direction:column;gap:2px}.vfsr .pb{padding:1px 6px}
 #vecShapeSet input[type=color]{width:34px;height:22px;padding:0;border:1px solid #555;background:none;margin-left:4px}#vecShapeSet select{margin:0 4px}
-#vecShapeSet .vbtns{gap:3px;flex-wrap:wrap}#vecShapeSet .vbtns .pb{flex:1;min-width:0;padding:2px 3px}.vsel-info{color:var(--accent)!important}
+#vecShapeSet .vbtns{gap:3px;flex-wrap:wrap}#vecShapeSet .vbtns .pb{flex:1;min-width:0;padding:2px 3px}.vsel-info{color:var(--accent)!important}#vecShapeSet .vxy input.num{width:54px}#vecShapeSet .vxy{gap:4px}.vfxbox{margin:0 0 6px 14px;padding-left:6px;border-left:2px solid rgba(255,255,255,.15)}.vfxbox[hidden]{display:none}#vecShapeSet input[type=color][hidden]{display:none}
 body[data-mode=vector] #app>.tools .sep{display:none!important}
 body.floatpanels:not(.mobile) #app{grid-template-columns:var(--palW) 5px 34px minmax(0,1fr) 0 0!important}
 body.floatpanels:not(.mobile) #side,body.floatpanels:not(.mobile) #splitR{display:none!important}
@@ -1114,7 +1114,7 @@ document.querySelectorAll('[data-icon]').forEach(el => { const k = el.dataset.ic
 const view = $('#view');
 let vctx = view.getContext('2d');
 let dpr = window.devicePixelRatio || 1;
-const VTOOLS = ['vselect', 'vdirect', 'pen', 'rect', 'ellipse', 'poly', 'star', 'line', 'picker'], VTOOLS_ONLY = ['vselect', 'vdirect', 'pen', 'poly', 'star'];   // vector art tools
+const VTOOLS = ['vbrush', 'vselect', 'vdirect', 'pen', 'rect', 'ellipse', 'poly', 'star', 'line', 'picker'], VTOOLS_ONLY = ['vbrush', 'vselect', 'vdirect', 'pen', 'poly', 'star'];   // vector art tools
 
 /* ---------- sparse tiled surface: the canvas is endless, memory is spent only where you draw ---------- */
 const TS = 256;
@@ -3893,7 +3893,7 @@ tg.addEventListener('contextmenu', e => {
 });
 
 /* ---------- saving & loading (format 5: endless canvas in tiles, layer types, camera size) ---------- */
-function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
+function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg', 'ns', 'cls', 'op', 'fx', 'sal', 'a0', 'a1', 'dl'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
 function deStroke(o) { const p = []; for (let i = 0; i + 2 < o.p.length; i += 3) p.push([o.p[i], o.p[i + 1], o.p[i + 2]]); const st = { color: o.c, opacity: o.o == null ? 1 : o.o, pts: p }; if (o.k === 'square') st.cap = 'square'; if (o.sh) { st.shape = o.sh; st.fc = o.fc || null; st.ol = !!o.ol; st.rr = o.rr || 0; if (o.x) Object.assign(st, o.x); } return st; }
 function serSurf(s) {
   const out = [];
@@ -5733,9 +5733,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.30.0';
+const APP_VERSION = '1.31.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.31.0', date: '2026-11-09', items: ['Vector brush (B): draw freely, the line becomes points you can move with A; smooth curves or sharp zigzag, smoothness setting', 'Points: make one point or the whole shape smooth or sharp, double-click a line (A) to add a point', 'Combine shapes: Join, Cut out (the top shape cuts itself out), Overlap, Hole (the overlap becomes empty), Take apart', 'Snapping to the points and the outlines of other shapes', 'Stroke width stays the same when scaling (can be switched off), stroke inside / outside, custom dashes, arrows and dots on line ends, round gradients', 'Position and size fields (X, Y, W, H, turn)', 'Effects: shadow, glow, blur, blend modes, textures (dots, stripes, hatching, grain…) or your own picture'] },
   { v: '1.30.0', date: '2026-11-09', items: ['Brush, Animation, Render and Export settings are now separate windows: F5, F6, F7, F8 (or the ☰ button). Move them anywhere, they remember their place. The canvas gets the space', 'Vector art: Selection (V) — move, scale, turn, Alt-drag copies; Direct selection (A) — edit points and curves; Pen (P); Rectangle, Ellipse, Polygon, Star, Line; Eyedropper', 'Vector art: fill and stroke colors (X switches, Shift+X swaps), gradient fill, dashed / dotted strokes, ends and corners, round corners', 'Vector art: arrange (Ctrl+[ ]), align and spread evenly, flip, turn 90°, copy / paste / duplicate, smart guides that stick to other shapes and the camera'] },
   { v: '1.29.0', date: '2026-11-09', items: ['Vector art has its own simple menu: only Rectangle and Circle', 'Shapes are real vector shapes: fill with the current color, outline with its own color and width, round corners, opacity', 'The Brush tab becomes the Shape tab in vector files; old vector drawings still show as before'] },
   { v: '1.28.2', date: '2026-11-08', items: ['Phone: no black frames around the canvas while zooming out or moving'] },
@@ -6229,7 +6230,7 @@ window.__S = S;
    Every point is in pts, so the old move / scale code for vector cels keeps working on shapes too. */
 var VSH = Object.assign({ fill: true, fc: '#e2574c', ftype: 'solid', fc2: '#ffce57', fang: 90, line: true, lc: '#1d1d36', lw: 4, dash: 'solid', cap: 'round', join: 'round', rr: 0, sides: 6, points: 5, inner: 0.5, target: 'fill', toCam: false }, prefGet('vshape', {}) || {});
 const vshSave = () => prefSet('vshape', VSH);
-let vsel = new Set(), vnode = null, vpen = null, vclip = null, vguides = [], vhover = null, vmarq = null, vprev = null, vpasteN = 0;
+let vmark = null, vsel = new Set(), vnode = null, vpen = null, vclip = null, vguides = [], vhover = null, vmarq = null, vprev = null, vpasteN = 0;
 const KAPPA = 0.5522847;
 const vcel = () => { const c = curCel(); return c && c.strokes ? c : null; };
 const mapPt = (M, x, y) => [M.a * x + M.c * y + M.e, M.b * x + M.d * y + M.f];
@@ -6240,8 +6241,15 @@ function vClone(st, patch) { const o = Object.assign({}, st, patch); delete o.bo
 /* ---------- geometry ---------- */
 function vBoxRaw(st) { const a = st.pts[0], b = st.pts[1] || a; return { x0: Math.min(a[0], b[0]), y0: Math.min(a[1], b[1]), x1: Math.max(a[0], b[0]), y1: Math.max(a[1], b[1]) }; }
 function vNodes(st) { const n = []; for (let i = 0; i + 2 < st.pts.length; i += 3) n.push([st.pts[i], st.pts[i + 1], st.pts[i + 2]]); return n; }
-const vGeoCache = new WeakMap();
+const vGeoCache = new WeakMap(), vPartCache = new WeakMap();
+function vParts(st) {   // a combined shape keeps its pieces one after another in pts (ns = points per piece)
+  if (st.shape !== 'compound') return [st];
+  let r = vPartCache.get(st); if (r) return r; r = []; let i = 0;
+  (st.ns || []).forEach((n, j) => { r.push({ shape: 'path', pts: st.pts.slice(i * 3, (i + n) * 3), cl: !st.cls || st.cls[j] !== false }); i += n; });
+  vPartCache.set(st, r); return r;
+}
 function vTrace(g, st) {
+  if (st.shape === 'compound') { vParts(st).forEach(p => vTrace(g, p)); return; }
   if (st.shape === 'path') {
     const N = vNodes(st); if (!N.length) return;
     g.moveTo(N[0][0][0], N[0][0][1]);
@@ -6258,6 +6266,7 @@ function vTrace(g, st) {
 }
 function vGeom(st) { let p = vGeoCache.get(st); if (!p) { p = new Path2D(); vTrace(p, st); vGeoCache.set(st, p); } return p; }
 function vSamplePts(st) {   // points on the outline (for the real bounds of curves)
+  if (st.shape === 'compound') return vParts(st).flatMap(vSamplePts);
   if (st.shape === 'ellipse') { const r = vBoxRaw(st), cx = (r.x0 + r.x1) / 2, cy = (r.y0 + r.y1) / 2, rx = (r.x1 - r.x0) / 2, ry = (r.y1 - r.y0) / 2, c = Math.cos(st.rot || 0), s = Math.sin(st.rot || 0), out = []; for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2, x = Math.cos(a) * rx, y = Math.sin(a) * ry; out.push([cx + x * c - y * s, cy + x * s + y * c]); } return out; }
   const p = st.shape === 'path' ? st : vToPath(st), N = vNodes(p), out = [];
   const seg = (a, b) => { for (let k = 0; k <= 12; k++) { const t = k / 12, u = 1 - t; out.push([u * u * u * a[0][0] + 3 * u * u * t * a[2][0] + 3 * u * t * t * b[1][0] + t * t * t * b[0][0], u * u * u * a[0][1] + 3 * u * u * t * a[2][1] + 3 * u * t * t * b[1][1] + t * t * t * b[0][1]]); } };
@@ -6267,10 +6276,10 @@ function vSamplePts(st) {   // points on the outline (for the real bounds of cur
   return out;
 }
 function vBounds(st) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const q of vSamplePts(st)) { x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]); } return { x0, y0, x1, y1 }; }
-function vBoxStroke(st) { const b = vBounds(st), h = st.ol ? (st.pts[0][2] || 0) * (st.ljoin === 'miter' ? 2 : 0.5) + 1 : 1; return { x0: b.x0 - h, y0: b.y0 - h, x1: b.x1 + h, y1: b.y1 + h }; }
+function vBoxStroke(st) { const b = vBounds(st), f = st.fx || {}; let h = st.ol ? (st.pts[0][2] || 0) * (st.ljoin === 'miter' ? 2 : (st.sal === 'outside' ? 1.2 : 0.6)) + (st.a0 || st.a1 ? (st.pts[0][2] || 0) * 3 + 6 : 0) + 1 : 1; if (f.shadow && f.shadow.on) h += Math.max(Math.abs(f.shadow.x || 0), Math.abs(f.shadow.y || 0)) + (f.shadow.b || 0) * 1.5; if (f.glow && f.glow.on) h += (f.glow.b || 0) * 1.5; if (f.blur > 0) h += f.blur * 3; return { x0: b.x0 - h, y0: b.y0 - h, x1: b.x1 + h, y1: b.y1 + h }; }
 function vUnion(list) { let b = null; for (const st of list) { const q = vBounds(st); b = b ? { x0: Math.min(b.x0, q.x0), y0: Math.min(b.y0, q.y0), x1: Math.max(b.x1, q.x1), y1: Math.max(b.y1, q.y1) } : q; } return b; }
 function vToPath(st) {
-  if (st.shape === 'path') return st;
+  if (st.shape === 'path' || st.shape === 'compound') return st;
   const lw = st.pts[0][2], r = vBoxRaw(st), cx = (r.x0 + r.x1) / 2, cy = (r.y0 + r.y1) / 2, rot = st.rot || 0, c = Math.cos(rot), s = Math.sin(rot);
   const P = (x, y) => [cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c], N = [];
   if (st.shape === 'ellipse') {
@@ -6290,8 +6299,8 @@ function vToPath(st) {
   return vClone(st, { shape: 'path', pts: N.flat().map(q => [q[0], q[1], lw]), cl: true, rr: 0, rot: 0 });
 }
 function vApply(st, M) {
-  const det = M.a * M.d - M.b * M.c, k = Math.sqrt(Math.abs(det)) || 1;
-  if (st.shape !== 'path') {
+  const det = M.a * M.d - M.b * M.c, k = VSH.keepLw ? 1 : (Math.sqrt(Math.abs(det)) || 1);
+  if (st.shape !== 'path' && st.shape !== 'compound') {
     const lw = st.pts[0][2] * k, r = vBoxRaw(st);
     if (!st.rot && Math.abs(M.b) < 1e-9 && Math.abs(M.c) < 1e-9) { const a = mapPt(M, r.x0, r.y0), b = mapPt(M, r.x1, r.y1); return vClone(st, { pts: [[Math.min(a[0], b[0]), Math.min(a[1], b[1]), lw], [Math.max(a[0], b[0]), Math.max(a[1], b[1]), lw]] }); }
     if (det > 0 && Math.abs(M.a - M.d) < 1e-6 && Math.abs(M.b + M.c) < 1e-6) {   // turn + same scale both ways: stays a rectangle / ellipse
@@ -6309,22 +6318,10 @@ const mRot = (t, cx, cy) => { const c = Math.cos(t), s = Math.sin(t); return { a
 
 /* ---------- drawing ---------- */
 function vDash(st, lw) { return st.dash === 'dash' ? [lw * 3, lw * 2] : st.dash === 'dot' ? [0.001, lw * 2] : []; }
-function drawVShape(ctx, st) {
-  const p = vGeom(st);
-  if (st.fc) {
-    if (st.fg) { const b = vBounds(st), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, a = (st.fg.ang || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), L = (Math.abs((b.x1 - b.x0) * ca) + Math.abs((b.y1 - b.y0) * sa)) / 2 || 1, g = ctx.createLinearGradient(cx - ca * L, cy - sa * L, cx + ca * L, cy + sa * L); g.addColorStop(0, st.fc); g.addColorStop(1, st.fg.c2 || st.fc); ctx.fillStyle = g; }
-    else ctx.fillStyle = st.fc;
-    ctx.fill(p);
-  }
-  const lw = st.pts[0] ? st.pts[0][2] : 0;
-  if (st.ol && lw > 0) {
-    ctx.lineWidth = lw; ctx.lineJoin = st.ljoin || 'round'; ctx.lineCap = st.dash === 'dot' ? 'round' : (st.lcap || 'round'); ctx.miterLimit = 6;
-    ctx.setLineDash(vDash(st, lw)); ctx.strokeStyle = st.color; ctx.stroke(p); ctx.setLineDash([]);
-  }
-}
+function drawVShape(ctx, st) { vDrawFull(ctx, st); }
 const hctx = document.createElement('canvas').getContext('2d');
 function vHit(st, x, y, tol) {
-  const p = vGeom(st); if (st.fc && hctx.isPointInPath(p, x, y)) return true;
+  const p = vGeom(st); if (st.fc && vInRegion(st, x, y)) return true;
   hctx.lineWidth = (st.ol ? st.pts[0][2] : 0) + tol * 2; hctx.lineJoin = 'round'; return hctx.isPointInStroke(p, x, y);
 }
 function hitVShape(st, x, y, r) { return vHit(st, x, y, r); }
@@ -6332,7 +6329,7 @@ function vTopAt(x, y) { const c = vcel(); if (!c) return null; const t = vtol();
 
 /* ---------- new shapes ---------- */
 function vStyle() {
-  return { color: VSH.lc, ol: VSH.line && VSH.lw > 0, fc: VSH.fill ? VSH.fc : null, fg: VSH.fill && VSH.ftype === 'grad' ? { c2: VSH.fc2, ang: VSH.fang } : undefined, dash: VSH.dash !== 'solid' ? VSH.dash : undefined, lcap: VSH.cap !== 'round' ? VSH.cap : undefined, ljoin: VSH.join !== 'round' ? VSH.join : undefined, opacity: S.opacity };
+  return vStyleMore({ color: VSH.lc, ol: VSH.line && VSH.lw > 0, fc: VSH.fill ? VSH.fc : null, fg: VSH.fill && VSH.ftype === 'grad' ? { c2: VSH.fc2, ang: VSH.fang } : undefined, dash: VSH.dash !== 'solid' ? VSH.dash : undefined, lcap: VSH.cap !== 'round' ? VSH.cap : undefined, ljoin: VSH.join !== 'round' ? VSH.join : undefined, opacity: S.opacity });
 }
 function vBoxShape(kind, x0, y0, x1, y1) { const lw = VSH.lw; return Object.assign(vStyle(), { shape: kind, pts: [[Math.min(x0, x1), Math.min(y0, y1), lw], [Math.max(x0, x1), Math.max(y0, y1), lw]], rr: kind === 'rect' ? VSH.rr : 0 }); }
 function vPolyShape(cx, cy, r, ang, star) {
@@ -6411,6 +6408,8 @@ function drawVecOverlay() {
   }
   if (vmarq) { const a = w2s(vmarq.x0, vmarq.y0), b = w2s(vmarq.x1, vmarq.y1); vctx.setLineDash([4 * dpr, 3 * dpr]); vctx.strokeStyle = VA; vctx.lineWidth = dpr; vctx.strokeRect(Math.min(a[0], b[0]) + 0.5, Math.min(a[1], b[1]) + 0.5, Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])); vctx.fillStyle = 'rgba(47,140,255,.08)'; vctx.fillRect(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])); vctx.setLineDash([]); }
   for (const g of vguides) ln(g[0], g[1], '#ff3dbd');
+  if (vmark) { const p = w2s(vmark.x, vmark.y); vctx.beginPath(); vctx.arc(p[0], p[1], 5 * dpr, 0, Math.PI * 2); vctx.strokeStyle = '#ff3dbd'; vctx.lineWidth = 2 * dpr; vctx.stroke(); }
+  drawVecOverlayMore(sq, dot, ln);
 }
 
 /* ---------- smart guides: edges and middles stick to other shapes and to the camera frame ---------- */
@@ -6448,7 +6447,7 @@ function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selectio
         let dx = p.x - p0.x, dy = p.y - p0.y;
         if (e.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0; }
         vguides = [];
-        if (!e.ctrlKey) { const sn = vSnap({ x0: b.x0 + dx, y0: b.y0 + dy, x1: b.x1 + dx, y1: b.y1 + dy }, T); dx += sn.dx; dy += sn.dy; vguides = sn.G; }
+        vmark = null; if (!e.ctrlKey) { const pp = vSnapMove(sel, dx, dy); if (pp) { dx = pp.dx; dy = pp.dy; } else if (VSH.snapEdge !== false) { const sn = vSnap({ x0: b.x0 + dx, y0: b.y0 + dy, x1: b.x1 + dx, y1: b.y1 + dy }, T); dx += sn.dx; dy += sn.dy; vguides = sn.G; } }
         M = mTrans(dx, dy);
       } else if (mode === 'scale') {
         const corner = h % 2 === 0, opp = H[(h + 4) % 8], ax = e.altKey ? cx : opp[0], ay = e.altKey ? cy : opp[1], hp = H[h];
@@ -6468,7 +6467,7 @@ function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selectio
       vsel = nsel; vRefresh();
     },
     up() {
-      vguides = [];
+      vguides = []; vmark = null;
       if (!moved) { const hit = vTopAt(p0.x, p0.y); if (mode === 'move' && hit && !e0.shiftKey) vsel = new Set([hit]); render(); return; }
       push({ t: 'v', f: curFrame(), cel: c, li: S.layer, before: base, after: c.strokes }); c.dirty = true; updateDots(curFrame()); renderPreview(); syncVecUI(); render();
     },
@@ -6508,9 +6507,9 @@ VEC_TOOL.vselect = (p, e) => {
 };
 function vBoxTool(kind) {
   return (p0, e0) => {
-    let last = e0;
+    let last = e0; if (!e0.ctrlKey) p0 = vSnapPt(p0);
     const make = e => {
-      const p = pos(e); let dx = p.x - p0.x, dy = p.y - p0.y;
+      const p = e.ctrlKey ? pos(e) : vSnapPt(pos(e)); let dx = p.x - p0.x, dy = p.y - p0.y;
       if (kind === 'poly' || kind === 'star') { const r = Math.hypot(dx, dy); let a = Math.atan2(dy, dx); if (e.shiftKey || r < vtol()) a = -Math.PI / 2; return vPolyShape(p0.x, p0.y, r, a, kind === 'star'); }
       if (kind === 'line') { if (e.shiftKey) { const a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4), r = Math.hypot(dx, dy); dx = Math.cos(a) * r; dy = Math.sin(a) * r; } return vLineShape(p0.x, p0.y, p0.x + dx, p0.y + dy); }
       if (e.shiftKey) { const m = Math.max(Math.abs(dx), Math.abs(dy)); dx = Math.sign(dx || 1) * m; dy = Math.sign(dy || 1) * m; }
@@ -6519,7 +6518,7 @@ function vBoxTool(kind) {
     return vActive = {
       move(e) { last = e; vprev = make(e); render(); },
       up() {
-        const p = pos(last), small = Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 2; vprev = null;
+        vmark = null; const p = pos(last), small = Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 2; vprev = null;
         if (small) { render(); return; }
         if (kind !== 'line' && !VSH.fill && !(VSH.line && VSH.lw > 0)) { flash('Turn on Fill or Stroke first'); render(); return; }
         vAddShapes([make(last)]); syncVecUI();
@@ -6533,11 +6532,11 @@ function vBoxTool(kind) {
 VEC_TOOL.picker = p => {
   const st = vTopAt(p.x, p.y); if (!st || !st.shape) { flash('Click a shape to take its colors'); return null; }
   Object.assign(VSH, { fill: !!st.fc, fc: st.fc || VSH.fc, ftype: st.fg ? 'grad' : 'solid', fc2: st.fg ? st.fg.c2 : VSH.fc2, fang: st.fg ? st.fg.ang : VSH.fang, line: !!st.ol, lc: st.color || VSH.lc, lw: st.pts[0][2] || VSH.lw, dash: st.dash || 'solid', cap: st.lcap || 'round', join: st.ljoin || 'round' });
-  vshSave();
+  vLoadMore(st); vshSave();
   if (vsel.size && !vsel.has(st)) vEditSel(o => vClone(o, styleOf(st)));
   syncVecUI(); flash('Look taken'); return null;
 };
-const styleOf = st => ({ fc: st.fc, fg: st.fg, color: st.color, ol: st.ol, dash: st.dash, lcap: st.lcap, ljoin: st.ljoin, opacity: st.opacity, pts: undefined });
+const styleOf = st => ({ fc: st.fc, fg: st.fg, color: st.color, ol: st.ol, dash: st.dash, lcap: st.lcap, ljoin: st.ljoin, opacity: st.opacity, fx: st.fx, sal: st.sal, dl: st.dl });
 // direct selection: points and handles of a path
 function vNodeAt(p) {
   const t = vtol() * 1.1, sel = vSelList();
@@ -6569,14 +6568,14 @@ VEC_TOOL.vdirect = (p0, e0) => {
       move(e) {
         const p = pos(e); if (!moved && Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 3) return; moved = true;
         const pts = path0.pts.map(q => q.slice()), i3 = hitN.i * 3, dx = p.x - p0.x, dy = p.y - p0.y;
-        if (hitN.k === 0) for (let k = 0; k < 3; k++) { pts[i3 + k][0] += dx; pts[i3 + k][1] += dy; }
+        if (hitN.k === 0) { const A0 = path0.pts[i3]; let tx = A0[0] + dx, ty = A0[1] + dy; if (!e.ctrlKey) { const q = vSnapPt({ x: tx, y: ty }, new Set([st])); tx = q.x; ty = q.y; } const ddx = tx - A0[0], ddy = ty - A0[1]; for (let k = 0; k < 3; k++) { pts[i3 + k][0] = path0.pts[i3 + k][0] + ddx; pts[i3 + k][1] = path0.pts[i3 + k][1] + ddy; } }
         else {
           const h = pts[i3 + hitN.k], o = pts[i3 + (hitN.k === 1 ? 2 : 1)], A = pts[i3]; h[0] += dx; h[1] += dy;
           if (!e.altKey) { const L = Math.hypot(o[0] - A[0], o[1] - A[1]), a = Math.atan2(h[1] - A[1], h[0] - A[0]) + Math.PI; if (L > 0.01) { o[0] = A[0] + Math.cos(a) * L; o[1] = A[1] + Math.sin(a) * L; } }
         }
         const n = vClone(path0, { pts }); c.strokes = base.map(x => x === st ? n : x); cur = n; vsel = new Set([n]); vnode = { st: n, i: hitN.i }; vRefresh();
       },
-      up() { if (moved) { push({ t: 'v', f: curFrame(), cel: c, li: S.layer, before: base, after: c.strokes }); updateDots(curFrame()); renderPreview(); } render(); },
+      up() { vmark = null; if (moved) { push({ t: 'v', f: curFrame(), cel: c, li: S.layer, before: base, after: c.strokes }); updateDots(curFrame()); renderPreview(); } render(); },
       cancel() { c.strokes = base; vsel = new Set([st]); vnode = null; vRefresh(); }
     };
   }
@@ -6587,6 +6586,7 @@ VEC_TOOL.vdirect = (p0, e0) => {
 // pen: click = sharp point, drag = curve, click the first point = closed shape, Enter / Esc / double-click = done
 VEC_TOOL.pen = (p, e) => {
   if (!vpen) vpen = { nodes: [] };
+  if (!e.ctrlKey && !(vpen.nodes.length > 1 && Math.hypot(p.x - vpen.nodes[0][0][0], p.y - vpen.nodes[0][0][1]) <= vtol() * 1.2)) { p = vSnapPt(p); vmark = null; }
   const N = vpen.nodes, t = vtol() * 1.2;
   if (N.length > 1 && Math.hypot(p.x - N[0][0][0], p.y - N[0][0][1]) <= t) { vPenDone(true); return null; }
   const A = [p.x, p.y]; N.push([A, A.slice(), A.slice()]); vpen.down = true;
@@ -6632,7 +6632,7 @@ function vDelete() {
 }
 function vDeletePoint() {
   const c = vcel(); if (!c || !vnode || !vnode.st.shape) return false;
-  const st = vnode.st, path = vToPath(st), N = vNodes(path); if (N.length <= 2) return false;
+  const st = vnode.st; if (st.shape === 'compound') { flash('Take the combined shape apart first to remove points'); return true; } const path = vToPath(st), N = vNodes(path); if (N.length <= 2) return false;
   const pts = path.pts.slice(); pts.splice(vnode.i * 3, 3); const n = vClone(path, { pts }), base = c.strokes;
   vsel = new Set([n]); vnode = null; vPush(c, base, base.map(x => x === st ? n : x)); return true;
 }
@@ -6695,12 +6695,13 @@ function vApplyStyle(keys) {   // a style setting changed in the panel: the sele
     if (keys.includes('join')) o.ljoin = VSH.join !== 'round' ? VSH.join : undefined;
     if (keys.includes('rr') && st.shape === 'rect') o.rr = VSH.rr;
     if (keys.includes('op')) o.opacity = S.opacity;
+    vApplyMore(keys, st, o);
     return vClone(st, o);
   });
 }
 
 /* ---------- keys (vector files only) ---------- */
-const VKEYS = { KeyV: 'vselect', KeyA: 'vdirect', KeyP: 'pen', KeyU: 'rect', KeyM: 'rect', KeyL: 'ellipse', KeyN: 'poly', KeyS: 'star', Backslash: 'line', KeyI: 'picker' };
+const VKEYS = { KeyB: 'vbrush', KeyV: 'vselect', KeyA: 'vdirect', KeyP: 'pen', KeyU: 'rect', KeyM: 'rect', KeyL: 'ellipse', KeyN: 'poly', KeyS: 'star', Backslash: 'line', KeyI: 'picker' };
 window.addEventListener('keydown', e => {
   if (MODE !== 'vector' || !S.inEditor || document.querySelector('dialog[open]')) return;
   const t = e.target; if (t.closest && t.closest('input:not([type=range]):not([type=checkbox]):not([type=radio]),textarea,select,[contenteditable]')) return;
@@ -6729,7 +6730,7 @@ window.addEventListener('keydown', e => {
 }, true);
 
 /* ---------- tool buttons and the Shape panel ---------- */
-const VT_BTNS = [['vselect', '➤', 'Selection (V)|Click a shape to select it, drag to move it. Handles scale it, just outside a corner turns it. Shift adds to the selection, Alt + drag makes a copy'],
+const VT_BTNS = [['vbrush', '✎', 'Vector brush (B)|Draw freely: the line becomes points you can move later with A. Smooth or sharp points, smoothness in the Shape window'], ['vselect', '➤', 'Selection (V)|Click a shape to select it, drag to move it. Handles scale it, just outside a corner turns it. Shift adds to the selection, Alt + drag makes a copy'],
   ['vdirect', '⌖', 'Direct selection (A)|Drag the points and curve handles of a shape. Alt + click a point: sharp ↔ smooth. Delete removes a point'],
   ['pen', '✒', 'Pen (P)|Click for sharp points, drag for curves. Click the first point to close the shape. Enter, Esc or a double-click ends it'],
   ['poly', '⬡', 'Polygon (N)|Drag from the middle. The number of sides is in the Shape panel'],
@@ -6801,7 +6802,7 @@ function syncVecUI(keepSel) {
   if (!vec) { view.style.cursor = ''; vsel = new Set(); vpen = null; vnode = null; return; }
   const q = s => fs.querySelector(s), sel = vSelList().filter(s => s.shape);
   if (!keepSel && sel.length === 1) {   // the panel shows the look of the selected shape
-    const st = sel[0];
+    const st = sel[0]; vLoadMore(st);
     Object.assign(VSH, { fill: !!st.fc, fc: st.fc || VSH.fc, ftype: st.fg ? 'grad' : 'solid', fc2: st.fg ? st.fg.c2 : VSH.fc2, fang: st.fg ? st.fg.ang : VSH.fang, line: !!st.ol, lc: st.color || VSH.lc, lw: Math.round(st.pts[0][2] * 10) / 10 || VSH.lw, dash: st.dash || 'solid', cap: st.lcap || 'round', join: st.ljoin || 'round', rr: st.shape === 'rect' ? (st.rr || 0) : VSH.rr });
   }
   q('#vSwFill i').style.background = VSH.fill ? (VSH.ftype === 'grad' ? 'linear-gradient(' + (VSH.fang + 90) + 'deg,' + VSH.fc + ',' + VSH.fc2 + ')' : VSH.fc) : 'repeating-linear-gradient(45deg,#fff 0 3px,#d33 3px 5px)';
@@ -6816,12 +6817,370 @@ function syncVecUI(keepSel) {
   q('#vRound').value = Math.round(VSH.rr * 100); q('#vRoundOut').textContent = Math.round(VSH.rr * 100) + '%';
   q('#vSides').value = VSH.sides; q('#vPoints').value = VSH.points; q('#vInner').value = Math.round(VSH.inner * 100); q('#vInnerOut').textContent = Math.round(VSH.inner * 100) + '%';
   q('#vToCam').checked = !!VSH.toCam;
+  syncVecExtra(keepSel);
   const n = vSelList().length; q('#vSelInfo').textContent = n ? n + ' selected — the settings above change ' + (n > 1 ? 'them' : 'it') : 'Nothing selected — the settings above are for new shapes';
 }
 document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => setTimeout(() => syncVecUI(true), 0)));
 // keep old names used by the editor working
 function commitVecShape(sd) { vAddShapes([vBoxShape(sd.k, sd.x0, sd.y0, sd.x1, sd.y1)]); }
 function vecShapePreview() { return true; }
+/* ================= v31: vector art — brush with editable points, combining shapes, effects, snapping to points / outlines ================= */
+VSH = Object.assign({ keepLw: true, sal: 'center', a0: 'none', a1: 'none', dlen: 3, dgap: 2, gtype: 'linear', snapEdge: true, snapPts: true, snapLine: false, bsm: 40, bkind: 'smooth', bclose: true,
+  fx: { blend: 'normal', shadow: { on: false, x: 6, y: 6, b: 8, c: '#000000', o: 0.45 }, glow: { on: false, b: 12, c: '#ffce57', o: 0.9 }, blur: 0, tex: { k: 'none', c: '#000000', o: 0.35, s: 1, img: '' } } }, VSH);
+VSH.fx = Object.assign({ blend: 'normal', blur: 0 }, VSH.fx); ['shadow', 'glow', 'tex'].forEach(k => { if (!VSH.fx[k]) VSH.fx[k] = {}; });
+const fxCopy = fx => JSON.parse(JSON.stringify(fx));
+const fxUsed = fx => !!fx && ((fx.blend && fx.blend !== 'normal') || fx.blur > 0 || (fx.shadow && fx.shadow.on) || (fx.glow && fx.glow.on) || (fx.tex && fx.tex.k && fx.tex.k !== 'none'));
+function hexA(c, o) { const n = parseInt(String(c || '#000').slice(1), 16); return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + (o == null ? 1 : o) + ')'; }
+
+/* ---------- regions of combined shapes ---------- */
+const BIG = 1e6;
+function vOutside(p) { const o = new Path2D(); o.rect(-BIG, -BIG, 2 * BIG, 2 * BIG); o.addPath(p); return o; }
+function vInRegion(st, x, y) {
+  if (st.shape !== 'compound') return hctx.isPointInPath(vGeom(st), x, y);
+  const ins = vParts(st).map(p => hctx.isPointInPath(vGeom(p), x, y)), op = st.op || 'unite';
+  if (op === 'exclude') return ins.filter(Boolean).length % 2 === 1;
+  if (op === 'minus') return ins[0] && !ins.slice(1).some(Boolean);
+  if (op === 'intersect') return ins.every(Boolean);
+  return ins.some(Boolean);
+}
+function vClipRegion(ctx, st) {   // clip to where the shape is filled
+  if (st.shape !== 'compound') { ctx.clip(vGeom(st)); return; }
+  const P = vParts(st).map(vGeom), op = st.op || 'unite';
+  if (op === 'exclude') { ctx.clip(vGeom(st), 'evenodd'); return; }
+  if (op === 'unite') { ctx.clip(vGeom(st)); return; }
+  ctx.clip(P[0]);
+  for (const p of P.slice(1)) { if (op === 'minus') ctx.clip(vOutside(p), 'evenodd'); else ctx.clip(p); }
+}
+function vFillRegion(ctx, st) {
+  if (st.shape !== 'compound' || (st.op || 'unite') === 'unite') { ctx.fill(vGeom(st)); return; }
+  if (st.op === 'exclude') { ctx.fill(vGeom(st), 'evenodd'); return; }
+  ctx.save(); vClipRegion(ctx, st); const b = vBounds(st); ctx.fillRect(b.x0 - 2, b.y0 - 2, b.x1 - b.x0 + 4, b.y1 - b.y0 + 4); ctx.restore();
+}
+function vFillStyle(ctx, st) {
+  if (!st.fg) return st.fc;
+  const b = vBounds(st), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2; let g;
+  if (st.fg.t === 'radial') g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(b.x1 - b.x0, b.y1 - b.y0) / 2 || 1);
+  else { const a = (st.fg.ang || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), L = (Math.abs((b.x1 - b.x0) * ca) + Math.abs((b.y1 - b.y0) * sa)) / 2 || 1; g = ctx.createLinearGradient(cx - ca * L, cy - sa * L, cx + ca * L, cy + sa * L); }
+  g.addColorStop(0, st.fc); g.addColorStop(1, st.fg.c2 || st.fc); return g;
+}
+function vStrokeAll(ctx, st) {
+  const lw = st.pts[0] ? st.pts[0][2] : 0; if (!st.ol || !(lw > 0)) return;
+  const dash = st.dash === 'custom' && st.dl ? [lw * st.dl[0], lw * st.dl[1]] : vDash(st, lw);
+  ctx.lineJoin = st.ljoin || 'round'; ctx.lineCap = st.dash === 'dot' ? 'round' : (st.lcap || 'round'); ctx.miterLimit = 6; ctx.strokeStyle = st.color; ctx.setLineDash(dash);
+  if (st.shape === 'compound') {
+    const parts = vParts(st), P = parts.map(vGeom), op = st.op || 'unite';
+    ctx.lineWidth = lw;
+    P.forEach((p, i) => {
+      ctx.save();
+      P.forEach((q, j) => {
+        if (i === j) return;
+        if (op === 'unite') ctx.clip(vOutside(q), 'evenodd');
+        else if (op === 'intersect') ctx.clip(q);
+        else if (op === 'minus') { if (i === 0) { if (j > 0) ctx.clip(vOutside(q), 'evenodd'); } else if (j === 0) ctx.clip(q); else ctx.clip(vOutside(q), 'evenodd'); }
+      });
+      ctx.stroke(p); ctx.restore();
+    });
+  } else if (st.sal === 'inside' || st.sal === 'outside') {
+    ctx.save(); const p = vGeom(st); if (st.sal === 'inside') ctx.clip(p); else ctx.clip(vOutside(p), 'evenodd'); ctx.lineWidth = lw * 2; ctx.stroke(p); ctx.restore();
+  } else { ctx.lineWidth = lw; ctx.stroke(vGeom(st)); }
+  ctx.setLineDash([]);
+  if (st.shape === 'path' && !st.cl && (st.a0 && st.a0 !== 'none' || st.a1 && st.a1 !== 'none')) {
+    const N = vNodes(st); if (N.length < 2) return;
+    const dirAt = end => { const n = end ? N[N.length - 1] : N[0], A = n[0]; let c = end ? n[1] : n[2]; if (Math.hypot(c[0] - A[0], c[1] - A[1]) < 0.01) { const m = end ? N[N.length - 2] : N[1]; c = end ? m[2] : m[1]; if (Math.hypot(c[0] - A[0], c[1] - A[1]) < 0.01) c = m[0]; } const L = Math.hypot(A[0] - c[0], A[1] - c[1]) || 1; return [A, (A[0] - c[0]) / L, (A[1] - c[1]) / L]; };
+    const head = (kind, end) => {
+      if (!kind || kind === 'none') return; const [A, dx, dy] = dirAt(end), s = lw * 3 + 4, px = -dy, py = dx; ctx.fillStyle = st.color; ctx.beginPath();
+      if (kind === 'arrow') { ctx.moveTo(A[0] + dx * s * 0.6, A[1] + dy * s * 0.6); ctx.lineTo(A[0] - dx * s * 0.6 + px * s * 0.55, A[1] - dy * s * 0.6 + py * s * 0.55); ctx.lineTo(A[0] - dx * s * 0.6 - px * s * 0.55, A[1] - dy * s * 0.6 - py * s * 0.55); ctx.closePath(); ctx.fill(); }
+      else if (kind === 'circle') { ctx.arc(A[0], A[1], s * 0.45, 0, Math.PI * 2); ctx.fill(); }
+      else if (kind === 'square') { const h = s * 0.4; ctx.moveTo(A[0] + (dx + px) * h, A[1] + (dy + py) * h); ctx.lineTo(A[0] + (dx - px) * h, A[1] + (dy - py) * h); ctx.lineTo(A[0] + (-dx - px) * h, A[1] + (-dy - py) * h); ctx.lineTo(A[0] + (-dx + px) * h, A[1] + (-dy + py) * h); ctx.closePath(); ctx.fill(); }
+      else if (kind === 'bar') { ctx.lineWidth = lw; ctx.setLineDash([]); ctx.moveTo(A[0] + px * s * 0.6, A[1] + py * s * 0.6); ctx.lineTo(A[0] - px * s * 0.6, A[1] - py * s * 0.6); ctx.stroke(); }
+    };
+    head(st.a0, false); head(st.a1, true);
+  }
+}
+/* ---------- textures ---------- */
+const texCache = new Map(), imgCache = new Map();
+function texCanvas(k, c) {
+  const key = k + c; if (texCache.has(key)) return texCache.get(key);
+  const n = k === 'noise' || k === 'paper' ? 64 : 12, cv = document.createElement('canvas'); cv.width = cv.height = n; const g = cv.getContext('2d'); g.fillStyle = c; g.strokeStyle = c;
+  if (k === 'dots') { g.beginPath(); g.arc(6, 6, 2.2, 0, Math.PI * 2); g.fill(); }
+  else if (k === 'stripes') g.fillRect(0, 0, 12, 4);
+  else if (k === 'hatch') { g.lineWidth = 1.6; g.beginPath(); g.moveTo(-3, 15); g.lineTo(15, -3); g.moveTo(-3, 3); g.lineTo(3, -3); g.moveTo(9, 15); g.lineTo(15, 9); g.stroke(); }
+  else if (k === 'cross') { g.lineWidth = 1.4; g.beginPath(); g.moveTo(-3, 15); g.lineTo(15, -3); g.moveTo(-3, -3); g.lineTo(15, 15); g.stroke(); }
+  else if (k === 'checker') { g.fillRect(0, 0, 6, 6); g.fillRect(6, 6, 6, 6); }
+  else if (k === 'grid') { g.fillRect(0, 0, 12, 1); g.fillRect(0, 0, 1, 12); }
+  else if (k === 'noise' || k === 'paper') { const d = g.getImageData(0, 0, n, n), rgb = parseInt(c.slice(1), 16); let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647; for (let i = 0; i < n * n; i++) { const a = k === 'noise' ? rnd() * 255 : Math.max(0, rnd() * 2 - 1.4) * 400; d.data[i * 4] = rgb >> 16 & 255; d.data[i * 4 + 1] = rgb >> 8 & 255; d.data[i * 4 + 2] = rgb & 255; d.data[i * 4 + 3] = Math.min(255, a); } g.putImageData(d, 0, 0); }
+  texCache.set(key, cv); return cv;
+}
+function vPattern(ctx, t) {
+  let src;
+  if (t.k === 'img') { if (!t.img) return null; let im = imgCache.get(t.img); if (!im) { im = new Image(); im.onload = () => { invComp(); onionValid = false; render(); }; im.src = t.img; imgCache.set(t.img, im); } if (!im.complete || !im.naturalWidth) return null; src = im; }
+  else src = texCanvas(t.k, t.c || '#000000');
+  const p = ctx.createPattern(src, 'repeat'); if (p && p.setTransform) p.setTransform(new DOMMatrix().scaleSelf(t.s || 1)); return p;
+}
+/* ---------- the whole look of a shape ---------- */
+function vDrawFull(ctx, st) {
+  const fx = st.fx || {}, T = ctx.getTransform(), k = Math.hypot(T.a, T.b) || 1;
+  ctx.save();
+  if (fx.blend && fx.blend !== 'normal') ctx.globalCompositeOperation = fx.blend;
+  if (fx.blur > 0) ctx.filter = 'blur(' + (fx.blur * k).toFixed(2) + 'px)';
+  const body = () => { if (st.fc) { ctx.fillStyle = vFillStyle(ctx, st); vFillRegion(ctx, st); } else vStrokeAll(ctx, st); };
+  const sh = (c, o, b, x, y) => { ctx.save(); ctx.shadowColor = hexA(c, o); ctx.shadowBlur = b * k; ctx.shadowOffsetX = x * k; ctx.shadowOffsetY = y * k; body(); ctx.restore(); };
+  if (fx.glow && fx.glow.on) { sh(fx.glow.c, fx.glow.o, fx.glow.b, 0, 0); sh(fx.glow.c, fx.glow.o * 0.7, fx.glow.b * 0.5, 0, 0); }
+  if (fx.shadow && fx.shadow.on) sh(fx.shadow.c, fx.shadow.o, fx.shadow.b, fx.shadow.x, fx.shadow.y);
+  if (st.fc) {
+    ctx.fillStyle = vFillStyle(ctx, st); vFillRegion(ctx, st);
+    const t = fx.tex; if (t && t.k && t.k !== 'none') { const pat = vPattern(ctx, t); if (pat) { ctx.save(); vClipRegion(ctx, st); ctx.globalAlpha *= t.o == null ? 0.35 : t.o; if (t.mode) ctx.globalCompositeOperation = t.mode; ctx.fillStyle = pat; const b = vBounds(st); ctx.fillRect(b.x0 - 2, b.y0 - 2, b.x1 - b.x0 + 4, b.y1 - b.y0 + 4); ctx.restore(); } }
+  }
+  vStrokeAll(ctx, st);
+  ctx.restore();
+}
+/* ---------- style: new shapes, selected shapes, the panel ---------- */
+function vStyleMore(o) {
+  if (o.fg && VSH.gtype === 'radial') o.fg.t = 'radial';
+  if (VSH.sal !== 'center') o.sal = VSH.sal;
+  if (VSH.dash === 'custom') { o.dash = 'custom'; o.dl = [VSH.dlen, VSH.dgap]; }
+  if (VSH.a0 !== 'none') o.a0 = VSH.a0; if (VSH.a1 !== 'none') o.a1 = VSH.a1;
+  if (fxUsed(VSH.fx)) o.fx = fxCopy(VSH.fx);
+  return o;
+}
+function vApplyMore(keys, st, o) {
+  if (keys.includes('grad') && o.fg) o.fg.t = VSH.gtype === 'radial' ? 'radial' : undefined;
+  if (keys.includes('dash') && VSH.dash === 'custom') { o.dash = 'custom'; o.dl = [VSH.dlen, VSH.dgap]; }
+  if (keys.includes('sal')) o.sal = VSH.sal !== 'center' ? VSH.sal : undefined;
+  if (keys.includes('arr')) { o.a0 = VSH.a0 !== 'none' ? VSH.a0 : undefined; o.a1 = VSH.a1 !== 'none' ? VSH.a1 : undefined; }
+  if (keys.includes('fx')) o.fx = fxUsed(VSH.fx) ? fxCopy(VSH.fx) : undefined;
+}
+function vLoadMore(st) {
+  VSH.sal = st.sal || 'center'; VSH.a0 = st.a0 || 'none'; VSH.a1 = st.a1 || 'none'; VSH.gtype = st.fg && st.fg.t === 'radial' ? 'radial' : 'linear';
+  if (st.dash === 'custom' && st.dl) { VSH.dlen = st.dl[0]; VSH.dgap = st.dl[1]; }
+  const d = { blend: 'normal', blur: 0, shadow: Object.assign({}, VSH.fx.shadow, { on: false }), glow: Object.assign({}, VSH.fx.glow, { on: false }), tex: Object.assign({}, VSH.fx.tex, { k: 'none' }) };
+  VSH.fx = st.fx ? Object.assign(d, fxCopy(st.fx)) : d;
+}
+
+/* ---------- snapping to points and outlines ---------- */
+function vAnchorsOf(st) { const p = vToPath(st); const out = []; for (let i = 0; i < p.pts.length; i += 3) out.push(p.pts[i]); if (st.shape !== 'path' && st.shape !== 'compound') { const b = vBounds(st); out.push([(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2]); } return out; }
+function vSnapPt(p, skip) {
+  vmark = null; const c = vcel(); if (!c) return p;
+  const t = vtol() * 1.3; let best = null, bd = t;
+  const pool = skip ? c.strokes.filter(st => st.shape && !skip.has(st)) : c.strokes.filter(st => st.shape);
+  if (VSH.snapPts) for (const st of pool) for (const a of vAnchorsOf(st)) { const d = Math.hypot(a[0] - p.x, a[1] - p.y); if (d < bd) { bd = d; best = { x: a[0], y: a[1] }; } }
+  if (!best && VSH.snapLine) for (const st of pool) for (const a of vSamplePts(st)) { const d = Math.hypot(a[0] - p.x, a[1] - p.y); if (d < bd) { bd = d; best = { x: a[0], y: a[1] }; } }
+  if (best) { vmark = best; return Object.assign({}, p, best); }
+  return p;
+}
+function vSnapMove(sel, dx, dy) {   // the selection's points stick to the points (or outlines) of other shapes
+  if (!VSH.snapPts && !VSH.snapLine) return null;
+  const c = vcel(); if (!c) return null; const t = vtol() * 1.3, mine = [];
+  for (const st of sel) { if (!st.shape) continue; for (const a of vAnchorsOf(st)) { mine.push(a); if (mine.length > 300) break; } }
+  const targets = [];
+  for (const st of c.strokes) { if (!st.shape || sel.has(st)) continue; if (VSH.snapPts) targets.push(...vAnchorsOf(st)); if (VSH.snapLine) targets.push(...vSamplePts(st)); if (targets.length > 6000) break; }
+  let best = null, bd = t;
+  for (const a of mine) { const x = a[0] + dx, y = a[1] + dy; for (const q of targets) { const d = Math.abs(q[0] - x) + Math.abs(q[1] - y); if (d < bd) { bd = d; best = { dx: q[0] - a[0], dy: q[1] - a[1], x: q[0], y: q[1] }; } } }
+  if (best) { vmark = { x: best.x, y: best.y }; return best; }
+  return null;
+}
+
+/* ---------- vector brush: a free line that becomes movable points ---------- */
+function rdp(pts, eps) {
+  if (pts.length < 3) return pts.slice();
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1; const st = [[0, pts.length - 1]];
+  while (st.length) { const [a, b] = st.pop(); let md = -1, mi = -1; for (let i = a + 1; i < b; i++) { const d = distSeg(pts[i][0], pts[i][1], pts[a], pts[b]); if (d > md) { md = d; mi = i; } } if (md > eps) { keep[mi] = 1; st.push([a, mi], [mi, b]); } }
+  return pts.filter((_, i) => keep[i]);
+}
+function smoothNodes(A, closed, tension) {   // Catmull-Rom style handles: soft curves through the points
+  const n = A.length, k = (tension == null ? 1 : tension) / 6;
+  return A.map((p, i) => {
+    const pv = A[i > 0 ? i - 1 : (closed ? n - 1 : 0)], nx = A[i < n - 1 ? i + 1 : (closed ? 0 : n - 1)];
+    const dx = (nx[0] - pv[0]) * k, dy = (nx[1] - pv[1]) * k;
+    if (!closed && (i === 0 || i === n - 1)) return [p, p.slice(), p.slice()];
+    return [p, [p[0] - dx, p[1] - dy], [p[0] + dx, p[1] + dy]];
+  });
+}
+VEC_TOOL.vbrush = (p0, e0) => {
+  const raw = [[p0.x, p0.y]]; let last = e0;
+  return vActive = {
+    move(e) { last = e; const p = pos(e), q = raw[raw.length - 1]; if (Math.hypot(p.x - q[0], p.y - q[1]) < 0.5 / S.zoom.scale) return; raw.push([p.x, p.y]); vprev = Object.assign(vStyle(), { shape: 'path', fc: null, ol: true, pts: raw.flatMap(r => [[r[0], r[1], VSH.lw], [r[0], r[1], VSH.lw], [r[0], r[1], VSH.lw]]), cl: false }); render(); },
+    up() {
+      vprev = null; if (raw.length < 2) { render(); return; }
+      const eps = (0.4 + VSH.bsm / 100 * 9) / Math.max(0.01, S.zoom.scale);
+      let A = rdp(raw, eps); const tol = vtol() * 2;
+      const closed = VSH.bclose && A.length > 3 && Math.hypot(A[0][0] - A[A.length - 1][0], A[0][1] - A[A.length - 1][1]) < tol;
+      if (closed) A = A.slice(0, -1);
+      if (!last.ctrlKey && !closed) { const s0 = vSnapPt({ x: A[0][0], y: A[0][1] }); A[0] = [s0.x, s0.y]; const s1 = vSnapPt({ x: A[A.length - 1][0], y: A[A.length - 1][1] }); A[A.length - 1] = [s1.x, s1.y]; vmark = null; }
+      const N = VSH.bkind === 'sharp' ? A.map(p => [p, p.slice(), p.slice()]) : smoothNodes(A, closed, 1);
+      const st = Object.assign(vStyle(), { shape: 'path', pts: N.flat().map(q => [q[0], q[1], VSH.lw]), cl: closed, ol: true });
+      if (!closed) { st.fc = null; st.fg = undefined; }
+      vAddShapes([st]); syncVecUI(true);
+    },
+    cancel() { vprev = null; render(); }
+  };
+};
+
+/* ---------- points: smooth ↔ sharp, add a point ---------- */
+function vSetNodeType(smooth, wholeShape) {
+  const one = !wholeShape && vnode && vsel.has(vnode.st) ? vnode : null;
+  const conv = (st, onlyI) => {
+    if (!st.shape) return st;
+    if (st.shape !== 'path' && st.shape !== 'compound') st = vToPath(st);
+    const parts = st.shape === 'compound' ? vParts(st) : [st]; let off = 0; const pts = st.pts.slice();
+    parts.forEach(pt => {
+      const N = vNodes(pt), n = N.length, cl = pt.cl;
+      const A = N.map(x => x[0]); const sm = smooth ? smoothNodes(A, cl, 1) : null;
+      N.forEach((nd, i) => { const gi = off + i; if (onlyI != null && gi !== onlyI) return; const a = nd[0]; if (smooth) { pts[gi * 3 + 1] = [sm[i][1][0], sm[i][1][1], a[2]]; pts[gi * 3 + 2] = [sm[i][2][0], sm[i][2][1], a[2]]; } else { pts[gi * 3 + 1] = a.slice(); pts[gi * 3 + 2] = a.slice(); } });
+      off += n;
+    });
+    return vClone(st, { pts });
+  };
+  if (one) { const c = vcel(), base = c.strokes, n2 = conv(one.st, one.i); vsel = new Set([n2]); vnode = { st: n2, i: one.i }; vPush(c, base, base.map(x => x === one.st ? n2 : x)); return; }
+  if (!vEditSel(st => conv(st, null))) flash('Select shapes first (V or A)');
+}
+view.addEventListener('dblclick', e => {   // A tool: double-click the line to add a point there
+  if (MODE !== 'vector' || S.tool !== 'vdirect') return;
+  const p = pos(e), c = vcel(); if (!c) return; const t = vtol() * 1.5;
+  for (const st0 of vSelList()) {
+    if (!st0.shape || st0.shape === 'compound') continue;
+    const st = vToPath(st0), N = vNodes(st), segs = N.length - 1 + (st.cl ? 1 : 0); let best = null;
+    for (let i = 0; i < segs; i++) { const a = N[i], b = N[(i + 1) % N.length]; for (let k = 1; k < 40; k++) { const u = k / 40, v = 1 - u, x = v * v * v * a[0][0] + 3 * v * v * u * a[2][0] + 3 * v * u * u * b[1][0] + u * u * u * b[0][0], y = v * v * v * a[0][1] + 3 * v * v * u * a[2][1] + 3 * v * u * u * b[1][1] + u * u * u * b[0][1], d = Math.hypot(x - p.x, y - p.y); if (d < t && (!best || d < best.d)) best = { d, i, u }; } }
+    if (!best) continue;
+    const a = N[best.i], b = N[(best.i + 1) % N.length], u = best.u, L = (P, Q) => [P[0] + (Q[0] - P[0]) * u, P[1] + (Q[1] - P[1]) * u];
+    const p01 = L(a[0], a[2]), p12 = L(a[2], b[1]), p23 = L(b[1], b[0]), p012 = L(p01, p12), p123 = L(p12, p23), m = L(p012, p123), w = a[0][2];
+    const pts = st.pts.map(q => q.slice()), ia = best.i * 3, ib = ((best.i + 1) % N.length) * 3;
+    pts[ia + 2] = [p01[0], p01[1], w]; pts[ib + 1] = [p23[0], p23[1], w];
+    pts.splice(ia + 3, 0, [m[0], m[1], w], [p012[0], p012[1], w], [p123[0], p123[1], w]);
+    const n2 = vClone(st, { pts }), base = c.strokes; vsel = new Set([n2]); vnode = { st: n2, i: best.i + 1 }; vPush(c, base, base.map(x => x === st0 ? n2 : x)); flash('Point added'); return;
+  }
+});
+
+/* ---------- combining shapes ---------- */
+function vArea(path) { const s = vSamplePts(path); let a = 0; for (let i = 0; i < s.length; i++) { const p = s[i], q = s[(i + 1) % s.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; }
+function vReverse(path) { const N = vNodes(path).reverse().map(n => [n[0], n[2], n[1]]); return vClone(path, { pts: N.flat() }); }
+function vCombine(op) {
+  const c = vcel(); if (!c || !vlayerOk()) return;
+  const sel = c.strokes.filter(st => vsel.has(st) && st.shape);
+  if (op === 'release') {
+    const out = [], nsel = new Set(); let any = false;
+    const after = []; c.strokes.forEach(st => { if (!vsel.has(st) || st.shape !== 'compound') { after.push(st); return; } any = true; vParts(st).forEach(p => { const n = vClone(st, { shape: 'path', pts: p.pts, cl: p.cl, ns: undefined, cls: undefined, op: undefined }); after.push(n); nsel.add(n); }); });
+    if (!any) { flash('Select a combined shape to take it apart'); return; }
+    vsel = nsel; vPush(c, c.strokes, after); syncVecUI(true); return;
+  }
+  if (sel.length < 2) { flash('Select 2 or more shapes (Shift + click)'); return; }
+  const pieces = [];   // back shape first
+  sel.forEach(st => { (st.shape === 'compound' && st.op === 'unite' ? vParts(st) : [vToPath(st)]).forEach(p => { let q = { shape: 'path', pts: p.pts, cl: p.cl !== false }; if (vArea(q) < 0) q = vReverse(q); pieces.push(q); }); });
+  const look = op === 'minus' ? sel[0] : sel[sel.length - 1];
+  const comp = vClone(look, { shape: 'compound', op, pts: pieces.flatMap(p => p.pts), ns: pieces.map(p => p.pts.length / 3), cls: pieces.map(() => true), rot: 0, rr: 0, cl: undefined, a0: undefined, a1: undefined });
+  if (!comp.fc && !comp.ol) comp.fc = VSH.fc;
+  const first = c.strokes.indexOf(sel[0]), s = new Set(sel), after = [];
+  c.strokes.forEach((st, i) => { if (i === first) after.push(comp); if (!s.has(st)) after.push(st); });
+  vsel = new Set([comp]); vnode = null; vPush(c, c.strokes, after); syncVecUI(); flash({ unite: 'Joined', minus: 'Front shape cut out', intersect: 'Only the overlap kept', exclude: 'Overlap made empty' }[op]);
+}
+
+/* ---------- position and size ---------- */
+function vSetBox(k, v) {
+  const sel = vSelList().filter(s => s.shape); if (!sel.length || !isFinite(v)) return; const b = vUnion(sel), w = b.x1 - b.x0, h = b.y1 - b.y0; let M;
+  if (k === 'x') M = mTrans(v - b.x0, 0); else if (k === 'y') M = mTrans(0, v - b.y0);
+  else if (k === 'w') { if (v <= 0.1 || w < 1e-6) return; const s = v / w; M = mScale(s, $('#vLock').checked ? s : 1, b.x0, b.y0); }
+  else if (k === 'h') { if (v <= 0.1 || h < 1e-6) return; const s = v / h; M = mScale($('#vLock').checked ? s : 1, s, b.x0, b.y0); }
+  else if (k === 'r') { if (!v) return; M = mRot(v * Math.PI / 180, (b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2); }
+  vEditSel(st => st.shape ? vApply(st, M) : st); syncVecExtra(true);
+}
+
+/* ---------- overlay extras ---------- */
+function drawVecOverlayMore() {}
+
+/* ---------- panel ---------- */
+(() => {
+  const fs = $('#vecShapeSet'); if (!fs) return;
+  const sel = (id, list) => '<select id="' + id + '">' + list.map(([k, n]) => '<option value="' + k + '">' + n + '</option>').join('') + '</select>';
+  const rng = (id, label, min, max, step) => '<div class="bopt"><label for="' + id + '">' + label + '</label><output id="' + id + 'Out"></output><input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + (step || 1) + '"></div>';
+  const fsets = fs.querySelectorAll('fieldset');
+  // more stroke & fill settings (inside "Fill & stroke")
+  const more = document.createElement('div'); more.innerHTML =
+    '<div class="arow">Gradient ' + sel('vGType', [['linear', 'Straight'], ['radial', 'Round']]) + '</div>' +
+    '<div class="arow">Stroke sits ' + sel('vSal', [['center', 'On the line'], ['inside', 'Inside'], ['outside', 'Outside']]) + '</div>' +
+    '<div id="vDashRow">' + rng('vDLen', 'Dash length', 0.5, 10, 0.5) + rng('vDGap', 'Gap', 0.5, 10, 0.5) + '</div>' +
+    '<div class="arow">Start ' + sel('vA0', [['none', '—'], ['arrow', '◀ Arrow'], ['circle', '● Dot'], ['square', '◆ Diamond'], ['bar', '| Bar']]) + ' End ' + sel('vA1', [['none', '—'], ['arrow', 'Arrow ▶'], ['circle', 'Dot ●'], ['square', 'Diamond ◆'], ['bar', 'Bar |']]) + '</div>' +
+    '<label class="toggle" title="Off: a shape made 2× bigger gets a 2× thicker stroke"><input type="checkbox" id="vKeepLw"> Stroke width stays the same when scaling</label>';
+  fsets[0].appendChild(more);
+  const vd = $('#vDash'); if (vd && !vd.querySelector('[value=custom]')) vd.insertAdjacentHTML('beforeend', '<option value="custom">Custom…</option>');
+  const add = (html, before) => { const f = document.createElement('fieldset'); f.className = 'aset'; f.innerHTML = html; if (before) fs.insertBefore(f, before); else fs.insertBefore(f, $('#vSelInfo')); return f; };
+  add('<legend>Position &amp; size</legend><div class="arow vxy">X <input class="num" type="number" id="vX" step="1"> Y <input class="num" type="number" id="vY" step="1"></div><div class="arow vxy">W <input class="num" type="number" id="vW" step="1" min="0"> H <input class="num" type="number" id="vH" step="1" min="0"> <label class="opt" title="Keep the proportions"><input type="checkbox" id="vLock" checked>🔗</label></div><div class="arow vxy">Turn by <input class="num" type="number" id="vR" step="5" value="0" style="width:56px">° <button type="button" class="pb" id="vRGo">Turn</button></div>', fsets[1]);
+  add('<legend>Combine shapes</legend><div class="arow vbtns"><button type="button" class="pb" data-vo="unite" title="Join the selected shapes into one">⊕ Join</button><button type="button" class="pb" data-vo="minus" title="The top shape cuts itself out of the bottom one">⊖ Cut out</button></div><div class="arow vbtns"><button type="button" class="pb" data-vo="intersect" title="Keep only where they overlap">⊗ Overlap</button><button type="button" class="pb" data-vo="exclude" title="Join them, the overlap becomes empty">⊘ Hole</button></div><div class="arow vbtns"><button type="button" class="pb" data-vo="release" title="Take a combined shape apart again">Take apart</button></div><p class="ainfo">Select 2 or more shapes with V (Shift + click). The bottom shape is the one at the back.</p>');
+  add('<legend>Points (A)</legend><div class="arow vbtns"><button type="button" class="pb" data-vp="s1" title="The selected point becomes smooth">◠ Smooth point</button><button type="button" class="pb" data-vp="h1" title="The selected point becomes sharp">∧ Sharp point</button></div><div class="arow vbtns"><button type="button" class="pb" data-vp="sa" title="Every point of the selected shapes: soft curves">∿ All smooth</button><button type="button" class="pb" data-vp="ha" title="Every point of the selected shapes: sharp, zigzag">⩘ All sharp</button></div><p class="ainfo">With A: drag points and handles, Alt + click a point to switch it, double-click the line to add a point, Delete removes the point.</p>');
+  add('<legend>Vector brush (B)</legend>' + rng('vBsm', 'Smoothness', 0, 100) + '<div class="arow">Points ' + sel('vBKind', [['smooth', 'Smooth (curves)'], ['sharp', 'Sharp (zigzag)']]) + '</div><label class="toggle"><input type="checkbox" id="vBClose"> Close the shape when the ends meet</label><p class="ainfo">The line is made of points: move them later with A. More smoothness = fewer points.</p>');
+  add('<legend>Snapping</legend><label class="toggle"><input type="checkbox" id="vSnE"> To edges and middles</label><label class="toggle"><input type="checkbox" id="vSnP"> To points of other shapes</label><label class="toggle"><input type="checkbox" id="vSnL"> To outlines of other shapes</label><p class="ainfo">Hold Ctrl to place freely.</p>');
+  add('<legend>Effects</legend>' +
+    '<div class="arow">Blend ' + sel('vBlend', [['normal', 'Normal'], ['multiply', 'Multiply'], ['screen', 'Screen'], ['overlay', 'Overlay'], ['darken', 'Darken'], ['lighten', 'Lighten'], ['color-dodge', 'Dodge'], ['color-burn', 'Burn'], ['difference', 'Difference'], ['hue', 'Hue'], ['color', 'Color']]) + '</div>' +
+    '<label class="toggle"><input type="checkbox" id="vShOn"> Shadow</label><div id="vShBox" class="vfxbox"><div class="arow">Color <input type="color" id="vShC"></div>' + rng('vShX', 'Move →', -60, 60) + rng('vShY', 'Move ↓', -60, 60) + rng('vShB', 'Softness', 0, 60) + rng('vShO', 'Strength', 5, 100) + '</div>' +
+    '<label class="toggle"><input type="checkbox" id="vGlOn"> Glow</label><div id="vGlBox" class="vfxbox"><div class="arow">Color <input type="color" id="vGlC"></div>' + rng('vGlB', 'Size', 1, 80) + rng('vGlO', 'Strength', 5, 100) + '</div>' +
+    rng('vBlur', 'Blur', 0, 30, 0.5) +
+    '<div class="arow">Texture ' + sel('vTex', [['none', 'None'], ['dots', 'Dots'], ['stripes', 'Stripes'], ['hatch', 'Hatching'], ['cross', 'Cross-hatching'], ['checker', 'Checker'], ['grid', 'Grid'], ['noise', 'Noise / grain'], ['paper', 'Speckles'], ['img', 'Picture…']]) + '<input type="color" id="vTexC"></div>' +
+    '<div id="vTexBox" class="vfxbox">' + rng('vTexS', 'Texture size', 0.25, 6, 0.25) + rng('vTexO', 'Texture strength', 5, 100) + '<div class="arow">Mix ' + sel('vTexM', [['', 'Normal'], ['multiply', 'Multiply'], ['screen', 'Screen'], ['overlay', 'Overlay'], ['soft-light', 'Soft light']]) + '<button type="button" class="pb" id="vTexPic">Picture…</button></div></div>' +
+    '<p class="ainfo">Effects go on the selected shapes, and on new ones.</p>');
+  const q = s => fs.querySelector(s), on = (id, ev, fn) => { const el = q(id); if (el) el.addEventListener(ev, fn); };
+  fs.querySelectorAll('input[type=number]').forEach(n => n.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); n.dispatchEvent(new Event('change')); } }));
+  on('#vGType', 'change', e => { VSH.gtype = e.target.value; VSH.ftype = 'grad'; VSH.fill = true; vshSave(); vApplyStyle(['fill', 'grad']); syncVecUI(true); });
+  on('#vSal', 'change', e => { VSH.sal = e.target.value; vshSave(); vApplyStyle(['sal']); });
+  on('#vDash', 'change', () => setTimeout(() => { syncVecExtra(true); if (VSH.dash === 'custom') vApplyStyle(['dash']); }, 0));
+  on('#vDLen', 'input', e => { VSH.dlen = +e.target.value; VSH.dash = 'custom'; vshSave(); vApplyStyle(['dash']); syncVecExtra(true); });
+  on('#vDGap', 'input', e => { VSH.dgap = +e.target.value; VSH.dash = 'custom'; vshSave(); vApplyStyle(['dash']); syncVecExtra(true); });
+  on('#vA0', 'change', e => { VSH.a0 = e.target.value; vshSave(); vApplyStyle(['arr']); });
+  on('#vA1', 'change', e => { VSH.a1 = e.target.value; vshSave(); vApplyStyle(['arr']); });
+  on('#vKeepLw', 'change', e => { VSH.keepLw = e.target.checked; vshSave(); });
+  ['x', 'y', 'w', 'h'].forEach(k => on('#v' + k.toUpperCase(), 'change', e => vSetBox(k, +e.target.value)));
+  on('#vRGo', 'click', () => { vSetBox('r', +q('#vR').value); });
+  on('#vR', 'change', () => { vSetBox('r', +q('#vR').value); });
+  fs.querySelectorAll('[data-vo]').forEach(b => b.onclick = () => vCombine(b.dataset.vo));
+  fs.querySelectorAll('[data-vp]').forEach(b => b.onclick = () => { const k = b.dataset.vp; vSetNodeType(k[0] === 's', k[1] === 'a'); });
+  on('#vBsm', 'input', e => { VSH.bsm = +e.target.value; vshSave(); syncVecExtra(true); });
+  on('#vBKind', 'change', e => { VSH.bkind = e.target.value; vshSave(); });
+  on('#vBClose', 'change', e => { VSH.bclose = e.target.checked; vshSave(); });
+  on('#vSnE', 'change', e => { VSH.snapEdge = e.target.checked; vshSave(); });
+  on('#vSnP', 'change', e => { VSH.snapPts = e.target.checked; vshSave(); });
+  on('#vSnL', 'change', e => { VSH.snapLine = e.target.checked; vshSave(); });
+  const fxSet = (fn, live) => { fn(VSH.fx); vshSave(); vApplyStyle(['fx']); syncVecExtra(true); };
+  on('#vBlend', 'change', e => fxSet(f => { f.blend = e.target.value; }));
+  on('#vShOn', 'change', e => fxSet(f => { f.shadow.on = e.target.checked; }));
+  on('#vShC', 'input', e => fxSet(f => { f.shadow.c = e.target.value; f.shadow.on = true; }));
+  on('#vShX', 'input', e => fxSet(f => { f.shadow.x = +e.target.value; f.shadow.on = true; }));
+  on('#vShY', 'input', e => fxSet(f => { f.shadow.y = +e.target.value; f.shadow.on = true; }));
+  on('#vShB', 'input', e => fxSet(f => { f.shadow.b = +e.target.value; f.shadow.on = true; }));
+  on('#vShO', 'input', e => fxSet(f => { f.shadow.o = +e.target.value / 100; f.shadow.on = true; }));
+  on('#vGlOn', 'change', e => fxSet(f => { f.glow.on = e.target.checked; }));
+  on('#vGlC', 'input', e => fxSet(f => { f.glow.c = e.target.value; f.glow.on = true; }));
+  on('#vGlB', 'input', e => fxSet(f => { f.glow.b = +e.target.value; f.glow.on = true; }));
+  on('#vGlO', 'input', e => fxSet(f => { f.glow.o = +e.target.value / 100; f.glow.on = true; }));
+  on('#vBlur', 'input', e => fxSet(f => { f.blur = +e.target.value; }));
+  on('#vTex', 'change', e => { if (e.target.value === 'img' && !VSH.fx.tex.img) { q('#vTexPic').click(); } fxSet(f => { f.tex.k = e.target.value; }); });
+  on('#vTexC', 'input', e => fxSet(f => { f.tex.c = e.target.value; if (f.tex.k === 'none') f.tex.k = 'dots'; }));
+  on('#vTexS', 'input', e => fxSet(f => { f.tex.s = +e.target.value; }));
+  on('#vTexO', 'input', e => fxSet(f => { f.tex.o = +e.target.value / 100; }));
+  on('#vTexM', 'change', e => fxSet(f => { f.tex.mode = e.target.value || undefined; }));
+  on('#vTexPic', 'click', () => {
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+    inp.onchange = () => { const f = inp.files[0]; if (!f) return; const im = new Image(), url = URL.createObjectURL(f); im.onload = () => { const m = Math.min(1, 256 / Math.max(im.width, im.height)), cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(im.width * m)); cv.height = Math.max(1, Math.round(im.height * m)); cv.getContext('2d').drawImage(im, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); fxSet(fx => { fx.tex.k = 'img'; fx.tex.img = cv.toDataURL('image/png'); fx.tex.mode = fx.tex.mode || 'multiply'; fx.tex.o = Math.max(fx.tex.o || 0, 0.6); }); }; im.src = url; };
+    inp.click();
+  });
+})();
+function syncVecExtra() {
+  const fs = $('#vecShapeSet'); if (!fs || MODE !== 'vector') return; const q = s => fs.querySelector(s), setR = (id, v, txt) => { const el = q(id); if (!el) return; el.value = v; const o = q(id + 'Out'); if (o) o.textContent = txt != null ? txt : v; };
+  q('#vGType').value = VSH.gtype; q('#vSal').value = VSH.sal; q('#vDash').value = VSH.dash; q('#vDashRow').hidden = VSH.dash !== 'custom';
+  setR('#vDLen', VSH.dlen, VSH.dlen + '×'); setR('#vDGap', VSH.dgap, VSH.dgap + '×');
+  q('#vA0').value = VSH.a0; q('#vA1').value = VSH.a1; q('#vKeepLw').checked = VSH.keepLw !== false;
+  setR('#vBsm', VSH.bsm, VSH.bsm + '%'); q('#vBKind').value = VSH.bkind; q('#vBClose').checked = !!VSH.bclose;
+  q('#vSnE').checked = VSH.snapEdge !== false; q('#vSnP').checked = !!VSH.snapPts; q('#vSnL').checked = !!VSH.snapLine;
+  const f = VSH.fx; q('#vBlend').value = f.blend || 'normal';
+  q('#vShOn').checked = !!f.shadow.on; q('#vShBox').hidden = !f.shadow.on; q('#vShC').value = f.shadow.c || '#000000';
+  setR('#vShX', f.shadow.x || 0); setR('#vShY', f.shadow.y || 0); setR('#vShB', f.shadow.b || 0); setR('#vShO', Math.round((f.shadow.o == null ? 0.45 : f.shadow.o) * 100), Math.round((f.shadow.o == null ? 0.45 : f.shadow.o) * 100) + '%');
+  q('#vGlOn').checked = !!f.glow.on; q('#vGlBox').hidden = !f.glow.on; q('#vGlC').value = f.glow.c || '#ffce57';
+  setR('#vGlB', f.glow.b || 12); setR('#vGlO', Math.round((f.glow.o == null ? 0.9 : f.glow.o) * 100), Math.round((f.glow.o == null ? 0.9 : f.glow.o) * 100) + '%');
+  setR('#vBlur', f.blur || 0, (f.blur || 0) + ' px');
+  q('#vTex').value = f.tex.k || 'none'; q('#vTexC').value = f.tex.c || '#000000'; q('#vTexBox').hidden = !f.tex.k || f.tex.k === 'none'; q('#vTexC').hidden = f.tex.k === 'img';
+  setR('#vTexS', f.tex.s || 1, (f.tex.s || 1) + '×'); setR('#vTexO', Math.round((f.tex.o == null ? 0.35 : f.tex.o) * 100), Math.round((f.tex.o == null ? 0.35 : f.tex.o) * 100) + '%'); q('#vTexM').value = f.tex.mode || '';
+  const sel = vSelList().filter(s => s.shape), b = sel.length ? vUnion(sel) : null, r1 = v => Math.round(v * 10) / 10;
+  ['#vX', '#vY', '#vW', '#vH'].forEach(id => { q(id).disabled = !b; }); q('#vRGo').disabled = !b;
+  if (b) { if (document.activeElement !== q('#vX')) q('#vX').value = r1(b.x0); if (document.activeElement !== q('#vY')) q('#vY').value = r1(b.y0); if (document.activeElement !== q('#vW')) q('#vW').value = r1(b.x1 - b.x0); if (document.activeElement !== q('#vH')) q('#vH').value = r1(b.y1 - b.y0); }
+  else ['#vX', '#vY', '#vW', '#vH'].forEach(id => { q(id).value = ''; });
+}
 /* ================= v30: settings as separate windows (F5–F8) — palette and layers stay where they are ================= */
 const PANELS = [
   { page: 'pageBrush', tab: 'tabBrush', name: () => MODE === 'vector' ? 'Shape' : 'Brush', act: 'panelBrush', key: 'F5', sync: () => { if (typeof syncBrushTab === 'function') syncBrushTab(); syncVecUI(true); } },
@@ -6836,7 +7195,7 @@ function makeWin(P, i) {
   const w = document.createElement('section'); w.className = 'pwin box'; w.id = 'fw_' + P.page; w.hidden = true; w.setAttribute('role', 'dialog');
   w.innerHTML = '<header class="fwh"><span class="fwt"></span><kbd class="fwk"></kbd><button type="button" class="fwx" title="Close">×</button></header><div class="fwb"></div>';
   const st = fwState()[P.page] || {};
-  w.style.left = (st.x != null ? st.x : innerWidth - 260 - i * 24) + 'px'; w.style.top = (st.y != null ? st.y : 60 + i * 28) + 'px';
+  w.style.left = (st.x != null ? st.x : innerWidth - 290 - i * 24) + 'px'; w.style.top = (st.y != null ? st.y : 60 + i * 28) + 'px';
   if (st.h) w.style.height = st.h + 'px';
   w.querySelector('.fwx').onclick = () => panelShow(P, false);
   w.addEventListener('pointerdown', () => { w.style.zIndex = ++fwTop; }, true);
