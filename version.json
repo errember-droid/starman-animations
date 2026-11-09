@@ -1,6 +1,13 @@
 {
- "version": "1.36.0",
+ "version": "1.36.1",
  "changelog": [
+  {
+   "v": "1.36.1",
+   "date": "2026-11-09",
+   "items": [
+    "Video export: new quality “Best (for posting)” — 20 Mbit/s, so social networks have a clean picture to start from"
+   ]
+  },
   {
    "v": "1.36.0",
    "date": "2026-11-09",
