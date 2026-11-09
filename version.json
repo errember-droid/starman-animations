@@ -1,6 +1,15 @@
 {
- "version": "1.33.1",
+ "version": "1.34.0",
  "changelog": [
+  {
+   "v": "1.34.0",
+   "date": "2026-11-09",
+   "items": [
+    "Vector gradients: as many colors as you like (click the gradient bar to add one, drag the marks to move, Remove, ⇄ to turn it around)",
+    "New gradient kinds: Rings, Sweep (around the center) and Stripes, plus Straight and Round",
+    "Gradient center, size and number of repeats; the Gradient tool (Shift+G) sets the center and size for round ones by dragging"
+   ]
+  },
   {
    "v": "1.33.1",
    "date": "2026-11-09",

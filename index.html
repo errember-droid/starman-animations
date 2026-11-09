@@ -593,6 +593,7 @@ body.floatpanels:not(.mobile) #side,body.floatpanels:not(.mobile) #splitR{displa
 .fwt{flex:1}.fwk{font:inherit;font-size:10px;color:#a9a9c8!important;background:none!important;border:0!important;padding:0!important;box-shadow:none!important}.fwx{width:20px;height:18px;padding:0;border:0;background:transparent;color:#fff;font:inherit;font-size:14px;cursor:pointer}.fwx:hover{color:#ff8a8a}
 .fwb{flex:1;overflow:auto;padding:6px}.fwb>.ppage{display:block;height:auto!important;max-height:none!important;overflow:visible!important}.fwb>.ppage[hidden]{display:none}
 .panelsbtn{font-size:15px;line-height:1;margin-top:auto!important;color:var(--ink,#fff)}body.mobile .panelsbtn{display:none}
+.gedit{margin:4px 0 8px}.gedit[hidden]{display:none}.gbar{height:18px;border:1px solid #16162b;cursor:copy;background-color:#fff}.gstops{position:relative;height:16px;margin:0 0 4px}.gstops i{position:absolute;top:2px;width:10px;height:12px;margin-left:-5px;border:1px solid #16162b;box-shadow:0 0 0 1px #fff;cursor:ew-resize;touch-action:none}.gstops i.on{outline:2px solid var(--accent);outline-offset:1px}.gstops i::before{content:'';position:absolute;left:2px;top:-5px;border:3px solid transparent;border-bottom-color:#16162b}
 .lobadge{position:absolute;right:-2px;bottom:-2px;min-width:16px;height:16px;line-height:15px;text-align:center;font-size:12px;font-family:system-ui,sans-serif;color:#16162b;background:#ffce57;border:1px solid #16162b;border-radius:3px;pointer-events:none}.file .ico{position:relative}
 .syncbtn{height:22px;padding:0 6px;font:inherit;font-size:11px;color:var(--ink,#fff);background:transparent;border:1px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap}.syncbtn[data-st=err]{color:#ff8a8a;border-color:#ff8a8a}.syncbtn[data-st=busy]{opacity:.75}
 .syncdlg ol{padding-left:18px;margin:6px 0}.syncdlg li{margin:5px 0}.syncdlg a{color:var(--accent)}.syncdlg .sy-row{display:flex;gap:8px;align-items:center;margin:8px 0}.syncdlg .sy-row input[type=text],.syncdlg .sy-row input[type=password]{flex:1;min-width:0}.syncdlg .sy-st{min-height:1.2em;color:var(--accent)}.syncdlg .muted{color:var(--muted)}
@@ -5765,9 +5766,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.33.1';
+const APP_VERSION = '1.34.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.34.0', date: '2026-11-09', items: ['Vector gradients: as many colors as you like (click the gradient bar to add one, drag the marks to move, Remove, ⇄ to turn it around)', 'New gradient kinds: Rings, Sweep (around the center) and Stripes, plus Straight and Round', 'Gradient center, size and number of repeats; the Gradient tool (Shift+G) sets the center and size for round ones by dragging'] },
   { v: '1.33.1', date: '2026-11-09', items: ['Folders that stay only on this device: right-click a folder → “Only on this device (no cloud sync)”, or New → “Folder only on this device”. They get a ⌂ mark and cloud sync never sends or fills them'] },
   { v: '1.33.0', date: '2026-11-09', items: ['MP4 export rewritten: real H.264 MP4 files made frame by frame (exact timing, plays and seeks everywhere, faster than real time), sound included', 'Playback follows the clock: no more slowing down, a late frame is skipped instead of dragging', 'Playback is prepared in the background while you rest, so Play starts at once; the timeline is barely touched while playing', 'Onion skin: ghost frames are kept ready, stepping through frames is much quicker', 'Settings → Speed: Fast mode for weak laptops (fewer screen pixels on high-DPI screens), Auto picks it for weak computers'] },
   { v: '1.32.3', date: '2026-11-09', items: ['Duplicate several frames at once: select them (Shift + click on the frame numbers or cels) and press D or the duplicate button — the copies go right after them and stay selected'] },
@@ -6394,7 +6396,7 @@ function vTopAt(x, y) { const c = vcel(); if (!c) return null; const t = vtol();
 
 /* ---------- new shapes ---------- */
 function vStyle() {
-  return vStyleMore({ color: VSH.lc, ol: VSH.line && VSH.lw > 0, fc: VSH.fill ? VSH.fc : null, fg: VSH.fill && VSH.ftype === 'grad' ? { c2: VSH.fc2, ang: VSH.fang } : undefined, dash: VSH.dash !== 'solid' ? VSH.dash : undefined, lcap: VSH.cap !== 'round' ? VSH.cap : undefined, ljoin: VSH.join !== 'round' ? VSH.join : undefined, opacity: S.opacity });
+  return vStyleMore({ color: VSH.lc, ol: VSH.line && VSH.lw > 0, fc: VSH.fill ? VSH.fc : null, fg: VSH.fill && VSH.ftype === 'grad' ? vGradObj() : undefined, dash: VSH.dash !== 'solid' ? VSH.dash : undefined, lcap: VSH.cap !== 'round' ? VSH.cap : undefined, ljoin: VSH.join !== 'round' ? VSH.join : undefined, opacity: S.opacity });
 }
 function vBoxShape(kind, x0, y0, x1, y1) { const lw = VSH.lw; return Object.assign(vStyle(), { shape: kind, pts: [[Math.min(x0, x1), Math.min(y0, y1), lw], [Math.max(x0, x1), Math.max(y0, y1), lw]], rr: kind === 'rect' ? VSH.rr : 0 }); }
 function vPolyShape(cx, cy, r, ang, star) {
@@ -6756,7 +6758,7 @@ function vApplyStyle(keys) {   // a style setting changed in the panel: the sele
     if (!st.shape) return st; const o = {};
     if (keys.includes('fill')) { o.fc = VSH.fill ? (st.fc || VSH.fc) : null; if (!VSH.fill) o.fg = undefined; }
     if (keys.includes('fc')) o.fc = VSH.fc;
-    if (keys.includes('grad')) o.fg = VSH.fill && VSH.ftype === 'grad' ? { c2: VSH.fc2, ang: VSH.fang } : undefined;
+    if (keys.includes('grad')) o.fg = VSH.fill && VSH.ftype === 'grad' ? vGradObj() : undefined;
     if (keys.includes('line')) o.ol = VSH.line && VSH.lw > 0;
     if (keys.includes('lc')) { o.color = VSH.lc; o.ol = true; }
     if (keys.includes('lw')) o.pts = st.pts.map(q => [q[0], q[1], VSH.lw]);
@@ -6926,13 +6928,7 @@ function vFillRegion(ctx, st) {
   if (st.op === 'exclude') { ctx.fill(vGeom(st), 'evenodd'); return; }
   ctx.save(); vClipRegion(ctx, st); const b = vBounds(st); ctx.fillRect(b.x0 - 2, b.y0 - 2, b.x1 - b.x0 + 4, b.y1 - b.y0 + 4); ctx.restore();
 }
-function vFillStyle(ctx, st) {
-  if (!st.fg) return st.fc;
-  const b = vBounds(st), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2; let g;
-  if (st.fg.t === 'radial') g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(b.x1 - b.x0, b.y1 - b.y0) / 2 || 1);
-  else { const a = (st.fg.ang || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), L = (Math.abs((b.x1 - b.x0) * ca) + Math.abs((b.y1 - b.y0) * sa)) / 2 || 1; g = ctx.createLinearGradient(cx - ca * L, cy - sa * L, cx + ca * L, cy + sa * L); }
-  g.addColorStop(0, st.fc); g.addColorStop(1, st.fg.c2 || st.fc); return g;
-}
+function vFillStyle(ctx, st) { return st.fg ? vGradient(ctx, st) : st.fc; }
 function vStrokeAll(ctx, st) {
   const lw = st.pts[0] ? st.pts[0][2] : 0; if (!st.ol || !(lw > 0)) return;
   const dash = st.dash === 'custom' && st.dl ? [lw * st.dl[0], lw * st.dl[1]] : vDash(st, lw);
@@ -7046,7 +7042,6 @@ function vDrawFull(ctx, st) {
 }
 /* ---------- style: new shapes, selected shapes, the panel ---------- */
 function vStyleMore(o) {
-  if (o.fg && VSH.gtype === 'radial') o.fg.t = 'radial';
   if (VSH.sal !== 'center') o.sal = VSH.sal;
   if (VSH.dash === 'custom') { o.dash = 'custom'; o.dl = [VSH.dlen, VSH.dgap]; }
   if (VSH.a0 !== 'none') o.a0 = VSH.a0; if (VSH.a1 !== 'none') o.a1 = VSH.a1;
@@ -7054,14 +7049,13 @@ function vStyleMore(o) {
   return o;
 }
 function vApplyMore(keys, st, o) {
-  if (keys.includes('grad') && o.fg) o.fg.t = VSH.gtype === 'radial' ? 'radial' : undefined;
   if (keys.includes('dash') && VSH.dash === 'custom') { o.dash = 'custom'; o.dl = [VSH.dlen, VSH.dgap]; }
   if (keys.includes('sal')) o.sal = VSH.sal !== 'center' ? VSH.sal : undefined;
   if (keys.includes('arr')) { o.a0 = VSH.a0 !== 'none' ? VSH.a0 : undefined; o.a1 = VSH.a1 !== 'none' ? VSH.a1 : undefined; }
   if (keys.includes('fx')) o.fx = fxUsed(VSH.fx) ? fxCopy(VSH.fx) : undefined;
 }
 function vLoadMore(st) {
-  VSH.sal = st.sal || 'center'; VSH.a0 = st.a0 || 'none'; VSH.a1 = st.a1 || 'none'; VSH.gtype = st.fg && st.fg.t === 'radial' ? 'radial' : 'linear';
+  VSH.sal = st.sal || 'center'; VSH.a0 = st.a0 || 'none'; VSH.a1 = st.a1 || 'none'; vLoadGrad(st.fg);
   if (st.dash === 'custom' && st.dl) { VSH.dlen = st.dl[0]; VSH.dgap = st.dl[1]; }
   const d = { blend: 'normal', blur: 0, shadow: Object.assign({}, VSH.fx.shadow, { on: false }), glow: Object.assign({}, VSH.fx.glow, { on: false }), tex: Object.assign({}, VSH.fx.tex, { k: 'none' }) };
   VSH.fx = st.fx ? Object.assign(d, fxCopy(st.fx)) : d;
@@ -7506,7 +7500,15 @@ VEC_TOOL.vgrad = (p0, e0) => {   // drag over a shape: its gradient goes that wa
   let targets = vSelList().filter(st => st.shape); if (!targets.length) { const h = vTopAtE(e0); if (h && h.st.shape) { vGoLayer(h.li); vsel = new Set([h.st]); targets = [h.st]; } }
   if (!targets.length) { flash('Select a shape or drag across one'); return null; }
   return vActive = {
-    move(e) { const p = pos(e), ang = Math.round(Math.atan2(p.y - p0.y, p.x - p0.x) * 180 / Math.PI + 360) % 360; VSH.ftype = 'grad'; VSH.fill = true; VSH.fang = ang; VSH.gtype = e.shiftKey ? 'radial' : 'linear'; vLive(st => st.shape ? vClone(st, { fc: st.fc || VSH.fc, fg: { c2: (st.fg && st.fg.c2) || VSH.fc2, ang, t: e.shiftKey ? 'radial' : undefined } }) : st); vprevLine = [p0, p]; },
+    move(e) {
+      const p = pos(e), ang = Math.round(Math.atan2(p.y - p0.y, p.x - p0.x) * 180 / Math.PI + 360) % 360, len = Math.hypot(p.x - p0.x, p.y - p0.y);
+      VSH.ftype = 'grad'; VSH.fill = true; VSH.fang = ang; if (e.shiftKey && (VSH.gtype === 'linear' || VSH.gtype === 'stripes')) VSH.gtype = 'radial';
+      const round = VSH.gtype === 'radial' || VSH.gtype === 'ring' || VSH.gtype === 'conic';
+      vLive(st => { if (!st.shape) return st; const b = vBounds(st), w = Math.max(1e-6, b.x1 - b.x0), h = Math.max(1e-6, b.y1 - b.y0), fg = vGradObj();
+        if (round) { fg.cx = clamp((p0.x - b.x0) / w, -1, 2); fg.cy = clamp((p0.y - b.y0) / h, -1, 2); fg.sc = Math.max(0.05, len / (Math.max(w, h) / 2)); }
+        else { fg.cx = clamp(((p0.x + p.x) / 2 - b.x0) / w, -1, 2); fg.cy = clamp(((p0.y + p.y) / 2 - b.y0) / h, -1, 2); const a = ang * Math.PI / 180, L = (Math.abs(w * Math.cos(a)) + Math.abs(h * Math.sin(a))) / 2 || 1; fg.sc = Math.max(0.05, len / 2 / L); }
+        return vClone(st, { fc: st.fc || VSH.fc, fg }); });
+      vprevLine = [p0, p]; },
     up() { vprevLine = null; vLiveEnd(); vshSave(); syncVecUI(true); render(); },
     cancel() { vprevLine = null; }
   };
@@ -7627,6 +7629,95 @@ vLoadMore = function (st) {
   ['inner', 'iglow', 'light'].forEach(k => { if (!st.fx || !st.fx[k]) VSH.fx[k] = d[k]; });
   if (!st.fx || !st.fx.mat) VSH.fx.mat = undefined;
 };
+/* ================= v34: richer gradients — more colors, rings, sweep, stripes, center, size ================= */
+VSH.gx = Object.assign({ mid: [], cx: 0.5, cy: 0.5, sc: 1, rep: 4 }, VSH.gx || {});
+if (!['linear', 'radial', 'ring', 'conic', 'stripes'].includes(VSH.gtype)) VSH.gtype = 'linear';
+function vGradObj() {   // the gradient of new / selected shapes, from the panel
+  const g = { c2: VSH.fc2, ang: VSH.fang };
+  if (VSH.gtype !== 'linear') g.t = VSH.gtype;
+  if (VSH.gx.mid.length) g.mid = VSH.gx.mid.map(s => s.slice());
+  if (Math.abs(VSH.gx.cx - 0.5) > 1e-3) g.cx = VSH.gx.cx; if (Math.abs(VSH.gx.cy - 0.5) > 1e-3) g.cy = VSH.gx.cy;
+  if (Math.abs(VSH.gx.sc - 1) > 1e-3) g.sc = VSH.gx.sc;
+  if (VSH.gtype === 'ring' || VSH.gtype === 'stripes') g.rep = VSH.gx.rep;
+  return g;
+}
+function vLoadGrad(fg) {
+  if (!fg) return;
+  VSH.gtype = fg.t || 'linear'; VSH.fc2 = fg.c2 || VSH.fc2; VSH.fang = fg.ang == null ? VSH.fang : fg.ang;
+  VSH.gx = { mid: (fg.mid || []).map(s => s.slice()), cx: fg.cx == null ? 0.5 : fg.cx, cy: fg.cy == null ? 0.5 : fg.cy, sc: fg.sc || 1, rep: fg.rep || VSH.gx.rep || 4 };
+}
+const gStops = (fc, fg) => [[0, fc], ...((fg.mid || []).filter(s => s && s[1])), [1, fg.c2 || fc]].sort((a, b) => a[0] - b[0]);
+function vGradient(ctx, st) {
+  const fg = st.fg, b = vBounds(st), w = b.x1 - b.x0, h = b.y1 - b.y0, cx = b.x0 + w * (fg.cx == null ? 0.5 : fg.cx), cy = b.y0 + h * (fg.cy == null ? 0.5 : fg.cy);
+  const sc = fg.sc || 1, t = fg.t || 'linear', stops = gStops(st.fc, fg), a = (fg.ang || 0) * Math.PI / 180, R = (Math.max(w, h) / 2 || 1) * sc;
+  let g, rep = 1;
+  if (t === 'radial' || t === 'ring') { g = ctx.createRadialGradient(cx, cy, 0, cx, cy, R); if (t === 'ring') rep = Math.max(1, Math.round(fg.rep || 4)); }
+  else if (t === 'conic' && ctx.createConicGradient) g = ctx.createConicGradient(a, cx, cy);
+  else { const ca = Math.cos(a), sa = Math.sin(a), L = ((Math.abs(w * ca) + Math.abs(h * sa)) / 2 || 1) * sc; g = ctx.createLinearGradient(cx - ca * L, cy - sa * L, cx + ca * L, cy + sa * L); if (t === 'stripes') rep = Math.max(1, Math.round(fg.rep || 4)); }
+  for (let k = 0; k < rep; k++) stops.forEach(([p, c], i) => { let q = (k + p) / rep; if (rep > 1 && i === 0 && k > 0) q += 1e-4; g.addColorStop(clamp(q, 0, 1), c); });
+  if (t === 'conic' && !(stops[stops.length - 1][1] === stops[0][1])) g.addColorStop(1, stops[stops.length - 1][1]);
+  return g;
+}
+function mixAt(stops, p) {   // the color the gradient has at a place (0..1)
+  for (let i = 1; i < stops.length; i++) if (p <= stops[i][0]) { const [p0, c0] = stops[i - 1], [p1, c1] = stops[i]; return mixHex(c0, c1, p1 > p0 ? (p - p0) / (p1 - p0) : 0); }
+  return stops[stops.length - 1][1];
+}
+
+/* ---------- the gradient editor in the Shape window ---------- */
+let gSel = 0;
+(() => {
+  const fs = $('#vecShapeSet'); if (!fs) return;
+  const gt = $('#vGType'); if (gt) gt.innerHTML = [['linear', 'Straight'], ['radial', 'Round'], ['ring', 'Rings'], ['conic', 'Sweep (around)'], ['stripes', 'Stripes']].map(([k, n]) => '<option value="' + k + '">' + n + '</option>').join('');
+  const row = $('#vAngRow'); if (!row) return;
+  const rng = (id, label, min, max, step) => '<div class="bopt"><label for="' + id + '">' + label + '</label><output id="' + id + 'Out"></output><input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + (step || 1) + '"></div>';
+  const ed = document.createElement('div'); ed.id = 'vGEdit'; ed.className = 'gedit';
+  ed.innerHTML = '<div class="gbar" id="vGBar" title="Click to add a color here"></div><div class="gstops" id="vGStops"></div>' +
+    '<div class="arow">Color <input type="color" id="vGStopC"><button type="button" class="pb" id="vGDel" title="Remove this color">Remove</button><button type="button" class="pb" id="vGRev" title="Turn the gradient around">⇄</button></div>' +
+    '<p class="ainfo">Click the bar to add a color between, drag the little marks to move them.</p>' +
+    rng('vGCx', 'Center ←→', -50, 150) + rng('vGCy', 'Center ↑↓', -50, 150) + rng('vGSc', 'Size', 10, 300) + '<div id="vGRepRow">' + rng('vGRep', 'Repeats', 2, 24) + '</div>';
+  row.after(ed);
+  const q = s => fs.querySelector(s), bar = q('#vGBar'), marks = q('#vGStops');
+  const stopsNow = () => [[0, VSH.fc], ...VSH.gx.mid.map(s => s.slice()), [1, VSH.fc2]];
+  const commit = keys => { VSH.ftype = 'grad'; VSH.fill = true; vshSave(); vApplyStyle(keys || ['grad']); syncVecUI(true); };
+  bar.addEventListener('pointerdown', e => {
+    const r = bar.getBoundingClientRect(), p = clamp((e.clientX - r.left) / r.width, 0.01, 0.99), all = stopsNow().sort((a, b) => a[0] - b[0]);
+    VSH.gx.mid.push([Math.round(p * 1000) / 1000, mixAt(all, p)]); VSH.gx.mid.sort((a, b) => a[0] - b[0]); gSel = 1 + VSH.gx.mid.findIndex(s => Math.abs(s[0] - p) < 1e-3); commit();
+  });
+  marks.addEventListener('pointerdown', e => {
+    const m = e.target.closest('[data-i]'); if (!m) return; e.preventDefault(); gSel = +m.dataset.i; syncGradEditor();
+    if (gSel === 0 || gSel === VSH.gx.mid.length + 1) return;   // the two ends stay at the ends
+    const r = marks.getBoundingClientRect(), mi = gSel - 1; m.setPointerCapture(e.pointerId);
+    const mv = ev => { VSH.gx.mid[mi][0] = clamp(Math.round((ev.clientX - r.left) / r.width * 1000) / 1000, 0.01, 0.99); syncGradEditor(); vApplyStyle(['grad']); };
+    const up = () => { m.removeEventListener('pointermove', mv); m.removeEventListener('pointerup', up); const keep = VSH.gx.mid[mi]; VSH.gx.mid.sort((a, b) => a[0] - b[0]); gSel = 1 + VSH.gx.mid.indexOf(keep); commit(); };
+    m.addEventListener('pointermove', mv); m.addEventListener('pointerup', up);
+  });
+  q('#vGStopC').addEventListener('input', e => {
+    const c = e.target.value, n = VSH.gx.mid.length;
+    if (gSel <= 0) { VSH.fc = c; commit(['fc', 'grad']); } else if (gSel > n) { VSH.fc2 = c; commit(['grad']); } else { VSH.gx.mid[gSel - 1][1] = c; commit(['grad']); }
+  });
+  q('#vGDel').onclick = () => { const n = VSH.gx.mid.length; if (gSel < 1 || gSel > n) { flash('The two end colors stay — remove a color in between'); return; } VSH.gx.mid.splice(gSel - 1, 1); gSel = 0; commit(); };
+  q('#vGRev').onclick = () => { const f = VSH.fc; VSH.fc = VSH.fc2; VSH.fc2 = f; VSH.gx.mid = VSH.gx.mid.map(([p, c]) => [Math.round((1 - p) * 1000) / 1000, c]).sort((a, b) => a[0] - b[0]); commit(['fc', 'grad']); };
+  q('#vGCx').addEventListener('input', e => { VSH.gx.cx = +e.target.value / 100; commit(); });
+  q('#vGCy').addEventListener('input', e => { VSH.gx.cy = +e.target.value / 100; commit(); });
+  q('#vGSc').addEventListener('input', e => { VSH.gx.sc = +e.target.value / 100; commit(); });
+  q('#vGRep').addEventListener('input', e => { VSH.gx.rep = +e.target.value; commit(); });
+})();
+function syncGradEditor() {
+  const ed = $('#vGEdit'); if (!ed) return; const grad = VSH.fill && VSH.ftype === 'grad'; ed.hidden = !grad; if (!grad) return;
+  const q = s => ed.querySelector(s), all = [[0, VSH.fc], ...VSH.gx.mid, [1, VSH.fc2]], n = VSH.gx.mid.length;
+  if (gSel > n + 1) gSel = n + 1;
+  q('#vGBar').style.background = 'linear-gradient(90deg,' + all.slice().sort((a, b) => a[0] - b[0]).map(([p, c]) => c + ' ' + (p * 100).toFixed(1) + '%').join(',') + ')';
+  q('#vGStops').innerHTML = all.map(([p, c], i) => '<i data-i="' + i + '" class="' + (i === gSel ? 'on' : '') + '" style="left:' + (p * 100) + '%;background:' + c + '"></i>').join('');
+  q('#vGStopC').value = all[gSel] ? all[gSel][1] : VSH.fc; q('#vGDel').disabled = gSel < 1 || gSel > n;
+  const setR = (id, v, txt) => { const el = q(id); el.value = v; const o = q(id + 'Out'); if (o) o.textContent = txt; };
+  setR('#vGCx', Math.round(VSH.gx.cx * 100), Math.round(VSH.gx.cx * 100) + '%'); setR('#vGCy', Math.round(VSH.gx.cy * 100), Math.round(VSH.gx.cy * 100) + '%');
+  setR('#vGSc', Math.round(VSH.gx.sc * 100), Math.round(VSH.gx.sc * 100) + '%'); setR('#vGRep', VSH.gx.rep, VSH.gx.rep + '×');
+  q('#vGRepRow').hidden = !(VSH.gtype === 'ring' || VSH.gtype === 'stripes');
+  const ang = $('#vAngRow'); if (ang) ang.hidden = !(VSH.gtype === 'linear' || VSH.gtype === 'stripes' || VSH.gtype === 'conic');
+  const sw = $('#vSwFill i'); if (sw) { const css = all.slice().sort((a, b) => a[0] - b[0]).map(([p, c]) => c + ' ' + (p * 100).toFixed(0) + '%').join(','); sw.style.background = VSH.gtype === 'radial' || VSH.gtype === 'ring' ? 'radial-gradient(' + css + ')' : VSH.gtype === 'conic' ? 'conic-gradient(' + css + ')' : 'linear-gradient(' + (VSH.fang + 90) + 'deg,' + css + ')'; }
+}
+const _syncVecMore = syncVecMore;
+syncVecMore = function () { _syncVecMore.apply(this, arguments); syncGradEditor(); };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
