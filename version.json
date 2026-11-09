@@ -1,6 +1,13 @@
 {
- "version": "1.32.0",
+ "version": "1.32.1",
  "changelog": [
+  {
+   "v": "1.32.1",
+   "date": "2026-11-09",
+   "items": [
+    "Vector art stays sharp while playing (it was prepared at camera size and looked pixelated when zoomed in)"
+   ]
+  },
   {
    "v": "1.32.0",
    "date": "2026-11-09",

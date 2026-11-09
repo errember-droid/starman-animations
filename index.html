@@ -4980,8 +4980,13 @@ function frameTurnedCam(c) { const p = camCorners(c); vctx.save(); vctx.lineJoin
 
 /* ---------- playback is prepared first (a progress bar), then plays smoothly from ready pictures ---------- */
 let playCache = { ver: -1, sc: 0, pics: null }, prepBusy = false;
-function playScale() { const sc = Math.min(1, Math.max(0.25, (W * S.zoom.scale * dpr) / W)); return MODE === 'pixel' ? 1 : sc; }
-function playNeedsPrep() { if (playCache.ver === upVer && playCache.pics && playCache.pics.length === S.frames.length) return false; return S.frames.length > 1; }
+function playScale() {
+  if (MODE === 'pixel') return 1;
+  const want = S.zoom.scale * dpr;
+  if (MODE === 'vector') { let z = 1; S.frames.forEach(f => { if (f.cam && f.cam.z > z) z = f.cam.z; }); return Math.min(6, Math.max(0.25, want * z)); }   // vector stays sharp: as many pixels as the screen shows
+  return Math.min(1, Math.max(0.25, want));
+}
+function playNeedsPrep() { if (playCache.ver === upVer && playCache.pics && playCache.pics.length === S.frames.length && !(MODE === 'vector' && playScale() > playCache.sc * 1.05)) return false; if (playCache.live && playCache.ver === upVer && playCache.sc >= playScale()) return false; return S.frames.length > 1; }
 async function playPrep() {
   if (prepBusy) { prepBusy = false; return false; }
   const n = S.frames.length, sc = playScale(), bytes = n * W * H * sc * sc * 4;
@@ -5733,9 +5738,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.32.0';
+const APP_VERSION = '1.32.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.32.1', date: '2026-11-09', items: ['Vector art stays sharp while playing (it was prepared at camera size and looked pixelated when zoomed in)'] },
   { v: '1.32.0', date: '2026-11-09', items: ['Vector: shape animation ◆ — make a key on a later frame (Shift+K), change the shapes there, the frames in between move by themselves (every point follows), with easing', 'Vector: clicking a shape takes you to its layer; Ctrl+A selects shapes on all layers, the selection box works across layers', 'Vector effects: Light & 3D with a ball to place the sun (highlight, shade, sun glint, edge bevel), inner shadow, inner glow, materials: glass, metal, chrome, gold, plastic, satin', 'Vector tools: Liquify (W: push, twirl, pinch, puff up), Scissors (C), Paint bucket (G), Gradient by dragging (Shift+G), Spiral (Shift+S)', 'Vector: polygon is now Y (N adds a frame again), Alt + arrows move shapes (arrows change frames)'] },
   { v: '1.31.1', date: '2026-11-09', items: ['Joined / cut shapes: the outline now follows the real edge, no more notches where the shapes meet'] },
   { v: '1.31.0', date: '2026-11-09', items: ['Vector brush (B): draw freely, the line becomes points you can move with A; smooth curves or sharp zigzag, smoothness setting', 'Points: make one point or the whole shape smooth or sharp, double-click a line (A) to add a point', 'Combine shapes: Join, Cut out (the top shape cuts itself out), Overlap, Hole (the overlap becomes empty), Take apart', 'Snapping to the points and the outlines of other shapes', 'Stroke width stays the same when scaling (can be switched off), stroke inside / outside, custom dashes, arrows and dots on line ends, round gradients', 'Position and size fields (X, Y, W, H, turn)', 'Effects: shadow, glow, blur, blend modes, textures (dots, stripes, hatching, grain…) or your own picture'] },
