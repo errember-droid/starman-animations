@@ -1,6 +1,6 @@
 # Builds the Android app (APK) every time the files change.
 # The newest APK is always at: https://github.com/<you>/<repo>/releases/latest/download/starman.apk
-name: Android APK
+name: Build apps
 on:
   push:
     branches: [main]
@@ -94,11 +94,68 @@ jobs:
         with:
           name: starman-apk
           path: starman.apk
-      - name: 11 Publish release
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - name: 1 Get files
+        uses: actions/checkout@v5
+      - name: 2 Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: 3 Build the Windows program
+        shell: bash
+        run: |
+          set -ex
+          VERSION=$(node -p "require('./version.json').version")
+          mkdir -p winapp && cp -r desktop/. winapp/ && cp index.html winapp/
+          cp manifest.webmanifest icon-192.png icon-512.png winapp/ || true
+          cd winapp
+          cat > package.json <<EOF
+          { "name": "starman-does-animations", "productName": "Starman Does Animations", "version": "$VERSION", "main": "main.js", "author": "Rember_Er", "description": "Starman Does Animations" }
+          EOF
+          npm install --no-audit --no-fund --save-dev electron@33.2.1 electron-builder@25.1.8
+          cat > builder.json <<'EOF'
+          { "appId": "com.starman.animations", "productName": "Starman Does Animations", "asar": false,
+            "directories": { "output": "dist" },
+            "files": ["**/*", "!dist/**", "!builder.json", "!node_modules/**"],
+            "win": { "icon": "icon.ico", "target": ["nsis", "zip"] },
+            "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "shortcutName": "Starman Does Animations", "artifactName": "starman-setup.exe" },
+            "zip": { "artifactName": "starman-windows.zip" } }
+          EOF
+          npx electron-builder --win --x64 --config builder.json --publish never
+          cp dist/starman-setup.exe dist/starman-windows.zip ..
+      - name: 4 Keep the Windows files
+        uses: actions/upload-artifact@v4
+        with:
+          name: starman-windows
+          path: |
+            starman-setup.exe
+            starman-windows.zip
+  release:
+    needs: [apk, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: 1 Get files
+        uses: actions/checkout@v5
+      - name: 2 Collect the built apps
+        uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: 3 Version
+        run: echo "VERSION=$(node -p "require('./version.json').version")" >> $GITHUB_ENV
+      - name: 4 Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION }}-${{ github.run_number }}
           name: Starman Does Animations ${{ env.VERSION }}
-          body: Install starman.apk on your Android phone (allow installing from this source when asked).
-          files: starman.apk
+          body: |
+            Android: install starman.apk on your phone (allow installing from this source when asked).
+            Windows: run starman-setup.exe (if Windows warns, press "More info" → "Run anyway"), or unpack starman-windows.zip and start "Starman Does Animations.exe".
+          files: |
+            out/starman.apk
+            out/starman-setup.exe
+            out/starman-windows.zip
           make_latest: true
