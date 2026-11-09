@@ -1829,7 +1829,17 @@ function updateTC() {
 /* ---------- frame & layer ops ---------- */
 const mkFrame = () => { const f = newFrame(); f.hold = S.newHold || 1; return f; };
 const addBlank = () => { stopPlay(); frameOp(() => { S.frames.splice(S.cur + 1, 0, mkFrame()); S.cur++; }); };
-const duplicate = () => { stopPlay(); frameOp(() => { const src = curFrame(); const f = newFrame(src.cels.map(copyCel)); f.hold = src.hold; f.ms = src.ms; S.frames.splice(S.cur + 1, 0, f); S.cur++; }); };
+const dupOne = src => { const f = newFrame(src.cels.map(c => { const n = copyCel(c); if (n && c && c.vkey) n.vkey = true; return n; })); f.hold = src.hold; f.ms = src.ms; return f; };
+const duplicate = () => {
+  stopPlay();
+  if (typeof tlRange !== 'undefined' && tlRange && tlRange.f1 > tlRange.f0) {   // several frames picked: the whole block is copied right after it
+    const a = tlRange.f0, b = tlRange.f1, n = b - a + 1;
+    frameOp(() => { const copies = S.frames.slice(a, b + 1).map(dupOne); S.frames.splice(b + 1, 0, ...copies); S.cur = b + 1; });
+    tlRange = { a: { f: b + 1, l: tlRange.l0 }, f0: b + 1, f1: b + n, l0: tlRange.l0, l1: tlRange.l1 }; buildTimeline();
+    flash(n + ' frames duplicated (the copies are selected — press D again for more)'); return;
+  }
+  frameOp(() => { const f = dupOne(curFrame()); S.frames.splice(S.cur + 1, 0, f); S.cur++; });
+};
 let frameClip = null;
 function copyFrame() {
   const [a, b] = rangeFrames();
@@ -3740,7 +3750,7 @@ function frameMenu(fi, x, y) {
   openMenu([
     { label: 'Insert frame before', action: () => insertFrame(fi) },
     { label: 'Insert frame after', kbd: 'N', action: () => insertFrame(fi + 1) },
-    { label: 'Duplicate frame', kbd: 'D', action: duplicate },
+    { label: 'Duplicate frame (or the selected frames)', kbd: 'D', action: duplicate },
     { label: 'Duplicate with linked cels', action: dupLinked },
     { label: tlRange && tlRange.f1 > tlRange.f0 ? 'Copy ' + (tlRange.f1 - tlRange.f0 + 1) + ' frames' : 'Copy frame', kbd: 'Ctrl+Shift+C', action: copyFrame },
     { label: 'Paste frame after', kbd: 'Ctrl+Shift+V', disabled: !frameClip, action: pasteFrame },
@@ -4631,7 +4641,7 @@ const ACTIONS = [
   ['play', 'Play / stop', 'Space', togglePlay], ['prev', 'Previous frame', 'ArrowLeft', () => { stopPlay(); selectFrame(S.cur - 1); }], ['next', 'Next frame', 'ArrowRight', () => { stopPlay(); selectFrame(S.cur + 1); }],
   ['prev2', 'Previous frame (2nd key)', 'Comma', () => { stopPlay(); selectFrame(S.cur - 1); }], ['next2', 'Next frame (2nd key)', 'Period', () => { stopPlay(); selectFrame(S.cur + 1); }],
   ['first', 'First frame', 'Home', () => { stopPlay(); selectFrame(0); }], ['last', 'Last frame', 'End', () => { stopPlay(); selectFrame(S.frames.length - 1); }], ['loop', 'Loop on / off', 'Shift+KeyL', () => setLoop(!S.loop)],
-  ['newframe', 'New blank frame', 'KeyN', addBlank], ['dup', 'Duplicate frame', 'KeyD', duplicate], ['delframe', 'Delete frame', 'Delete', () => delFramesOrRange()], ['delframe2', 'Clear cel / selected cels (frames when frames are selected)', 'Backspace', () => delFramesOrRange(true)],
+  ['newframe', 'New blank frame', 'KeyN', addBlank], ['dup', 'Duplicate frame / selected frames', 'KeyD', duplicate], ['delframe', 'Delete frame', 'Delete', () => delFramesOrRange()], ['delframe2', 'Clear cel / selected cels (frames when frames are selected)', 'Backspace', () => delFramesOrRange(true)],
   ['holdm', 'Hold frame shorter', 'BracketLeft', () => changeHold(-1)], ['holdp', 'Hold frame longer', 'BracketRight', () => changeHold(1)],
   ['layerup', 'Layer above', 'ArrowUp', () => { S.layer = Math.min(S.layers.length - 1, S.layer + 1); markTimeline(); applyLayerUI(); }], ['layerdown', 'Layer below', 'ArrowDown', () => { S.layer = Math.max(0, S.layer - 1); markTimeline(); applyLayerUI(); }], ['newlayer', 'New layer', 'Shift+KeyN', addLayer],
   ['smaller', 'Smaller brush', 'Minus', () => setSize(S.size - stepSz())], ['bigger', 'Bigger brush', 'Equal', () => setSize(S.size + stepSz())],
@@ -5744,9 +5754,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.32.2';
+const APP_VERSION = '1.32.3';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.32.3', date: '2026-11-09', items: ['Duplicate several frames at once: select them (Shift + click on the frame numbers or cels) and press D or the duplicate button — the copies go right after them and stay selected'] },
   { v: '1.32.2', date: '2026-11-09', items: ['Timeline: Backspace empties the current cel; with cels selected (Shift + click) Backspace or Delete empties all of them; with whole frames selected it removes the frames. Ctrl+Z brings them back'] },
   { v: '1.32.1', date: '2026-11-09', items: ['Vector art stays sharp while playing (it was prepared at camera size and looked pixelated when zoomed in)'] },
   { v: '1.32.0', date: '2026-11-09', items: ['Vector: shape animation ◆ — make a key on a later frame (Shift+K), change the shapes there, the frames in between move by themselves (every point follows), with easing', 'Vector: clicking a shape takes you to its layer; Ctrl+A selects shapes on all layers, the selection box works across layers', 'Vector effects: Light & 3D with a ball to place the sun (highlight, shade, sun glint, edge bevel), inner shadow, inner glow, materials: glass, metal, chrome, gold, plastic, satin', 'Vector tools: Liquify (W: push, twirl, pinch, puff up), Scissors (C), Paint bucket (G), Gradient by dragging (Shift+G), Spiral (Shift+S)', 'Vector: polygon is now Y (N adds a frame again), Alt + arrows move shapes (arrows change frames)'] },

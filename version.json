@@ -1,6 +1,13 @@
 {
- "version": "1.32.2",
+ "version": "1.32.3",
  "changelog": [
+  {
+   "v": "1.32.3",
+   "date": "2026-11-09",
+   "items": [
+    "Duplicate several frames at once: select them (Shift + click on the frame numbers or cels) and press D or the duplicate button — the copies go right after them and stay selected"
+   ]
+  },
   {
    "v": "1.32.2",
    "date": "2026-11-09",
