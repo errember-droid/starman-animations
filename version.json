@@ -1,6 +1,13 @@
 {
- "version": "1.32.1",
+ "version": "1.32.2",
  "changelog": [
+  {
+   "v": "1.32.2",
+   "date": "2026-11-09",
+   "items": [
+    "Timeline: Backspace empties the current cel; with cels selected (Shift + click) Backspace or Delete empties all of them; with whole frames selected it removes the frames. Ctrl+Z brings them back"
+   ]
+  },
   {
    "v": "1.32.1",
    "date": "2026-11-09",
