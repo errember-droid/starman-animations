@@ -577,6 +577,11 @@ body.mobile .startmenu{max-height:calc(100vh - var(--tbh) - 8px);overflow:auto}
 body.mobile .mnav .pb.on{outline:2px solid #ffce57;outline-offset:-2px}
 body.mobile .clipbar{font-size:10px}
 body.mobile .tip{display:none!important}
+#vecShapeSet{display:none}body[data-mode=vector] #vecShapeSet{display:block}
+body[data-mode=vector] #pageBrush>*:not(#vecShapeSet){display:none!important}
+body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-tool=ellipse]){display:none!important}
+body[data-mode=vector] #app>.tools .sep{display:none!important}
+#vecShapeSet .vsh-kind .pb{flex:1}#vecShapeSet .pb.on{outline:2px solid var(--accent);outline-offset:-2px}#vecShapeSet input[type=color]{width:44px;height:24px;padding:0;border:1px solid var(--line,#555);background:none;margin-left:auto}
 .syncbtn{height:22px;padding:0 6px;font:inherit;font-size:11px;color:var(--ink,#fff);background:transparent;border:1px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap}.syncbtn[data-st=err]{color:#ff8a8a;border-color:#ff8a8a}.syncbtn[data-st=busy]{opacity:.75}
 .syncdlg ol{padding-left:18px;margin:6px 0}.syncdlg li{margin:5px 0}.syncdlg a{color:var(--accent)}.syncdlg .sy-row{display:flex;gap:8px;align-items:center;margin:8px 0}.syncdlg .sy-row input[type=text],.syncdlg .sy-row input[type=password]{flex:1;min-width:0}.syncdlg .sy-st{min-height:1.2em;color:var(--accent)}.syncdlg .muted{color:var(--muted)}
 .wnew .wnbody{max-height:60vh;overflow:auto;font-size:12px}.wnew h3{margin:10px 0 4px;font-size:13px;color:var(--accent)}.wnew h3 small{color:var(--muted);font-weight:400}.wnew ul{margin:0;padding-left:18px}.wnew li{margin:3px 0}
@@ -1262,6 +1267,7 @@ function tail(ctx, pts) {
   ctx.lineWidth = pts[n - 1][2]; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(pts[n - 1][0], pts[n - 1][1]); ctx.stroke();
 }
 function drawStroke(ctx, st) {
+  if (st.shape) { drawVShape(ctx, st); return; }
   const pts = st.pts; if (!pts.length) return;
   const sq = st.cap === 'square';
   ctx.lineCap = sq ? 'square' : 'round'; ctx.lineJoin = sq ? 'miter' : 'round'; ctx.fillStyle = ctx.strokeStyle = st.color;
@@ -1288,6 +1294,7 @@ function distSeg(px, py, a, b) {
   return Math.hypot(px - (a[0] + t * dx), py - (a[1] + t * dy));
 }
 function hitStroke(st, x, y, r) {
+  if (st.shape) return hitVShape(st, x, y, r);
   const p = st.pts;
   if (p.length === 1) return Math.hypot(p[0][0] - x, p[0][1] - y) <= r + p[0][2] / 2;
   for (let i = 0; i < p.length - 1; i++) if (distSeg(x, y, p[i], p[i + 1]) <= r + Math.max(p[i][2], p[i + 1][2]) / 2) return true;
@@ -2312,6 +2319,7 @@ function fillShape(sd) {
   }
 }
 function commitShape(sd) {
+  if (MODE === 'vector' && sd.k !== 'line') { commitVecShape(sd); return; }
   const l = S.layers[S.layer]; if (!l || !isDraw(l) || !l.visible || l.locked) return;
   if (Math.hypot(sd.x1 - sd.x0, sd.y1 - sd.y0) < 0.5) { render(); return; }
   let pts = shapePoints(sd); const P = q => ({ x: q[0], y: q[1], p: 1 });
@@ -2325,6 +2333,7 @@ function commitShape(sd) {
   endStroke();
 }
 function drawShapePreview() {
+  if (MODE === 'vector' && shapeDrag.k !== 'line' && vecShapePreview(shapeDrag)) return;
   const line = (pts, close) => { vctx.beginPath(); pts.forEach((q, i) => { const a = toScreen(q[0], q[1]); i ? vctx.lineTo(a[0], a[1]) : vctx.moveTo(a[0], a[1]); }); vctx.stroke(); };
   for (const v of shapeVariants(shapeDrag)) {
     const pts = shapePoints(v);
@@ -2852,6 +2861,7 @@ const stageCenter = () => { const r = stage.getBoundingClientRect(); return [r.w
 
 /* ---------- tools ---------- */
 function setTool(t) {
+  if (MODE === 'vector' && t !== 'rect' && t !== 'ellipse') { if (S.tool === 'rect' || S.tool === 'ellipse') return; t = 'rect'; }   // vector art: only shapes
   if (xf && t !== S.tool) xfCommit();
   S.tool = t; if (S.camSel) selectCam(false); syncToolOpts();
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
@@ -3660,7 +3670,8 @@ function applyModeUI() {
   const fillB = document.querySelector('[data-tool="fill"]');
   fillB.dataset.tip = vec ? 'Recolor line|Click a line to give it the current color|G' : 'Fill|Fill an area inside the camera frame|G';
   document.querySelector('[data-tool="gradient"]').hidden = vec;
-  if (vec && (S.tool === 'gradient' || S.tool === 'select')) setTool('brush');
+  if (vec && S.tool !== 'rect' && S.tool !== 'ellipse') setTool('rect');
+  syncVecUI();
   $('#helpFill').textContent = vec ? 'Recolor a line with the current color' : 'Fill (inside the camera frame)';
   const uk = (UPSCALE[S.render.up] || UPSCALE.none).k;
   const opts = uk > 1 ? [[String(uk), '×' + uk + ' (render)'], [String(uk * 2), '×' + uk * 2], ['1', '×1 (no render)']] : px ? [['1', '×1'], ['2', '×2'], ['4', '×4'], ['8', '×8'], ['16', '×16']]
@@ -3866,8 +3877,8 @@ tg.addEventListener('contextmenu', e => {
 });
 
 /* ---------- saving & loading (format 5: endless canvas in tiles, layer types, camera size) ---------- */
-function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; return o; }
-function deStroke(o) { const p = []; for (let i = 0; i + 2 < o.p.length; i += 3) p.push([o.p[i], o.p[i + 1], o.p[i + 2]]); const st = { color: o.c, opacity: o.o == null ? 1 : o.o, pts: p }; if (o.k === 'square') st.cap = 'square'; return st; }
+function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; } return o; }
+function deStroke(o) { const p = []; for (let i = 0; i + 2 < o.p.length; i += 3) p.push([o.p[i], o.p[i + 1], o.p[i + 2]]); const st = { color: o.c, opacity: o.o == null ? 1 : o.o, pts: p }; if (o.k === 'square') st.cap = 'square'; if (o.sh) { st.shape = o.sh; st.fc = o.fc || null; st.ol = !!o.ol; st.rr = o.rr || 0; } return st; }
 function serSurf(s) {
   const out = [];
   for (const t of s.t.values()) {
@@ -5706,9 +5717,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.28.2';
+const APP_VERSION = '1.29.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.29.0', date: '2026-11-09', items: ['Vector art has its own simple menu: only Rectangle and Circle', 'Shapes are real vector shapes: fill with the current color, outline with its own color and width, round corners, opacity', 'The Brush tab becomes the Shape tab in vector files; old vector drawings still show as before'] },
   { v: '1.28.2', date: '2026-11-08', items: ['Phone: no black frames around the canvas while zooming out or moving'] },
   { v: '1.28.1', date: '2026-11-08', items: ['Phone: pinch zoom in pixel art no longer jumps 100% → 200%: it stays exactly where you leave it'] },
   { v: '1.28.0', date: '2026-11-08', items: ['Phone: zoom and moving the canvas follow your fingers instantly (the picture is redrawn when you stop)', 'Phone: ✋ Hand button — move around the canvas with one finger, without zooming or drawing', 'Phone: all tools fit on the screen (two rows), bigger buttons, windows no longer go off the screen'] },
@@ -6189,6 +6201,80 @@ setTimeout(() => {
   }
 }, 0);
 window.__S = S;
+
+/* ================= vector art: shapes only (rectangles and circles with fill and outline) ================= */
+const VSH = Object.assign({ fill: true, line: true, lc: '#1d1d36', lw: 4, rr: 0 }, prefGet('vshape', {}) || {});
+const vshSave = () => prefSet('vshape', VSH);
+function vshPath(ctx, st) {
+  const a = st.pts[0], b = st.pts[1] || a, x0 = Math.min(a[0], b[0]), y0 = Math.min(a[1], b[1]), w = Math.abs(b[0] - a[0]), h = Math.abs(b[1] - a[1]);
+  ctx.beginPath();
+  if (st.shape === 'ellipse') ctx.ellipse(x0 + w / 2, y0 + h / 2, Math.max(0.01, w / 2), Math.max(0.01, h / 2), 0, 0, Math.PI * 2);
+  else { const r = Math.min(w, h) / 2 * clamp(st.rr || 0, 0, 1); if (r > 0 && ctx.roundRect) ctx.roundRect(x0, y0, w, h, r); else ctx.rect(x0, y0, w, h); }
+}
+function drawVShape(ctx, st) {
+  vshPath(ctx, st);
+  if (st.fc) { ctx.fillStyle = st.fc; ctx.fill(); }
+  const lw = st.pts[0][2]; if (st.ol && lw > 0) { ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.strokeStyle = st.color; ctx.stroke(); }
+}
+function hitVShape(st, x, y, r) {
+  const a = st.pts[0], b = st.pts[1] || a, h = (st.ol ? a[2] / 2 : 0) + r;
+  return x >= Math.min(a[0], b[0]) - h && x <= Math.max(a[0], b[0]) + h && y >= Math.min(a[1], b[1]) - h && y <= Math.max(a[1], b[1]) + h;
+}
+function makeVShape(v) {
+  return { shape: v.k, pts: [[v.x0, v.y0, VSH.lw], [v.x1, v.y1, VSH.lw]].map(q => q.map(n => Math.round(n * 10) / 10)), color: VSH.lc, ol: VSH.line && VSH.lw > 0, fc: VSH.fill ? S.color : null, rr: v.k === 'rect' ? VSH.rr : 0, opacity: S.opacity };
+}
+function commitVecShape(sd) {
+  const l = S.layers[S.layer]; if (!l || !isDraw(l) || !l.visible || l.locked) { render(); return; }
+  if (Math.hypot(sd.x1 - sd.x0, sd.y1 - sd.y0) < 0.5) { render(); return; }
+  if (!VSH.fill && !(VSH.line && VSH.lw > 0)) { flash('Turn on Fill or Outline first'); render(); return; }
+  const f = curFrame(), cel = curCel(), li = S.layer; if (!cel || !cel.strokes) { render(); return; }
+  const before = cel.strokes, after = before.concat(shapeVariants(sd).map(makeVShape));
+  cel.strokes = after; cel.dirty = true;
+  push({ t: 'v', f, cel, li, before, after });
+  invComp(); updateDots(f); onionValid = false; render(); renderPreview();
+}
+function vecShapePreview(sd) {   // the real shape while dragging
+  const o = toScreen(0, 0), ex = toScreen(1, 0), ey = toScreen(0, 1);
+  vctx.save(); vctx.transform(ex[0] - o[0], ex[1] - o[1], ey[0] - o[0], ey[1] - o[1], o[0], o[1]);
+  vctx.globalAlpha = 0.85;
+  for (const v of shapeVariants(sd)) drawVShape(vctx, makeVShape(v));
+  vctx.restore(); return true;
+}
+// the Shape panel (instead of the brush settings)
+(() => {
+  const page = $('#pageBrush'); if (!page) return;
+  const fs = document.createElement('fieldset'); fs.className = 'aset vshape'; fs.id = 'vecShapeSet';
+  fs.innerHTML = '<legend>Shape</legend>' +
+    '<div class="arow vsh-kind"><button class="pb" data-vk="rect">▭ Rectangle</button><button class="pb" data-vk="ellipse">◯ Circle</button></div>' +
+    '<label class="toggle"><input type="checkbox" id="vFill"> Fill with the current color</label>' +
+    '<label class="toggle"><input type="checkbox" id="vLine"> Outline</label>' +
+    '<div class="arow">Outline color <input type="color" id="vLineC"></div>' +
+    '<div class="bopt"><label for="vLineW">Outline width</label><output id="vLineWOut"></output><input type="range" id="vLineW" min="1" max="60"></div>' +
+    '<div class="bopt" id="vRoundRow"><label for="vRound">Round corners</label><output id="vRoundOut"></output><input type="range" id="vRound" min="0" max="100"></div>' +
+    '<div class="bopt"><label for="vOp">Opacity</label><output id="vOpOut"></output><input type="range" id="vOp" min="5" max="100"></div>' +
+    '<p class="ainfo">Drag on the canvas to draw. Hold Shift for a perfect square or circle. Pick the fill color in the palette. Ctrl+Z takes a shape back.</p>';
+  page.prepend(fs);
+  const q = s => fs.querySelector(s);
+  fs.querySelectorAll('[data-vk]').forEach(b => b.onclick = () => { setTool(b.dataset.vk); syncVecUI(); });
+  q('#vFill').onchange = e => { VSH.fill = e.target.checked; vshSave(); };
+  q('#vLine').onchange = e => { VSH.line = e.target.checked; vshSave(); };
+  q('#vLineC').oninput = e => { VSH.lc = e.target.value; vshSave(); };
+  q('#vLineW').oninput = e => { VSH.lw = +e.target.value; q('#vLineWOut').textContent = VSH.lw + ' px'; vshSave(); };
+  q('#vRound').oninput = e => { VSH.rr = +e.target.value / 100; q('#vRoundOut').textContent = e.target.value + '%'; vshSave(); };
+  q('#vOp').oninput = e => { S.opacity = +e.target.value / 100; q('#vOpOut').textContent = e.target.value + '%'; const o = $('#opacity'); if (o) { o.value = e.target.value; } };
+})();
+function syncVecUI() {
+  const vec = MODE === 'vector', fs = $('#vecShapeSet'); if (!fs) return;
+  const tab = $('#tabBrush'); if (tab) tab.textContent = vec ? 'Shape' : 'Brush';
+  if (!vec) return;
+  const q = s => fs.querySelector(s);
+  q('#vFill').checked = VSH.fill; q('#vLine').checked = VSH.line; q('#vLineC').value = VSH.lc;
+  q('#vLineW').value = VSH.lw; q('#vLineWOut').textContent = VSH.lw + ' px';
+  q('#vRound').value = Math.round(VSH.rr * 100); q('#vRoundOut').textContent = Math.round(VSH.rr * 100) + '%';
+  q('#vOp').value = Math.round(S.opacity * 100); q('#vOpOut').textContent = Math.round(S.opacity * 100) + '%';
+  fs.querySelectorAll('[data-vk]').forEach(b => b.classList.toggle('on', b.dataset.vk === S.tool));
+}
+document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => setTimeout(syncVecUI, 0)));
 /* ---------- paths & storage ---------- */
 const EXT = { trad: 'sdt', vector: 'sdv', pixel: 'sdp' }, EXT_MODE = { sdt: 'trad', sdv: 'vector', sdp: 'pixel' };
 const TYPE_LABEL = { trad: 'Traditional animation', vector: 'Vector animation', pixel: 'Pixel art animation' };

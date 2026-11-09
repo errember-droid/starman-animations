@@ -1,6 +1,15 @@
 {
- "version": "1.28.2",
+ "version": "1.29.0",
  "changelog": [
+  {
+   "v": "1.29.0",
+   "date": "2026-11-09",
+   "items": [
+    "Vector art has its own simple menu: only Rectangle and Circle",
+    "Shapes are real vector shapes: fill with the current color, outline with its own color and width, round corners, opacity",
+    "The Brush tab becomes the Shape tab in vector files; old vector drawings still show as before"
+   ]
+  },
   {
    "v": "1.28.2",
    "date": "2026-11-08",
