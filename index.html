@@ -593,6 +593,7 @@ body.floatpanels:not(.mobile) #side,body.floatpanels:not(.mobile) #splitR{displa
 .fwt{flex:1}.fwk{font:inherit;font-size:10px;color:#a9a9c8!important;background:none!important;border:0!important;padding:0!important;box-shadow:none!important}.fwx{width:20px;height:18px;padding:0;border:0;background:transparent;color:#fff;font:inherit;font-size:14px;cursor:pointer}.fwx:hover{color:#ff8a8a}
 .fwb{flex:1;overflow:auto;padding:6px}.fwb>.ppage{display:block;height:auto!important;max-height:none!important;overflow:visible!important}.fwb>.ppage[hidden]{display:none}
 .panelsbtn{font-size:15px;line-height:1;margin-top:auto!important;color:var(--ink,#fff)}body.mobile .panelsbtn{display:none}
+.lobadge{position:absolute;right:-2px;bottom:-2px;min-width:16px;height:16px;line-height:15px;text-align:center;font-size:12px;font-family:system-ui,sans-serif;color:#16162b;background:#ffce57;border:1px solid #16162b;border-radius:3px;pointer-events:none}.file .ico{position:relative}
 .syncbtn{height:22px;padding:0 6px;font:inherit;font-size:11px;color:var(--ink,#fff);background:transparent;border:1px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap}.syncbtn[data-st=err]{color:#ff8a8a;border-color:#ff8a8a}.syncbtn[data-st=busy]{opacity:.75}
 .syncdlg ol{padding-left:18px;margin:6px 0}.syncdlg li{margin:5px 0}.syncdlg a{color:var(--accent)}.syncdlg .sy-row{display:flex;gap:8px;align-items:center;margin:8px 0}.syncdlg .sy-row input[type=text],.syncdlg .sy-row input[type=password]{flex:1;min-width:0}.syncdlg .sy-st{min-height:1.2em;color:var(--accent)}.syncdlg .muted{color:var(--muted)}
 .wnew .wnbody{max-height:60vh;overflow:auto;font-size:12px}.wnew h3{margin:10px 0 4px;font-size:13px;color:var(--accent)}.wnew h3 small{color:var(--muted);font-weight:400}.wnew ul{margin:0;padding-left:18px}.wnew li{margin:3px 0}
@@ -5764,9 +5765,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.33.0';
+const APP_VERSION = '1.33.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.33.1', date: '2026-11-09', items: ['Folders that stay only on this device: right-click a folder → “Only on this device (no cloud sync)”, or New → “Folder only on this device”. They get a ⌂ mark and cloud sync never sends or fills them'] },
   { v: '1.33.0', date: '2026-11-09', items: ['MP4 export rewritten: real H.264 MP4 files made frame by frame (exact timing, plays and seeks everywhere, faster than real time), sound included', 'Playback follows the clock: no more slowing down, a late frame is skipped instead of dragging', 'Playback is prepared in the background while you rest, so Play starts at once; the timeline is barely touched while playing', 'Onion skin: ghost frames are kept ready, stepping through frames is much quicker', 'Settings → Speed: Fast mode for weak laptops (fewer screen pixels on high-DPI screens), Auto picks it for weak computers'] },
   { v: '1.32.3', date: '2026-11-09', items: ['Duplicate several frames at once: select them (Shift + click on the frame numbers or cels) and press D or the duplicate button — the copies go right after them and stay selected'] },
   { v: '1.32.2', date: '2026-11-09', items: ['Timeline: Backspace empties the current cel; with cels selected (Shift + click) Backspace or Delete empties all of them; with whole frames selected it removes the frames. Ctrl+Z brings them back'] },
@@ -6003,7 +6005,7 @@ async function localFiles() {
   const walk = async dir => {
     let list; try { list = await store.list(dir); } catch (e) { return; }
     for (const it of list) {
-      if (it.kind === 'dir') { await walk(it.path); continue; }
+      if (it.kind === 'dir') { if (!isLocalOnly(it.path)) await walk(it.path); continue; }
       if (!ANIM_RX.test(it.path)) continue;
       const c = cache[it.path];
       if (c && c.m === it.mtime && it.mtime) { out.set(it.path, c.s); next[it.path] = c; continue; }
@@ -6054,6 +6056,7 @@ async function syncRun() {
   const nb = {}, up = [], put = [], downs = [], dels = [], trashes = [], copies = [];
   const taken = new Set([...local.keys(), ...remote.keys()]);
   for (const p of new Set([...local.keys(), ...remote.keys(), ...Object.keys(base)])) {
+    if (isLocalOnly(p)) { if (base[p]) nb[p] = base[p]; continue; }   // a folder kept only on this device
     if (local.skip.has(p)) { if (base[p]) nb[p] = base[p]; skipped++; continue; }
     const L_ = local.get(p) || null, R = remote.get(p) || null, B = base[p] || null;
     if (L_ === R) { if (L_) nb[p] = L_; continue; }
@@ -6258,6 +6261,16 @@ setTimeout(() => {
 }, 0);
 window.__S = S;
 
+
+/* ---------- folders kept only on this device (never sent to the cloud, never filled from it) ---------- */
+const localOnlyList = () => { const v = prefGet('localOnly', []); return Array.isArray(v) ? v : []; };
+function isLocalOnly(p) { if (!p) return false; return localOnlyList().some(d => p === d || p.startsWith(d + '/')); }
+function setLocalOnly(dir, on) { const L = localOnlyList().filter(d => d !== dir); if (on) L.push(dir); prefSet('localOnly', L); }
+function toggleLocalOnly(dir) {
+  const on = !localOnlyList().includes(dir); setLocalOnly(dir, on); refreshAll();
+  toast(on ? '“' + baseName(dir) + '” stays only on this device now. Copies already in the cloud are not touched.' : '“' + baseName(dir) + '” is synced again.');
+  if (!on) syncSoon(500);
+}
 /* ================= v30: vector art — selecting, editing and drawing shapes (ideas from vector editors, own design) =================
    A shape is one object in cel.strokes:
      { shape: 'rect' | 'ellipse', pts: [[x0, y0, lineWidth], [x1, y1, lineWidth]], rot }   box before turning, turned around its middle
@@ -7835,6 +7848,10 @@ window.__drawT = n => { const t = performance.now(); for (let i = 0; i < n; i++)
 function weakDevice() { return (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4; }
 function viewDpr() { const d = window.devicePixelRatio || 1, m = prefGet('speed', 'auto'); if (m === 'sharp') return d; if (m === 'fast' || (m === 'auto' && weakDevice())) return Math.min(d, 1); return d; }
 function applySpeed() { onionValid = false; invComp(); layout(); render(); flash(viewDpr() < (window.devicePixelRatio || 1) ? 'Fast mode: on' : 'Fast mode: off'); }
+
+// a renamed or moved folder keeps its "only on this device" mark
+const _remapPaths = remapPaths;
+remapPaths = function (a, b) { const L = localOnlyList(); if (L.some(d => d === a || d.startsWith(a + '/'))) prefSet('localOnly', L.map(d => d === a ? b : d.startsWith(a + '/') ? b + d.slice(a.length) : d)); return _remapPaths.apply(this, arguments); };
 /* ================= v30: settings as separate windows (F5–F8) — palette and layers stay where they are ================= */
 const PANELS = [
   { page: 'pageBrush', tab: 'tabBrush', name: () => MODE === 'vector' ? 'Shape' : 'Brush', act: 'panelBrush', key: 'F5', sync: () => { if (typeof syncBrushTab === 'function') syncBrushTab(); syncVecUI(true); } },
@@ -8285,6 +8302,7 @@ function makeIcon(e) {
   const nm = document.createElement('span'); nm.className = 'fname'; nm.textContent = e.name;
   if (e.kind === 'file' && L.ext) { const ex = document.createElement('span'); ex.className = 'ext'; ex.textContent = '.' + e.ext; nm.appendChild(ex); }
   b.append(ico, nm);
+  if (e.kind === 'dir' && typeof isLocalOnly === 'function' && isLocalOnly(e.path)) { b.classList.add('localonly'); const bd = document.createElement('span'); bd.className = 'lobadge'; bd.title = 'Only on this device: not synced to the cloud'; bd.textContent = '⌂'; ico.appendChild(bd); b.setAttribute('aria-label', entryInfo(e) + ' · only on this device'); }
   return b;
 }
 function placeDesktop() {
@@ -8471,8 +8489,8 @@ function startRename(p) {
   inp.addEventListener('pointerdown', e => e.stopPropagation());
   inp.addEventListener('blur', () => finish(true));
 }
-function newFolder(dir) {
-  return store.mkdir(dir, 'New folder').then(p => { selected = p; return refreshAll().then(() => startRename(p)); }, () => toast('Could not make a folder'));
+function newFolder(dir, local) {
+  return store.mkdir(dir, local ? 'Only here' : 'New folder').then(p => { if (local) setLocalOnly(p, true); selected = p; return refreshAll().then(() => startRename(p)); }, () => toast('Could not make a folder'));
 }
 
 /* confirm box (in-page, the viewer blocks confirm()) */
@@ -8538,7 +8556,8 @@ function newItems(dir) {
     { label: 'Vector animation (.sdv)', icon: ICON.sdv, action: () => askNew('vector', dir) },
     { label: 'Pixel art animation (.sdp)', icon: ICON.sdp, action: () => askNew('pixel', dir) },
     { sep: true },
-    { label: 'Folder', icon: ICON.dir, action: () => newFolder(dir) }] }];
+    { label: 'Folder', icon: ICON.dir, action: () => newFolder(dir) },
+    { label: 'Folder only on this device (no sync)', icon: ICON.dir, action: () => newFolder(dir, true) }] }];
 }
 function setWall(w) { L.wall = w; menu.dataset.wall = w; saveLayout(); }
 function arrange(mode) { L.sort = mode; L.pos = {}; saveLayout(); refreshAll(); }
@@ -8568,6 +8587,7 @@ function iconMenu(el, x, y) {
     { label: 'Open', kbd: 'Enter', action: () => openEntry(p, k) },
     { label: 'Rename', kbd: 'F2', action: () => startRename(p) },
     { label: 'Pack for another computer (.sdz)', action: () => packEntry(p, k) },
+    ...(k === 'dir' && typeof isLocalOnly === 'function' ? [{ label: 'Only on this device (no cloud sync)', check: isLocalOnly(p), action: () => toggleLocalOnly(p) }] : []),
     { sep: true },
     { label: 'Move to Recycle Bin', kbd: 'Del', action: () => trashEntry(p) }
   ], x, y);

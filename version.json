@@ -1,6 +1,13 @@
 {
- "version": "1.33.0",
+ "version": "1.33.1",
  "changelog": [
+  {
+   "v": "1.33.1",
+   "date": "2026-11-09",
+   "items": [
+    "Folders that stay only on this device: right-click a folder → “Only on this device (no cloud sync)”, or New → “Folder only on this device”. They get a ⌂ mark and cloud sync never sends or fills them"
+   ]
+  },
   {
    "v": "1.33.0",
    "date": "2026-11-09",
