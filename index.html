@@ -5733,9 +5733,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.31.0';
+const APP_VERSION = '1.31.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.31.1', date: '2026-11-09', items: ['Joined / cut shapes: the outline now follows the real edge, no more notches where the shapes meet'] },
   { v: '1.31.0', date: '2026-11-09', items: ['Vector brush (B): draw freely, the line becomes points you can move with A; smooth curves or sharp zigzag, smoothness setting', 'Points: make one point or the whole shape smooth or sharp, double-click a line (A) to add a point', 'Combine shapes: Join, Cut out (the top shape cuts itself out), Overlap, Hole (the overlap becomes empty), Take apart', 'Snapping to the points and the outlines of other shapes', 'Stroke width stays the same when scaling (can be switched off), stroke inside / outside, custom dashes, arrows and dots on line ends, round gradients', 'Position and size fields (X, Y, W, H, turn)', 'Effects: shadow, glow, blur, blend modes, textures (dots, stripes, hatching, grain…) or your own picture'] },
   { v: '1.30.0', date: '2026-11-09', items: ['Brush, Animation, Render and Export settings are now separate windows: F5, F6, F7, F8 (or the ☰ button). Move them anywhere, they remember their place. The canvas gets the space', 'Vector art: Selection (V) — move, scale, turn, Alt-drag copies; Direct selection (A) — edit points and curves; Pen (P); Rectangle, Ellipse, Polygon, Star, Line; Eyedropper', 'Vector art: fill and stroke colors (X switches, Shift+X swaps), gradient fill, dashed / dotted strokes, ends and corners, round corners', 'Vector art: arrange (Ctrl+[ ]), align and spread evenly, flip, turn 90°, copy / paste / duplicate, smart guides that stick to other shapes and the camera'] },
   { v: '1.29.0', date: '2026-11-09', items: ['Vector art has its own simple menu: only Rectangle and Circle', 'Shapes are real vector shapes: fill with the current color, outline with its own color and width, round corners, opacity', 'The Brush tab becomes the Shape tab in vector files; old vector drawings still show as before'] },
@@ -6322,7 +6323,7 @@ function drawVShape(ctx, st) { vDrawFull(ctx, st); }
 const hctx = document.createElement('canvas').getContext('2d');
 function vHit(st, x, y, tol) {
   const p = vGeom(st); if (st.fc && vInRegion(st, x, y)) return true;
-  hctx.lineWidth = (st.ol ? st.pts[0][2] : 0) + tol * 2; hctx.lineJoin = 'round'; return hctx.isPointInStroke(p, x, y);
+  hctx.lineWidth = (st.ol ? st.pts[0][2] : 0) + tol * 2; hctx.lineJoin = 'round'; return hctx.isPointInStroke(st.shape === 'compound' ? vEdge(st) : p, x, y);
 }
 function hitVShape(st, x, y, r) { return vHit(st, x, y, r); }
 function vTopAt(x, y) { const c = vcel(); if (!c) return null; const t = vtol(); for (let i = c.strokes.length - 1; i >= 0; i--) { const st = c.strokes[i]; if (st.shape ? vHit(st, x, y, t) : hitStroke(st, x, y, t)) return st; } return null; }
@@ -6367,7 +6368,7 @@ function vAddShapes(list) {
 function w2s(x, y) { const M = layerMat(S.layers[S.layer], S.cur); if (M) { const q = mapPt(M, x, y); x = q[0]; y = q[1]; } return toScreen(x, y); }
 function withWorld(fn) { const o = w2s(0, 0), ex = w2s(1, 0), ey = w2s(0, 1); vctx.save(); vctx.setTransform(ex[0] - o[0], ex[1] - o[1], ey[0] - o[0], ey[1] - o[1], o[0], o[1]); const k = Math.hypot(ex[0] - o[0], ex[1] - o[1]) || 1; fn(k); vctx.restore(); }
 const VA = '#2f8cff';
-function outlineOf(st, color, k, w) { withWorld(kk => { vctx.lineWidth = (w || 1) * dpr / kk; vctx.strokeStyle = color; vctx.setLineDash([]); vctx.stroke(vGeom(st)); }); }
+function outlineOf(st, color, k, w) { withWorld(kk => { vctx.lineWidth = (w || 1) * dpr / kk; vctx.strokeStyle = color; vctx.setLineDash([]); vctx.stroke(st.shape === 'compound' ? vEdge(st) : vGeom(st)); }); }
 function vSelHandles(b) {
   const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
   return [[b.x0, b.y0], [cx, b.y0], [b.x1, b.y0], [b.x1, cy], [b.x1, b.y1], [cx, b.y1], [b.x0, b.y1], [b.x0, cy]];
@@ -6867,19 +6868,7 @@ function vStrokeAll(ctx, st) {
   const lw = st.pts[0] ? st.pts[0][2] : 0; if (!st.ol || !(lw > 0)) return;
   const dash = st.dash === 'custom' && st.dl ? [lw * st.dl[0], lw * st.dl[1]] : vDash(st, lw);
   ctx.lineJoin = st.ljoin || 'round'; ctx.lineCap = st.dash === 'dot' ? 'round' : (st.lcap || 'round'); ctx.miterLimit = 6; ctx.strokeStyle = st.color; ctx.setLineDash(dash);
-  if (st.shape === 'compound') {
-    const parts = vParts(st), P = parts.map(vGeom), op = st.op || 'unite';
-    ctx.lineWidth = lw;
-    P.forEach((p, i) => {
-      ctx.save();
-      P.forEach((q, j) => {
-        if (i === j) return;
-        if (op === 'unite') ctx.clip(vOutside(q), 'evenodd');
-        else if (op === 'intersect') ctx.clip(q);
-        else if (op === 'minus') { if (i === 0) { if (j > 0) ctx.clip(vOutside(q), 'evenodd'); } else if (j === 0) ctx.clip(q); else ctx.clip(vOutside(q), 'evenodd'); }
-      });
-      ctx.stroke(p); ctx.restore();
-    });
+  if (st.shape === 'compound') { ctx.lineWidth = lw; ctx.stroke(vEdge(st));
   } else if (st.sal === 'inside' || st.sal === 'outside') {
     ctx.save(); const p = vGeom(st); if (st.sal === 'inside') ctx.clip(p); else ctx.clip(vOutside(p), 'evenodd'); ctx.lineWidth = lw * 2; ctx.stroke(p); ctx.restore();
   } else { ctx.lineWidth = lw; ctx.stroke(vGeom(st)); }
@@ -6896,6 +6885,57 @@ function vStrokeAll(ctx, st) {
     };
     head(st.a0, false); head(st.a1, true);
   }
+}
+/* ---------- the real outline of a combined shape ----------
+   Every piece is turned into short straight lines, cut where pieces cross, and only the bits that have
+   "inside" on one side and "outside" on the other are kept. Then they are chained into closed lines.
+   So the stroke follows the true edge with no notches where the pieces meet. */
+const vEdgeCache = new WeakMap();
+function vFlat(part, step) {
+  const N = vNodes(part), out = [], segs = N.length - (part.cl ? 0 : 1);
+  for (let i = 0; i < segs; i++) {
+    const a = N[i], b = N[(i + 1) % N.length], L = Math.hypot(a[2][0] - a[0][0], a[2][1] - a[0][1]) + Math.hypot(b[1][0] - a[2][0], b[1][1] - a[2][1]) + Math.hypot(b[0][0] - b[1][0], b[0][1] - b[1][1]);
+    const n = clamp(Math.ceil(L / step), 1, 600);
+    for (let k = 0; k < n; k++) { const t = k / n, u = 1 - t; out.push([u * u * u * a[0][0] + 3 * u * u * t * a[2][0] + 3 * u * t * t * b[1][0] + t * t * t * b[0][0], u * u * u * a[0][1] + 3 * u * u * t * a[2][1] + 3 * u * t * t * b[1][1] + t * t * t * b[0][1]]); }
+  }
+  return out;
+}
+function vEdge(st) {
+  if (st.shape !== 'compound') return vGeom(st);
+  let path = vEdgeCache.get(st); if (path) return path;
+  const parts = vParts(st), bb = vBounds(st), step = Math.max(0.2, Math.max(bb.x1 - bb.x0, bb.y1 - bb.y0) / 1200);
+  const polys = parts.map(p => vFlat(p, step)), op = st.op || 'unite';
+  const PP = polys.map(P => { const g = new Path2D(); P.forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.closePath(); return g; });
+  const inside = (x, y) => { const ins = PP.map(g => hctx.isPointInPath(g, x, y)); if (op === 'exclude') return ins.filter(Boolean).length % 2 === 1; if (op === 'minus') return ins[0] && !ins.slice(1).some(Boolean); if (op === 'intersect') return ins.every(Boolean); return ins.some(Boolean); };
+  const E = []; polys.forEach((P, pi) => { for (let i = 0; i < P.length; i++) E.push({ a: P[i], b: P[(i + 1) % P.length], pi, ts: [] }); });
+  const cell = step * 6, grid = new Map(), key = (x, y) => x + ',' + y;
+  E.forEach((e, i) => { const x0 = Math.floor(Math.min(e.a[0], e.b[0]) / cell), x1 = Math.floor(Math.max(e.a[0], e.b[0]) / cell), y0 = Math.floor(Math.min(e.a[1], e.b[1]) / cell), y1 = Math.floor(Math.max(e.a[1], e.b[1]) / cell); for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) { const k = key(x, y); let l = grid.get(k); if (!l) grid.set(k, l = []); l.push(i); } });
+  const seen = new Set();
+  for (const l of grid.values()) for (let m = 0; m < l.length; m++) for (let n = m + 1; n < l.length; n++) {
+    const i = l[m], j = l[n]; if (E[i].pi === E[j].pi) continue; const pk = i < j ? i * 1e6 + j : j * 1e6 + i; if (seen.has(pk)) continue; seen.add(pk);
+    const A = E[i], B = E[j], rx = A.b[0] - A.a[0], ry = A.b[1] - A.a[1], sx = B.b[0] - B.a[0], sy = B.b[1] - B.a[1], den = rx * sy - ry * sx; if (Math.abs(den) < 1e-12) continue;
+    const qx = B.a[0] - A.a[0], qy = B.a[1] - A.a[1], t = (qx * sy - qy * sx) / den, u = (qx * ry - qy * rx) / den;
+    if (t > 1e-9 && t < 1 - 1e-9 && u > 1e-9 && u < 1 - 1e-9) { A.ts.push(t); B.ts.push(u); }
+  }
+  const pieces = [], eps = step * 0.3;
+  for (const e of E) {
+    const ts = [0, ...e.ts.sort((p, q) => p - q), 1], dx = e.b[0] - e.a[0], dy = e.b[1] - e.a[1], L = Math.hypot(dx, dy) || 1, nx = -dy / L * eps, ny = dx / L * eps;
+    for (let k = 0; k < ts.length - 1; k++) {
+      const p = [e.a[0] + dx * ts[k], e.a[1] + dy * ts[k]], q = [e.a[0] + dx * ts[k + 1], e.a[1] + dy * ts[k + 1]], mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+      if (inside(mx + nx, my + ny) !== inside(mx - nx, my - ny)) pieces.push([p, q]);
+    }
+  }
+  // chain the kept bits into lines
+  const kk = p => Math.round(p[0] * 1000) + ':' + Math.round(p[1] * 1000), at = new Map();
+  pieces.forEach((s, i) => { for (const end of [0, 1]) { const k = kk(s[end]); let l = at.get(k); if (!l) at.set(k, l = []); l.push(i); } });
+  const used = new Uint8Array(pieces.length); path = new Path2D();
+  for (let i = 0; i < pieces.length; i++) {
+    if (used[i]) continue; used[i] = 1; const line = [pieces[i][0], pieces[i][1]];
+    for (;;) { const end = line[line.length - 1], l = at.get(kk(end)) || []; let nxt = -1; for (const j of l) if (!used[j]) { nxt = j; break; } if (nxt < 0) break; used[nxt] = 1; const s2 = pieces[nxt]; line.push(kk(s2[0]) === kk(end) ? s2[1] : s2[0]); }
+    const closed = line.length > 2 && kk(line[0]) === kk(line[line.length - 1]);
+    line.forEach((q, n) => n ? path.lineTo(q[0], q[1]) : path.moveTo(q[0], q[1])); if (closed) path.closePath();
+  }
+  vEdgeCache.set(st, path); return path;
 }
 /* ---------- textures ---------- */
 const texCache = new Map(), imgCache = new Map();
