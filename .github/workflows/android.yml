@@ -122,7 +122,7 @@ jobs:
             "files": ["**/*", "!dist/**", "!builder.json", "!node_modules/**"],
             "win": { "icon": "icon.ico", "target": ["nsis", "zip"] },
             "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "shortcutName": "Starman Does Animations", "artifactName": "starman-setup.exe" },
-            "zip": { "artifactName": "starman-windows.zip" } }
+            "artifactName": "starman-windows.${ext}" }
           EOF
           npx electron-builder --win --x64 --config builder.json --publish never
           cp dist/starman-setup.exe dist/starman-windows.zip ..
