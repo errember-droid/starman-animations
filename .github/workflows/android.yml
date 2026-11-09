@@ -124,7 +124,8 @@ jobs:
             "nsis": { "oneClick": false, "perMachine": false, "allowToChangeInstallationDirectory": true, "createDesktopShortcut": true, "shortcutName": "Starman Does Animations", "artifactName": "starman-setup.exe" },
             "artifactName": "starman-windows.${ext}" }
           EOF
-          npx electron-builder --win --x64 --config builder.json --publish never
+          for i in 1 2 3; do npx electron-builder --win --x64 --config builder.json --publish never && break; echo "retry $i"; sleep 20; done
+          test -f dist/starman-setup.exe
           cp dist/starman-setup.exe dist/starman-windows.zip ..
       - name: 4 Keep the Windows files
         uses: actions/upload-artifact@v4
