@@ -1,6 +1,14 @@
 {
- "version": "1.37.0",
+ "version": "1.38.0",
  "changelog": [
+  {
+   "v": "1.38.0",
+   "date": "2026-11-09",
+   "items": [
+    "Snapping for every vector tool: rectangle, ellipse, polygon, star, line, pen, brush ends, spiral, moving, resizing, turning (sticks to 45°), points and the mirror handle. Sticks to centers, edges, points and outlines of shapes, the camera middle/edges/corners and the mirror line, with pink guide lines",
+    "Key ; (Ж) or the ⌖ button turns snapping on and off; Ctrl still places freely for a moment"
+   ]
+  },
   {
    "v": "1.37.0",
    "date": "2026-11-09",

@@ -580,7 +580,7 @@ body.mobile .tip{display:none!important}
 #vecShapeSet{display:none}body[data-mode=vector] #vecShapeSet{display:block}
 body[data-mode=vector] #pageBrush>*:not(#vecShapeSet){display:none!important}
 body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-tool=ellipse]):not([data-tool=line]):not([data-tool=picker]):not(.vt){display:none!important}
-#app>.tools .vt.mon{color:#40e0ff!important;background:rgba(64,224,255,.18);outline:1px dashed #40e0ff;outline-offset:-3px}#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
+#app>.tools .vt.mon{color:#40e0ff!important;background:rgba(64,224,255,.18);outline:1px dashed #40e0ff;outline-offset:-3px}.snbox.off{opacity:.45;pointer-events:none}#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
 .vfs{display:flex;gap:8px;align-items:center;margin:4px 0 8px}.vsw{position:relative;width:34px;height:34px;padding:0;border:1px solid #16162b;background:#fff;cursor:pointer}.vsw i{position:absolute;inset:3px;display:block}
 .vsw.stroke i{background:transparent!important;border:7px solid #000;inset:3px}.vsw.on{outline:2px solid var(--accent);outline-offset:1px}.vfsr{display:flex;flex-direction:column;gap:2px}.vfsr .pb{padding:1px 6px}
 #vecShapeSet input[type=color]{width:34px;height:22px;padding:0;border:1px solid #555;background:none;margin-left:4px}#vecShapeSet select{margin:0 4px}
@@ -5774,9 +5774,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.37.0';
+const APP_VERSION = '1.38.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.38.0', date: '2026-11-09', items: ['Snapping for every vector tool: rectangle, ellipse, polygon, star, line, pen, brush ends, spiral, moving, resizing, turning (sticks to 45°), points and the mirror handle. Sticks to centers, edges, points and outlines of shapes, the camera middle/edges/corners and the mirror line, with pink guide lines', 'Key ; (Ж) or the ⌖ button turns snapping on and off; Ctrl still places freely for a moment'] },
   { v: '1.37.0', date: '2026-11-09', items: ['Vector mirror ⇋ (Shift+M): left ↔ right, top ↕ bottom, 4 ways or around like a kaleidoscope (2–24 copies). New shapes get copies that follow the original when you move, reshape or recolor it. Drag the cyan handle to move the mirror — the copies move with it. “Unlink copies” makes them normal shapes'] },
   { v: '1.36.1', date: '2026-11-09', items: ['Video export: new quality “Best (for posting)” — 20 Mbit/s, so social networks have a clean picture to start from'] },
   { v: '1.36.0', date: '2026-11-09', items: ['Scale drawings on all frames at once (Shift+T, the Animation window, or right-click a layer): any size %, width and height separately, around the middle of the drawings, the feet, the canvas, the camera or the corner; this layer or all layers; all, selected or one frame. You see it while you change it, the canvas stays the same size'] },
@@ -6525,7 +6526,7 @@ function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selectio
   const H = vSelHandles(b), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
   return {
     move(e) {
-      last = e; const p = pos(e); let M;
+      last = e; const p = mode === 'scale' && !e.ctrlKey ? vSnapPt(pos(e), sel) : pos(e); let M;
       if (!moved && Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 3) return; moved = true;
       if (mode === 'move') {
         let dx = p.x - p0.x, dy = p.y - p0.y;
@@ -6542,7 +6543,7 @@ function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selectio
         M = mScale(sx, sy, ax, ay);
       } else {
         let t = Math.atan2(p.y - cy, p.x - cx) - Math.atan2(p0.y - cy, p0.x - cx);
-        if (e.shiftKey) t = Math.round(t / (Math.PI / 12)) * (Math.PI / 12);
+        if (e.shiftKey) t = Math.round(t / (Math.PI / 12)) * (Math.PI / 12); else if (!e.ctrlKey && snapOn()) { const r = Math.round(t / (Math.PI / 4)) * (Math.PI / 4); if (Math.abs(t - r) < 0.06) t = r; }
         M = mRot(t, cx, cy);
       }
       const nsel = new Set();
@@ -7548,7 +7549,7 @@ VEC_TOOL.vgrad = (p0, e0) => {   // drag over a shape: its gradient goes that wa
 };
 let vprevLine = null;
 VEC_TOOL.spiral = (p0, e0) => {
-  let last = e0;
+  let last = e0; if (!e0.ctrlKey) p0 = vSnapPt(p0);
   const make = e => { const p = pos(e), R = Math.hypot(p.x - p0.x, p.y - p0.y), a0 = Math.atan2(p.y - p0.y, p.x - p0.x), turns = Math.max(0.5, VSH.turns), n = Math.round(turns * 8), A = [];
     for (let i = 0; i <= n; i++) { const t = i / n, r = R * t, a = a0 - t * turns * Math.PI * 2 * (e.altKey ? -1 : 1); A.push([p0.x + Math.cos(a) * r, p0.y + Math.sin(a) * r]); }
     A.reverse(); const N = smoothNodes(A, false, 1); return Object.assign(vStyle(), { shape: 'path', pts: N.flat().map(q => [q[0], q[1], VSH.lw]), cl: false, fc: null, fg: undefined, ol: true }); };
@@ -8008,7 +8009,7 @@ view.addEventListener('pointerdown', e => {
   e.preventDefault(); e.stopImmediatePropagation();
   const from = vMirAxis(); mirDrag = { now: from.slice() };
   try { view.setPointerCapture(e.pointerId); } catch (er) {}
-  const mv = ev => { const p = pos(ev); let x = p.x, y = p.y; if (ev.shiftKey) { const c = camRect(S.cur), cx = (c.x0 + c.x1) / 2, cy = (c.y0 + c.y1) / 2; if (Math.abs(x - cx) < 12 / S.zoom) x = cx; if (Math.abs(y - cy) < 12 / S.zoom) y = cy; } mirDrag.now = [Math.round(x * 2) / 2, Math.round(y * 2) / 2]; render(); };
+  const mv = ev => { const p = pos(ev); let x = p.x, y = p.y; if (!ev.ctrlKey) { const q = vSnapPt({ x, y }); x = q.x; y = q.y; } mirDrag.now = [Math.round(x * 2) / 2, Math.round(y * 2) / 2]; render(); };
   const up = () => { view.removeEventListener('pointermove', mv, true); view.removeEventListener('pointerup', up, true); view.removeEventListener('pointercancel', up, true); const to = mirDrag.now; mirDrag = null; if (to[0] !== from[0] || to[1] !== from[1]) mirMoveAxis(from, to); else render(); };
   view.addEventListener('pointermove', mv, true); view.addEventListener('pointerup', up, true); view.addEventListener('pointercancel', up, true);
 }, true);
@@ -8031,7 +8032,7 @@ let mirBtn = null;
   f.innerHTML = '<legend>Mirror ⇋</legend><div class="arow">Mirror <select id="vMirMode"><option value="off">Off</option><option value="x">Left ↔ right</option><option value="y">Top ↕ bottom</option><option value="xy">4 ways</option><option value="radial">Around (kaleidoscope)</option></select></div>' +
     '<div class="arow" id="vMirNRow">Copies <input class="num" type="number" id="vMirN" min="2" max="24" step="1" style="width:56px"></div>' +
     '<div class="arow vbtns"><button type="button" class="pb" id="vMirC" title="Put the mirror line in the middle of the camera">Center on camera</button><button type="button" class="pb" id="vMirD" title="The copies of the selected shapes (or all) stop following">Unlink copies</button></div>' +
-    '<p class="ainfo">Shapes you draw now get copies on the other side of the cyan line. Move, reshape or recolor the original — the copies follow. Drag the round handle to move the mirror (Shift: snap to the camera middle); copies already made move with it. Shift+M turns left ↔ right on and off.</p>';
+    '<p class="ainfo">Shapes you draw now get copies on the other side of the cyan line. Move, reshape or recolor the original — the copies follow. Drag the round handle to move the mirror (it sticks to the camera middle, edges and shape points; Ctrl: freely); copies already made move with it. Shift+M turns left ↔ right on and off.</p>';
   fs.insertBefore(f, $('#vSelInfo'));
   const q = s => f.querySelector(s);
   q('#vMirMode').addEventListener('change', e => { vMirSet(e.target.value); e.target.blur(); });
@@ -8065,6 +8066,94 @@ window.addEventListener('keydown', e => {
 }, true);
 syncMirUI();
 window.__mir = { axis: vMirAxis, w2s, set: vMirSet, detach: () => { vsel = new Set(); vMirDetach(); }, VSH };
+/* ================= v38: snapping everywhere — centers, edges, points, outlines, camera, mirror line; one key turns it on/off ================= */
+if (VSH.snapAll === undefined) VSH.snapAll = true;
+if (VSH.snapCam === undefined) VSH.snapCam = true;
+if (VSH.snapPts === undefined) VSH.snapPts = true;
+function snapOn() { return MODE === 'vector' && VSH.snapAll !== false; }
+// extra lines to line up with: the mirror line (not while you drag it)
+const _vSnapTargets17 = vSnapTargets;
+vSnapTargets = function (skip) {
+  const T = _vSnapTargets17.call(this, skip || new Set());
+  if (VSH.snapCam === false) { T.xs.splice(T.xs.length - 3, 3); T.ys.splice(T.ys.length - 3, 3); }   // the camera frame is added last
+  if (typeof mirOn === 'function' && mirOn() && !mirDrag) { const a = vMirAxis(); T.xs.push(a[0]); T.ys.push(a[1]); }
+  return T;
+};
+const _vSnap17 = vSnap;
+vSnap = function (b, T) { if (!snapOn()) return { dx: 0, dy: 0, G: [] }; return _vSnap17.call(this, b, T); };
+const _vSnapMove17 = vSnapMove;
+vSnapMove = function (sel, dx, dy) { if (!snapOn()) return null; return _vSnapMove17.call(this, sel, dx, dy); };
+function snapSpecial() {   // single points that always attract: camera middle and corners, the mirror handle
+  const out = [];
+  if (VSH.snapCam !== false) { const c = camRect(S.cur), x0 = c.x0, y0 = c.y0, x1 = c.x1, y1 = c.y1; out.push([(x0 + x1) / 2, (y0 + y1) / 2], [x0, y0], [x1, y0], [x1, y1], [x0, y1], [(x0 + x1) / 2, y0], [(x0 + x1) / 2, y1], [x0, (y0 + y1) / 2], [x1, (y0 + y1) / 2]); }
+  if (typeof mirOn === 'function' && mirOn() && !mirDrag) out.push(vMirAxis());
+  return out;
+}
+let snapCache = null;
+const _vSnapPt17 = vSnapPt;
+vSnapPt = function (p, skip) {
+  vmark = null; vguides = [];
+  if (!snapOn()) return p;
+  const q = _vSnapPt17.call(this, p, skip); if (q !== p) return q;   // a point or an outline of a shape
+  const t = vtol() * 1.3;
+  let best = null, bd = t;
+  for (const a of snapSpecial()) { const d = Math.hypot(a[0] - p.x, a[1] - p.y); if (d < bd) { bd = d; best = a; } }
+  if (best) { vmark = { x: best[0], y: best[1] }; return Object.assign({}, p, { x: best[0], y: best[1] }); }
+  if (VSH.snapEdge === false) return p;
+  // line up with the edges and middles of other shapes, the camera and the mirror (each way on its own)
+  const now = performance.now();
+  if (!snapCache || now - snapCache.t > 120 || snapCache.skip !== skip || snapCache.cur !== S.cur) snapCache = { t: now, skip, cur: S.cur, T: vSnapTargets(skip || new Set()) };
+  const T = snapCache.T; let gx = null, gy = null, bx = t, by = t;
+  for (const x of T.xs) { const d = Math.abs(x - p.x); if (d < bx) { bx = d; gx = x; } }
+  for (const y of T.ys) { const d = Math.abs(y - p.y); if (d < by) { by = d; gy = y; } }
+  if (gx == null && gy == null) return p;
+  const r = Object.assign({}, p), big = 1e5;
+  if (gx != null) { r.x = gx; vguides.push([[gx, -big], [gx, big]]); }
+  if (gy != null) { r.y = gy; vguides.push([[-big, gy], [big, gy]]); }
+  if (gx != null && gy != null) vmark = { x: gx, y: gy };
+  return r;
+};
+// the pink lines go away when you let go
+window.addEventListener('pointerup', () => { if (MODE !== 'vector' || !(vguides.length || vmark)) return; setTimeout(() => { vguides = []; vmark = null; snapCache = null; render(); }, 0); });
+
+/* ---------- on / off: key ; (Ж), a button, the Shape window ---------- */
+let snapBtn = null;
+function setSnapAll(on, quiet) {
+  VSH.snapAll = !!on; vshSave(); vguides = []; vmark = null;
+  if (snapBtn) snapBtn.classList.toggle('mon', VSH.snapAll);
+  const cb = $('#vSnAll'); if (cb) cb.checked = VSH.snapAll;
+  const box = $('#vSnBox'); if (box) box.classList.toggle('off', !VSH.snapAll);
+  if (!quiet) flash(VSH.snapAll ? 'Snapping on' : 'Snapping off — everything goes exactly where you put it');
+  render();
+}
+ACTIONS.push({ id: 'snap', label: 'Snapping on / off (vector shapes)', def: 'Semicolon', fn: () => { if (MODE === 'vector') setSnapAll(!VSH.snapAll); } }); ACT_BY_ID.snap = ACTIONS[ACTIONS.length - 1];
+(() => {
+  const fs = $('#vecShapeSet'), e = $('#vSnE'), set = e && e.closest('fieldset');
+  if (set) {
+    const lg = set.querySelector('legend'); if (lg) lg.textContent = 'Snapping (key ;)';
+    const top = document.createElement('label'); top.className = 'toggle'; top.innerHTML = '<input type="checkbox" id="vSnAll"> <b>Snapping on</b>';
+    const box = document.createElement('div'); box.id = 'vSnBox'; box.className = 'snbox';
+    [...set.children].filter(n => n.tagName !== 'LEGEND').forEach(n => box.appendChild(n));
+    const cam = document.createElement('label'); cam.className = 'toggle'; cam.innerHTML = '<input type="checkbox" id="vSnC"> To the camera and the mirror line';
+    box.insertBefore(cam, box.querySelector('.ainfo'));
+    const info = box.querySelector('.ainfo'); if (info) info.textContent = 'Works for every tool: rectangle, ellipse, polygon, star, line, pen, brush ends, spiral, moving, resizing and turning (sticks to 45°), points (A) and the mirror handle. Pink lines show what it lined up with. Hold Ctrl to place freely; ; turns it all off and on.';
+    set.appendChild(top); set.appendChild(box);
+    top.querySelector('input').addEventListener('change', ev => setSnapAll(ev.target.checked, true));
+    cam.querySelector('input').addEventListener('change', ev => { VSH.snapCam = ev.target.checked; vshSave(); snapCache = null; });
+  }
+  const tools = document.querySelector('#app > .tools'), mb = $('#vMirBtn');
+  if (tools) {
+    snapBtn = document.createElement('button'); snapBtn.className = 'tb vt vsnap'; snapBtn.id = 'vSnapBtn'; snapBtn.textContent = '⌖';
+    snapBtn.dataset.tip = 'Snapping ( ; )|Shapes, points, moving and resizing stick to centers, edges, points, outlines, the camera and the mirror line. Hold Ctrl to place freely for a moment';
+    snapBtn.title = 'Snapping ( ; )';
+    snapBtn.onclick = () => setSnapAll(!VSH.snapAll);
+    if (mb) mb.after(snapBtn); else tools.appendChild(snapBtn);
+  }
+})();
+const _syncVecMore17 = syncVecMore;
+syncVecMore = function () { _syncVecMore17.apply(this, arguments); const c = $('#vSnC'); if (c) c.checked = VSH.snapCam !== false; const p = $('#vSnP'); if (p) p.checked = !!VSH.snapPts; setSnapAll(VSH.snapAll, true); };
+setSnapAll(VSH.snapAll, true);
+window.__snap = { set: setSnapAll, get: () => VSH.snapAll, pt: (x, y) => vSnapPt({ x, y }) };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
