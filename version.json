@@ -1,6 +1,14 @@
 {
- "version": "1.34.0",
+ "version": "1.35.0",
  "changelog": [
+  {
+   "v": "1.35.0",
+   "date": "2026-11-09",
+   "items": [
+    "Palette packs: Palette ⋯ → Palette packs — 35 ready palettes from 2 to 256 colors: classic (PICO-8, Game Boy, CGA, web safe…), big ramps (up to 256), greys, skin tones, hair, eyes, forest, ocean, sky, desert, ice, fire, autumn, spring, pastel, neon, candy, night city, spooky, muted, metals, wood & stone",
+    "Use replaces your palette, + Add adds the new colors to it; Ctrl+Z brings the old palette back"
+   ]
+  },
   {
    "v": "1.34.0",
    "date": "2026-11-09",

@@ -594,6 +594,9 @@ body.floatpanels:not(.mobile) #side,body.floatpanels:not(.mobile) #splitR{displa
 .fwb{flex:1;overflow:auto;padding:6px}.fwb>.ppage{display:block;height:auto!important;max-height:none!important;overflow:visible!important}.fwb>.ppage[hidden]{display:none}
 .panelsbtn{font-size:15px;line-height:1;margin-top:auto!important;color:var(--ink,#fff)}body.mobile .panelsbtn{display:none}
 .gedit{margin:4px 0 8px}.gedit[hidden]{display:none}.gbar{height:18px;border:1px solid #16162b;cursor:copy;background-color:#fff}.gstops{position:relative;height:16px;margin:0 0 4px}.gstops i{position:absolute;top:2px;width:10px;height:12px;margin-left:-5px;border:1px solid #16162b;box-shadow:0 0 0 1px #fff;cursor:ew-resize;touch-action:none}.gstops i.on{outline:2px solid var(--accent);outline-offset:1px}.gstops i::before{content:'';position:absolute;left:2px;top:-5px;border:3px solid transparent;border-bottom-color:#16162b}
+.palpacks{width:min(780px,calc(100vw - 24px))!important;max-width:none!important}.palpacks .dlg{width:100%;box-sizing:border-box;max-height:calc(100vh - 40px);display:flex;flex-direction:column}.pp-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 8px}.pp-cats{display:flex;gap:3px;flex-wrap:wrap;flex:1}.pp-cats .pb.on{outline:2px solid var(--accent);outline-offset:-2px}#ppFind{width:150px}
+.pp-list{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;padding-right:4px;min-height:200px}.pp-card{border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;gap:5px}
+.pp-h{display:flex;justify-content:space-between;gap:6px;align-items:baseline}.pp-h span{font-size:10px;opacity:.7}.pp-sw{display:grid;grid-template-columns:repeat(16,1fr);gap:1px}.pp-sw i{display:block;aspect-ratio:1}.pp-sw.dense{grid-template-columns:repeat(24,1fr)}.pp-note{font-size:10px;opacity:.75}.pp-b{display:flex;gap:4px;margin-top:auto}.pp-b .txtbtn{flex:1;padding:2px 6px!important;min-height:0!important;height:24px}
 .lobadge{position:absolute;right:-2px;bottom:-2px;min-width:16px;height:16px;line-height:15px;text-align:center;font-size:12px;font-family:system-ui,sans-serif;color:#16162b;background:#ffce57;border:1px solid #16162b;border-radius:3px;pointer-events:none}.file .ico{position:relative}
 .syncbtn{height:22px;padding:0 6px;font:inherit;font-size:11px;color:var(--ink,#fff);background:transparent;border:1px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap}.syncbtn[data-st=err]{color:#ff8a8a;border-color:#ff8a8a}.syncbtn[data-st=busy]{opacity:.75}
 .syncdlg ol{padding-left:18px;margin:6px 0}.syncdlg li{margin:5px 0}.syncdlg a{color:var(--accent)}.syncdlg .sy-row{display:flex;gap:8px;align-items:center;margin:8px 0}.syncdlg .sy-row input[type=text],.syncdlg .sy-row input[type=password]{flex:1;min-width:0}.syncdlg .sy-st{min-height:1.2em;color:var(--accent)}.syncdlg .muted{color:var(--muted)}
@@ -3072,7 +3075,7 @@ function importPalette() {
   });
 }
 const palSaveItems = () => [{ label: 'GIMP / Aseprite (.gpl)', action: () => exportPalette('gpl') }, { label: 'Hex list (.hex)', action: () => exportPalette('hex') }, { label: 'JASC (.pal)', action: () => exportPalette('pal') }, { label: 'Paint.NET (.txt)', action: () => exportPalette('txt') }, { label: 'Picture strip (.png)', action: () => exportPalette('png') }];
-$('#palMenu').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); openMenu([{ label: 'Import palette… (picture, .ase, .gpl, .pal, .hex, .aco, .act, .txt)', action: importPalette }, { label: 'Save palette', sub: palSaveItems() }, { sep: true }, { label: 'Reset palette', action: () => { S.palette = defaultPalette(); renderPalette(); paletteChanged(); } }], r.left, r.bottom + 4); };
+$('#palMenu').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); openMenu([{ label: 'Palette packs… (ready palettes)', action: () => openPalPacks() }, { sep: true }, { label: 'Import palette… (picture, .ase, .gpl, .pal, .hex, .aco, .act, .txt)', action: importPalette }, { label: 'Save palette', sub: palSaveItems() }, { sep: true }, { label: 'Reset palette', action: () => { S.palette = defaultPalette(); renderPalette(); paletteChanged(); } }], r.left, r.bottom + 4); };
 function exportPalette(kind) {
   const nm = 'palette', rgb = c => { const v = parseInt(c.slice(1), 16); return [v >> 16 & 255, v >> 8 & 255, v & 255]; };
   if (kind === 'pal') { exSave(nm + '.pal', new Blob(['JASC-PAL\r\n0100\r\n' + S.palette.length + '\r\n' + S.palette.map(c => rgb(c).join(' ')).join('\r\n') + '\r\n'], { type: 'text/plain' })); return; }
@@ -5766,9 +5769,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.34.0';
+const APP_VERSION = '1.35.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.35.0', date: '2026-11-09', items: ['Palette packs: Palette ⋯ → Palette packs — 35 ready palettes from 2 to 256 colors: classic (PICO-8, Game Boy, CGA, web safe…), big ramps (up to 256), greys, skin tones, hair, eyes, forest, ocean, sky, desert, ice, fire, autumn, spring, pastel, neon, candy, night city, spooky, muted, metals, wood & stone', 'Use replaces your palette, + Add adds the new colors to it; Ctrl+Z brings the old palette back'] },
   { v: '1.34.0', date: '2026-11-09', items: ['Vector gradients: as many colors as you like (click the gradient bar to add one, drag the marks to move, Remove, ⇄ to turn it around)', 'New gradient kinds: Rings, Sweep (around the center) and Stripes, plus Straight and Round', 'Gradient center, size and number of repeats; the Gradient tool (Shift+G) sets the center and size for round ones by dragging'] },
   { v: '1.33.1', date: '2026-11-09', items: ['Folders that stay only on this device: right-click a folder → “Only on this device (no cloud sync)”, or New → “Folder only on this device”. They get a ⌂ mark and cloud sync never sends or fills them'] },
   { v: '1.33.0', date: '2026-11-09', items: ['MP4 export rewritten: real H.264 MP4 files made frame by frame (exact timing, plays and seeks everywhere, faster than real time), sound included', 'Playback follows the clock: no more slowing down, a late frame is skipped instead of dragging', 'Playback is prepared in the background while you rest, so Play starts at once; the timeline is barely touched while playing', 'Onion skin: ghost frames are kept ready, stepping through frames is much quicker', 'Settings → Speed: Fast mode for weak laptops (fewer screen pixels on high-DPI screens), Auto picks it for weak computers'] },
@@ -7718,6 +7722,89 @@ function syncGradEditor() {
 }
 const _syncVecMore = syncVecMore;
 syncVecMore = function () { _syncVecMore.apply(this, arguments); syncGradEditor(); };
+/* ================= v35: palette packs — ready palettes to pick from (Palette ⋯ → Palette packs) ================= */
+const PAL_PACKS = (() => {
+  const H = (h, s, l) => hsl(((h % 360) + 360) % 360, clamp(s, 0, 1), clamp(l, 0, 1));
+  // a ramp from dark to light: shadows lean to cool/purple, lights lean to warm/yellow, like hand-made pixel art ramps
+  const ramp = (h, s, n, l0 = 0.12, l1 = 0.9, shift = 22) => Array.from({ length: n }, (_, k) => { const t = n > 1 ? k / (n - 1) : 0.5; return H(h + (t - 0.5) * shift * (h > 60 && h < 250 ? -1 : 1), s * (0.75 + 0.35 * Math.sin(Math.PI * t)), l0 + (l1 - l0) * t); });
+  const ramps = (hues, s, n, l0, l1, shift) => hues.flatMap(h => ramp(h, s, n, l0, l1, shift));
+  const grey = (n, tint = 0, sat = 0) => Array.from({ length: n }, (_, k) => H(tint, sat, k / (n - 1)));
+  const hex = s => s.trim().split(/\s+/).map(x => '#' + x.toLowerCase());
+  const P = [];
+  const add = (cat, name, cols, note) => P.push({ cat, name: cat === 'Classic' ? name : name.replace(/ \d+$/, ''), cols: [...new Set(cols)], note });
+  // classic palettes (exact colors)
+  add('Classic', 'PICO-8', hex('000000 1d2b53 7e2553 008751 ab5236 5f574f c2c3c7 fff1e8 ff004d ffa300 ffec27 00e436 29adff 83769c ff77a8 ffccaa'), 'The fantasy console palette');
+  add('Classic', 'Game Boy', hex('0f380f 306230 8bac0f 9bbc0f'), 'Four greens of the old handheld');
+  add('Classic', 'CGA 16', hex('000000 0000aa 00aa00 00aaaa aa0000 aa00aa aa5500 aaaaaa 555555 5555ff 55ff55 55ffff ff5555 ff55ff ffff55 ffffff'), 'Old PC colors');
+  add('Classic', '1-bit', hex('000000 ffffff'));
+  add('Classic', 'Web safe 216', (() => { const v = ['00', '33', '66', '99', 'cc', 'ff'], o = []; for (const r of v) for (const g of v) for (const b of v) o.push('#' + r + g + b); return o; })(), 'Every mix of 6 steps of red, green and blue');
+  add('Classic', 'RGB 3-3-2 (256)', (() => { const o = []; for (let r = 0; r < 8; r++) for (let g = 0; g < 8; g++) for (let b = 0; b < 4; b++) o.push(rgbToHex(r / 7 * 255, g / 7 * 255, b / 3 * 255)); return o; })(), '256 colors like old 8-bit pictures');
+  // big palettes
+  add('Big', 'Huge 256', grey(16).concat(ramps(Array.from({ length: 24 }, (_, i) => i * 15), 0.75, 10, 0.08, 0.93, 26)), '24 hues × 10 shades + 16 greys');
+  add('Big', 'Rainbow ramps 128', grey(8).concat(ramps(Array.from({ length: 20 }, (_, i) => i * 18), 0.7, 6, 0.14, 0.88)), '20 hues × 6 shades');
+  add('Big', 'Soft 96', grey(6, 230, 0.06).concat(ramps(Array.from({ length: 15 }, (_, i) => i * 24), 0.42, 6, 0.18, 0.9)), 'Calm, less saturated ramps');
+  add('Big', 'Vivid 96', grey(6).concat(ramps(Array.from({ length: 15 }, (_, i) => i * 24), 1, 6, 0.2, 0.82, 10)), 'Strong, bright ramps');
+  add('Big', 'Cel shading 64', ramps([0, 18, 38, 55, 95, 140, 175, 200, 220, 250, 280, 320, 340, 25, 30, 210], 0.6, 4, 0.22, 0.82, 30), '16 colors, each with shadow, base, light and highlight');
+  // greys
+  add('Greys', 'Greys 32', grey(32), 'Pure black to white');
+  add('Greys', 'Warm greys 16', grey(16, 30, 0.14));
+  add('Greys', 'Cool greys 16', grey(16, 220, 0.16));
+  add('Greys', 'Purple greys 16', grey(16, 270, 0.12));
+  // characters
+  add('Characters', 'Skin tones 30', hex('fff0e6 ffe0cf f9d3bd f4c6a8 eeb795 e6a983 dd9a72 d18b63 c27c56 b26e4b a06042 8d5338 7a462f 663a27 532f20 ffe4d0 f5cdb0 e9b791 dba274 ca8d5e b47a4f 9b6843 82573a 6a4732 fbd9cc efbfae e0a593 cc8a78 b47160 98584a'), 'Light to deep, with pink, peach and olive undertones');
+  add('Characters', 'Hair 30', hex('fff3c4 f5dd90 e9c46a d6a647 b8862e 8f6420 f7a35c e07b39 c4532a 9a3a1f 6e2a17 4a1d10 d8b38a b48a62 8c6744 664a31 46331f 2b2015 1a1410 0d0b0a f2f2f2 cfcfd6 9da0ab 6c707c ff7eb6 b06cff 4fa3ff 3ad6b0 ff5a5a 7cff6b'), 'Blond, red, brown, black, grey and fantasy colors');
+  add('Characters', 'Eyes & lips 24', hex('3d6ea8 5b8fd1 8ec0f0 2f7a54 4ea877 86d39e 6b4a2b 8f6438 c19a5b 4b4b55 7b7d8c b7bac6 9c2e3f c84a5a e8778a f2a3ad 7a3a2a a85646 d27a62 b03060 e0507f ff86a8 6a1f2f 3a0f19'));
+  // nature
+  add('Nature', 'Forest 32', ramps([95, 115, 135, 160], 0.55, 5, 0.1, 0.78, 30).concat(ramps([28, 40], 0.45, 4, 0.12, 0.7), hex('2b1d14 4a3424 6b4d33 8e6a47 3e4a2a 5d6e3a 86a04f c6d86b')), 'Leaves, moss, bark and soil');
+  add('Nature', 'Ocean 28', ramps([185, 200, 215, 230], 0.62, 6, 0.1, 0.88, 24).concat(hex('f2e6c8 e3cc98 c9a96e 9c7a4b')), 'Deep sea to foam, with sand');
+  add('Nature', 'Sky & clouds 24', hex('0b1033 1b2a6b 2d4fa8 4a7fd8 7fb2f0 b8dbff e8f4ff ffffff 2a1a4a 5a2c6e 9c3f7e e0607e ff9a76 ffc98a ffe9b3 fff7e0 6d7a99 98a3bd c3cadb e4e8f0 3a3f5c 4f5b85 8a9cc7 f0c2d8'), 'Day, sunset and night skies');
+  add('Nature', 'Desert 20', hex('2e1a10 4d2c18 6e4122 915a2f b47740 d39657 e8b46f f4cd8e fbe3b3 fff3dc 7a3d2b a65a3b c97a4f e09d6c 5c6b3a 7e8f4b a7b467 3b5d73 5f8ba3 a8cfe0'), 'Sand, rock, cactus and a hot sky');
+  add('Nature', 'Snow & ice 20', ramps([195, 210, 225], 0.5, 6, 0.18, 0.97, 16).concat(hex('ffffff f4fbff')), 'Cold blues and whites');
+  add('Nature', 'Fire & lava 20', hex('140505 2b0808 4d0e0a 7a160c a3240e c9380f e8531a f5731f fb952e ffb444 ffd166 ffe8a3 fff6dc 2a1b1b 3d2626 5a3a32 7a5446 1d1d1d ff3d00 ffea00'), 'Embers to white-hot flame');
+  add('Nature', 'Autumn 24', ramps([10, 25, 40, 55], 0.7, 5, 0.15, 0.8, 18).concat(hex('3b2a1e 5e4330 806047 2f3a22')), 'Red, orange and yellow leaves');
+  add('Nature', 'Spring 24', ramps([90, 120, 330, 50], 0.55, 5, 0.3, 0.92, 18).concat(hex('ffffff f6f1e3 4a6b2f 6e9a3a')), 'Fresh greens and blossoms');
+  // moods
+  add('Moods', 'Pastel 32', ramps(Array.from({ length: 8 }, (_, i) => i * 45), 0.6, 4, 0.72, 0.93, 10), 'Soft and light');
+  add('Moods', 'Neon 24', hex('0a0014 1a0033 2d0a5a ff00aa ff2bd6 ff6bf0 7a00ff a14dff c58cff 00e5ff 4df2ff 9cfaff 00ff95 6bffbe b8ffd9 fff200 ffd000 ff8a00 ff3d3d ff7a7a ffffff 12122a 22224a 3a3a70'), 'Glowing colors on a dark night');
+  add('Moods', 'Candy 24', hex('ff5fa2 ff8dc1 ffc2dc ff6b6b ff9e9e ffd0d0 ffb347 ffd08a ffe9c4 fff06b fff7a8 fffbd6 7ee8a6 b0f2c9 dcf9e8 6bc8ff a8deff d6f0ff b38cff d1b8ff ece0ff ffffff 5a3b6b 2e2240'), 'Sweet and bright');
+  add('Moods', 'Night city 24', hex('07070f 0f1020 1a1b33 262848 34385f 474d7a 5f6894 7f89b0 ffdd57 ffb547 ff7b3a ff4d6d 3ae0ff 2aa3ff 6b5cff b56bff 1bd99a 0e8f6a ff3dbd ff8ae2 e6e9ff ffffff 2b1f3a 4a2f5c'), 'Dark streets, windows and signs');
+  add('Moods', 'Spooky 20', hex('0d0a12 1c1424 2e1f3a 45305a 5f4580 7c5ca8 2a3b1f 3f5a2a 5f8a3a 9ad15a ff7a1a ffa64d ffd08a 8a1f1f c42f2f e6e6d8 b8b8a8 6e6e66 3a3a36 1a1a18'), 'Pumpkins, ghosts and slime');
+  add('Moods', 'Muted 32', ramps(Array.from({ length: 8 }, (_, i) => 15 + i * 45), 0.28, 4, 0.2, 0.82, 12), 'Quiet, dusty colors');
+  add('Moods', 'Retro warm 16', hex('1b1b1b 3b2c35 6b3e3e a35a43 d4874f eebe6a f7e3a1 fff8e8 4e6b5a 7a9a6b b3c57e 2e4a62 4f7ea0 8fb4c9 c96b8a e8a1b3'), 'Faded film colors');
+  // materials
+  add('Materials', 'Metals 24', hex('2a1d06 5c3f0c 8f6514 c4911f e8bd3c ffe27a fff6c4 1d1d22 3a3b44 5f616e 8c8f9e babdca e3e5ee ffffff 2b140a 5a2a14 8a4423 b8663a db8b57 f3b585 2a1f17 5a4636 8a7058 b89f84'), 'Gold, silver, copper and bronze ramps');
+  add('Materials', 'Wood & stone 24', hex('2e1d12 4a2f1d 6b4429 8e5c37 b07a4a cf9b63 e6bd86 f5dbb0 1f1f22 33343a 4b4d55 666975 868a96 a9adb8 cdd0d8 eceef2 3d3428 5b4e3d 7b6b55 9e8c71 4a3f5c 6b5d84 9286ad bcb1d1'), 'Planks, bricks and rocks');
+  return P;
+})();
+
+function openPalPacks() {
+  const cats = ['All', ...new Set(PAL_PACKS.map(p => p.cat))];
+  const d = document.createElement('dialog'); d.className = 'fdlg wnew palpacks';
+  d.innerHTML = '<form method="dialog" class="dlg"><h2>Palette packs</h2><div class="pp-top"><div class="pp-cats">' + cats.map((c, i) => '<button type="button" class="pb' + (i ? '' : ' on') + '" data-c="' + c + '">' + c + '</button>').join('') + '</div><input type="search" id="ppFind" placeholder="Find…" spellcheck="false"></div><div class="pp-list"></div><p class="ainfo">Use = the palette becomes this pack · + Add = its colors are added to your palette. Ctrl+Z brings your old palette back.</p><div class="actions"><button class="txtbtn" value="close">Close</button></div></form>';
+  const list = d.querySelector('.pp-list'); let cat = 'All';
+  const draw = () => {
+    const q = d.querySelector('#ppFind').value.trim().toLowerCase();
+    list.innerHTML = '';
+    PAL_PACKS.forEach((p, i) => {
+      if ((cat !== 'All' && p.cat !== cat) || (q && !(p.name + ' ' + (p.note || '') + ' ' + p.cat).toLowerCase().includes(q))) return;
+      const card = document.createElement('div'); card.className = 'pp-card';
+      const sw = p.cols.slice(0, 96).map(c => '<i style="background:' + c + '"></i>').join('');
+      card.innerHTML = '<div class="pp-h"><b>' + p.name + '</b><span>' + p.cols.length + ' colors</span></div><div class="pp-sw' + (p.cols.length > 48 ? ' dense' : '') + '">' + sw + '</div>' + (p.note ? '<div class="pp-note">' + p.note + '</div>' : '') + '<div class="pp-b"><button type="button" class="txtbtn primary" data-use="' + i + '">Use</button><button type="button" class="txtbtn" data-add="' + i + '">+ Add</button></div>';
+      list.appendChild(card);
+    });
+    if (!list.children.length) list.innerHTML = '<p class="ainfo">Nothing found</p>';
+  };
+  d.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { cat = b.dataset.c; d.querySelectorAll('[data-c]').forEach(x => x.classList.toggle('on', x === b)); draw(); });
+  d.querySelector('#ppFind').addEventListener('input', draw);
+  d.querySelector('#ppFind').addEventListener('keydown', e => e.stopPropagation());
+  list.addEventListener('click', e => {
+    const u = e.target.closest('[data-use]'), a = e.target.closest('[data-add]');
+    if (u) { const p = PAL_PACKS[+u.dataset.use]; setPaletteFrom(p.cols, p.name); }
+    if (a) { const p = PAL_PACKS[+a.dataset.add], have = new Set(S.palette.map(c => c.toLowerCase())), add = p.cols.filter(c => !have.has(c.toLowerCase())); if (!add.length) { flash('All these colors are already in your palette'); return; } setPaletteFrom(S.palette.concat(add), p.name + ' added'); }
+  });
+  d.addEventListener('close', () => d.remove());
+  document.body.appendChild(d); draw(); d.showModal();
+}
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
