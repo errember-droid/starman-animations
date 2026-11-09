@@ -1,6 +1,13 @@
 {
- "version": "1.35.1",
+ "version": "1.35.2",
  "changelog": [
+  {
+   "v": "1.35.2",
+   "date": "2026-11-09",
+   "items": [
+    "Uses much less memory: ready playback pictures have a smaller limit that depends on the computer and are freed as soon as they are out of date, onion ghosts keep only the frames around you, smoothed (Render) pictures are kept only for the frame on screen, big effect pictures are given back"
+   ]
+  },
   {
    "v": "1.35.1",
    "date": "2026-11-09",

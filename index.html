@@ -1552,8 +1552,9 @@ function ensureOnion() {
   const op = onionPrefs.op;
   for (let k = S.onionPrev; k >= 1; k--) add(S.cur - k, onionPrefs.prev, op / k);
   for (let k = S.onionNext; k >= 1; k--) add(S.cur + k, onionPrefs.next, op / k);
-  for (const f of [...onionPics.keys()]) if (!keep.has(f) && Math.abs(S.frames.indexOf(f) - S.cur) > Math.max(S.onionPrev, S.onionNext) + 2) onionPics.delete(f);   // keep a few around for stepping back and forth
-  if (onionPics.size > 24) [...onionPics.keys()].slice(0, onionPics.size - 24).forEach(f => onionPics.delete(f));
+  const dropPic = f => { const e = onionPics.get(f); if (e) { e.c.width = e.c.height = 0; } onionPics.delete(f); };
+  for (const f of [...onionPics.keys()]) if (!keep.has(f) && Math.abs(S.frames.indexOf(f) - S.cur) > 1 + Math.max(S.onionPrev, S.onionNext)) dropPic(f);   // only the ghosts around this frame (+1 for stepping)
+  const cap = S.onionPrev + S.onionNext + 2; if (onionPics.size > cap) [...onionPics.keys()].filter(f => !keep.has(f)).slice(0, onionPics.size - cap).forEach(dropPic);
 }
 const onionPics = new Map();
 let checkerPat = null, checkerDpr = 0;
@@ -3436,11 +3437,12 @@ function aaUp(img, k, softAmt) {
   g.globalCompositeOperation = 'destination-over'; g.imageSmoothingEnabled = false; g.drawImage(ic, 0, 0, w * k, h * k); g.globalCompositeOperation = 'source-over';
   return g.getImageData(0, 0, w * k, h * k);
 }
-const upCache = new WeakMap();
+let upLast = null;   // only the frame on screen is kept (big smoothed pictures used to pile up for every frame)
 function upCached(f) {
   const key = upVer + '|' + S.render.up + '|' + S.render.soft + '|' + S.render.pxSize + '|' + S.render.clean + '|' + S.render.ink + '|' + S.bgMode + '|' + S.paper + '|' + S.cur;
-  const e = upCache.get(f); if (e && e.key === key) return e.c;
-  const c = upscaled(f, false); upCache.set(f, { key, c }); return c;
+  if (upLast && upLast.f === f && upLast.key === key) return upLast.c;
+  if (upLast && upLast.c && upLast.c !== compC) { upLast.c.width = upLast.c.height = 0; }
+  const c = upscaled(f, false); upLast = { f, key, c }; return c;
 }
 function upscaled(f, bg) {
   const u = UPSCALE[S.render.up] || UPSCALE.none;
@@ -5017,11 +5019,11 @@ function playScale() {
   if (MODE === 'vector') { let z = 1; S.frames.forEach(f => { if (f.cam && f.cam.z > z) z = f.cam.z; }); return Math.min(6, Math.max(0.25, want * z)); }   // vector stays sharp: as many pixels as the screen shows
   return Math.min(1, Math.max(0.25, want));
 }
-function playNeedsPrep() { if (playCache.ver === upVer && playCache.pics && playCache.pics.length === S.frames.length && !(MODE === 'vector' && playScale() > playCache.sc * 1.05)) return false; if (playCache.live && playCache.ver === upVer && playCache.sc >= playScale()) return false; return S.frames.length > 1; }
+function playNeedsPrep() { if (playCache.ver === upVer && playCache.pics && playCache.pics.length === S.frames.length && !(MODE === 'vector' && playScaleFit() > playCache.sc * 1.05)) return false; if (playCache.live && playCache.ver === upVer && playCache.sc >= playScaleFit()) return false; return S.frames.length > 1; }
 async function playPrep() {
   if (prepBusy) { prepBusy = false; return false; }
-  const n = S.frames.length, sc = playScale(), bytes = n * W * H * sc * sc * 4;
-  if (bytes > (document.body.classList.contains('mobile') || isCap() ? 90e6 : 500e6)) { playCache = { ver: upVer, sc, pics: null, live: true }; return true; }   // too big to keep: play live
+  const n = S.frames.length, sc = playScaleFit(), bytes = n * W * H * sc * sc * 4;
+  if (bytes > memBudget()) { setPlayCache({ ver: upVer, sc, pics: null, live: true }); return true; }   // too big to keep: play live
   prepBusy = true; const box = $('#playPrep'), bar = box.querySelector('i'), txt = box.querySelector('span'); box.hidden = false;
   const ver = upVer, pics = idleSeed && idleSeed.ver === ver && idleSeed.sc === sc ? idleSeed.pics.slice() : [];   // frames already made in the background are kept
   for (let i = pics.length; i < n; i++) {
@@ -5030,7 +5032,7 @@ async function playPrep() {
     bar.style.width = Math.round((i + 1) / n * 100) + '%'; txt.textContent = 'Preparing playback… ' + (i + 1) + ' / ' + n;
     if (i % 3 === 2) await new Promise(r => setTimeout(r, 0));
   }
-  playCache = { ver, sc, pics }; prepBusy = false; box.hidden = true; return true;
+  setPlayCache({ ver, sc, pics }); prepBusy = false; box.hidden = true; return true;
 }
 function drawPlayCached(f) {
   if (playCache.ver !== upVer || !playCache.pics) return false;
@@ -5769,9 +5771,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.35.1';
+const APP_VERSION = '1.35.2';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.35.2', date: '2026-11-09', items: ['Uses much less memory: ready playback pictures have a smaller limit that depends on the computer and are freed as soon as they are out of date, onion ghosts keep only the frames around you, smoothed (Render) pictures are kept only for the frame on screen, big effect pictures are given back'] },
   { v: '1.35.1', date: '2026-11-09', items: ['Vector effects: inner shadow, inner glow and the edge bevel are drawn a new way — no more stray stripes, and a sharp (softness 0) inner shadow is no longer cut off'] },
   { v: '1.35.0', date: '2026-11-09', items: ['Palette packs: Palette ⋯ → Palette packs — 35 ready palettes from 2 to 256 colors: classic (PICO-8, Game Boy, CGA, web safe…), big ramps (up to 256), greys, skin tones, hair, eyes, forest, ocean, sky, desert, ice, fire, autumn, spring, pastel, neon, candy, night city, spooky, muted, metals, wood & stone', 'Use replaces your palette, + Add adds the new colors to it; Ctrl+Z brings the old palette back'] },
   { v: '1.34.0', date: '2026-11-09', items: ['Vector gradients: as many colors as you like (click the gradient bar to add one, drag the marks to move, Remove, ⇄ to turn it around)', 'New gradient kinds: Rings, Sweep (around the center) and Stripes, plus Straight and Round', 'Gradient center, size and number of repeats; the Gradient tool (Shift+G) sets the center and size for round ones by dragging'] },
@@ -8021,8 +8024,8 @@ function stopIdlePrep() { if (idleJob) idleJob.stop = true; idleJob = null; }
 const nextIdle = fn => window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 200 }) : setTimeout(fn, 16);
 function runIdlePrep() {
   if (idleJob || S.playing || prepBusy || !S.inEditor || document.hidden || S.frames.length < 2 || stroke || !playNeedsPrep()) return;
-  const n = S.frames.length, sc = playScale(), bytes = n * W * H * sc * sc * 4;
-  if (bytes > (document.body.classList.contains('mobile') || isCap() ? 90e6 : 500e6)) return;
+  const n = S.frames.length, sc = playScaleFit(), bytes = n * W * H * sc * sc * 4;
+  if (bytes > memBudget()) return;
   const job = idleJob = { stop: false, ver: upVer, pics: [], sc, frames: S.frames.slice() };
   const stepJ = async deadline => {
     const t0 = performance.now();
@@ -8031,7 +8034,7 @@ function runIdlePrep() {
       const i = job.pics.length; const c = renderFrame(job.frames[i], sc, false);
       job.pics.push(window.createImageBitmap ? await createImageBitmap(c) : c);
       idleSeed = { ver: job.ver, sc, pics: job.pics };
-      if (job.pics.length >= n) { if (!job.stop && upVer === job.ver) playCache = { ver: job.ver, sc, pics: job.pics }; if (idleJob === job) idleJob = null; return; }
+      if (job.pics.length >= n) { if (!job.stop && upVer === job.ver) setPlayCache({ ver: job.ver, sc, pics: job.pics }); if (idleJob === job) idleJob = null; return; }
     } while (performance.now() - t0 < (deadline && deadline.timeRemaining ? Math.max(4, deadline.timeRemaining() - 2) : 12));
     nextIdle(stepJ);
   };
@@ -8049,6 +8052,32 @@ function applySpeed() { onionValid = false; invComp(); layout(); render(); flash
 // a renamed or moved folder keeps its "only on this device" mark
 const _remapPaths = remapPaths;
 remapPaths = function (a, b) { const L = localOnlyList(); if (L.some(d => d === a || d.startsWith(a + '/'))) prefSet('localOnly', L.map(d => d === a ? b : d.startsWith(a + '/') ? b + d.slice(a.length) : d)); return _remapPaths.apply(this, arguments); };
+
+/* ---------- memory: keep less, give back what is not needed ---------- */
+function memBudget() {   // how much the ready playback pictures may take
+  if (document.body.classList.contains('mobile') || isCap()) return 80e6;
+  const dm = navigator.deviceMemory || 4; return clamp(dm * 24e6, 96e6, 220e6);
+}
+const freePics = pics => { if (pics) pics.forEach(p => { try { if (p && p.close) p.close(); else if (p && p.width) { p.width = p.height = 0; } } catch (e) {} }); };
+function setPlayCache(c) {
+  const old = playCache && playCache.pics; playCache = c;
+  if (old && old !== c.pics && !(idleSeed && idleSeed.pics === old)) freePics(old);
+}
+setInterval(() => {   // old pictures that can no longer be used are freed right away instead of waiting
+  if (S.playing || prepBusy) return;
+  if (playCache.pics && playCache.ver !== upVer) { freePics(playCache.pics); playCache = { ver: -1, sc: 0, pics: null }; }
+  if (idleSeed && idleSeed.ver !== upVer && !idleJob) { freePics(idleSeed.pics); idleSeed = null; }
+  if (innerA.width * innerA.height > 4e6) { innerA.width = innerA.height = 1; innerB.width = innerB.height = 1; }
+  if (!S.inEditor && playCache.pics) { freePics(playCache.pics); playCache = { ver: -1, sc: 0, pics: null }; }
+}, 2500);
+
+// long animations: the playback pictures are made a bit smaller so they still fit (pixel art stays exact)
+function playScaleFit() {
+  const sc = playScale(); if (MODE !== 'trad') return sc;   // pixel art stays exact, vector stays sharp (plays live when too long)
+  const n = Math.max(1, S.frames.length), bytes = n * W * H * sc * sc * 4, B = memBudget();
+  if (bytes <= B) return sc;
+  const s2 = sc * Math.sqrt(B / bytes); return s2 >= 0.3 ? Math.floor(s2 * 100) / 100 : sc;
+}
 /* ================= v30: settings as separate windows (F5–F8) — palette and layers stay where they are ================= */
 const PANELS = [
   { page: 'pageBrush', tab: 'tabBrush', name: () => MODE === 'vector' ? 'Shape' : 'Brush', act: 'panelBrush', key: 'F5', sync: () => { if (typeof syncBrushTab === 'function') syncBrushTab(); syncVecUI(true); } },
