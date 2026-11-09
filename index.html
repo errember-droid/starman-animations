@@ -256,7 +256,7 @@ kbd{padding:2px 7px;text-shadow:none}
 .clock{flex:none;font-family:var(--font-mono);font-size:13px;font-variant-numeric:tabular-nums;padding:6px 10px;background:var(--well);border:2px solid var(--line);text-shadow:none}
 .deskbtn{flex:none;align-self:stretch;width:12px;margin:-4px 0;border:0;border-left:2px solid var(--low);background:transparent;cursor:pointer;padding:0}
 .deskbtn:hover{background:rgba(255,206,87,.25)}
-.startmenu{position:fixed;left:max(8px,env(safe-area-inset-left,0px));bottom:calc(var(--tbh) + 4px);width:min(340px,calc(100vw - 16px));box-sizing:border-box;padding:12px;display:flex;flex-direction:column;gap:2px;z-index:40;max-height:calc(100vh - var(--tbh) - 16px);overflow:auto}
+.startmenu{position:fixed;left:max(8px,env(safe-area-inset-left,0px));bottom:calc(var(--tbh) + 4px);width:min(340px,calc(100vw - 16px));box-sizing:border-box;padding:12px;display:flex;flex-direction:column;gap:2px;z-index:990;max-height:calc(100vh - var(--tbh) - 16px);overflow:auto}
 .sm-head{display:flex;align-items:center;gap:10px;padding:2px 4px 10px;border-bottom:2px solid var(--low);box-shadow:0 2px 0 var(--mid);margin-bottom:6px}
 .sm-head img{width:40px;height:40px;image-rendering:pixelated}
 .sm-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:6px 8px 2px}
@@ -265,7 +265,7 @@ kbd{padding:2px 7px;text-shadow:none}
 .sm-item:hover,.sm-item:focus-visible{background:var(--accent);color:var(--accent-ink);text-shadow:none;outline:0}
 .sm-item:hover small,.sm-item:focus-visible small{color:#6b2a00}
 .sm-sep,.msep{height:2px;background:var(--low);box-shadow:0 2px 0 var(--mid);margin:6px 0}
-#menuLayer{position:fixed;inset:0;pointer-events:none;z-index:50}
+#menuLayer{position:fixed;inset:0;pointer-events:none;z-index:1000}
 .ctx{position:fixed;pointer-events:auto;padding:8px;display:flex;flex-direction:column;min-width:220px;box-sizing:border-box;filter:drop-shadow(0 8px 18px rgba(0,0,0,.45))}
 .ctx button{display:flex;justify-content:space-between;gap:16px;align-items:center;text-align:left;padding:6px 10px;min-height:32px;background:none;border:0;color:var(--ink);cursor:pointer;font:inherit;white-space:nowrap}
 .ctx button:hover:not(:disabled),.ctx button:focus-visible,.ctx button.open{background:var(--accent);color:var(--accent-ink);text-shadow:none;outline:0}
@@ -274,7 +274,7 @@ kbd{padding:2px 7px;text-shadow:none}
 .mlabel img{width:16px;height:16px;image-rendering:pixelated}
 .ctx kbd{font-size:11px;padding:0 5px}
 .ctx kbd.arrow{background:none;box-shadow:none;border:0;padding:0}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tbh) + 14px);z-index:45;padding:10px 16px;max-width:calc(100vw - 32px);box-sizing:border-box}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tbh) + 14px);z-index:1050;padding:10px 16px;max-width:calc(100vw - 32px);box-sizing:border-box}
 .types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .type{display:flex;align-items:center;gap:8px;padding:8px;border:2px solid var(--line);background:var(--low);cursor:pointer;font-weight:600;min-width:0;position:relative}
 .type input{position:absolute;opacity:0;pointer-events:none}
@@ -479,7 +479,7 @@ kbd{padding:2px 7px;text-shadow:none}
 .aset .opt{display:inline-flex;gap:4px;align-items:center;margin-right:8px}
 .aset .opt input{width:12px;height:12px;margin:0;accent-color:var(--accent)}
 /* hover tips */
-.tip{position:fixed;z-index:70;max-width:240px;padding:5px 8px 6px;box-sizing:border-box;pointer-events:none;font-size:11px;line-height:1.35;color:var(--ink);
+.tip{position:fixed;z-index:1100;max-width:240px;padding:5px 8px 6px;box-sizing:border-box;pointer-events:none;font-size:11px;line-height:1.35;color:var(--ink);
   border:2px solid transparent;border-image:var(--win) 16 fill / 16px stretch;image-rendering:pixelated;filter:drop-shadow(2px 2px 0 rgba(20,20,42,.8));display:flex;flex-direction:column;gap:2px}
 .tip b{display:flex;gap:6px;align-items:center;justify-content:space-between;color:var(--accent);font-weight:600}
 .tip kbd{font-size:10px;padding:0 4px;color:var(--ink);border:1px solid var(--line);background:var(--well);box-shadow:none}
@@ -579,9 +579,20 @@ body.mobile .clipbar{font-size:10px}
 body.mobile .tip{display:none!important}
 #vecShapeSet{display:none}body[data-mode=vector] #vecShapeSet{display:block}
 body[data-mode=vector] #pageBrush>*:not(#vecShapeSet){display:none!important}
-body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-tool=ellipse]){display:none!important}
+body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-tool=ellipse]):not([data-tool=line]):not([data-tool=picker]):not(.vt){display:none!important}
+#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
+.vfs{display:flex;gap:8px;align-items:center;margin:4px 0 8px}.vsw{position:relative;width:34px;height:34px;padding:0;border:1px solid #16162b;background:#fff;cursor:pointer}.vsw i{position:absolute;inset:3px;display:block}
+.vsw.stroke i{background:transparent!important;border:7px solid #000;inset:3px}.vsw.on{outline:2px solid var(--accent);outline-offset:1px}.vfsr{display:flex;flex-direction:column;gap:2px}.vfsr .pb{padding:1px 6px}
+#vecShapeSet input[type=color]{width:34px;height:22px;padding:0;border:1px solid #555;background:none;margin-left:4px}#vecShapeSet select{margin:0 4px}
+#vecShapeSet .vbtns{gap:3px;flex-wrap:wrap}#vecShapeSet .vbtns .pb{flex:1;min-width:0;padding:2px 3px}.vsel-info{color:var(--accent)!important}
 body[data-mode=vector] #app>.tools .sep{display:none!important}
-#vecShapeSet .vsh-kind .pb{flex:1}#vecShapeSet .pb.on{outline:2px solid var(--accent);outline-offset:-2px}#vecShapeSet input[type=color]{width:44px;height:24px;padding:0;border:1px solid var(--line,#555);background:none;margin-left:auto}
+body.floatpanels:not(.mobile) #app{grid-template-columns:var(--palW) 5px 34px minmax(0,1fr) 0 0!important}
+body.floatpanels:not(.mobile) #side,body.floatpanels:not(.mobile) #splitR{display:none!important}
+.pwin{position:fixed;z-index:50;width:270px;height:min(620px,calc(100vh - 90px));max-height:calc(100vh - 40px);min-height:120px;display:flex;flex-direction:column;padding:0!important;resize:vertical;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.35);font-size:11px}
+.pwin[hidden],body:has(#app[hidden]) .pwin{display:none!important}.fwh{display:flex;align-items:center;gap:6px;padding:3px 4px 3px 8px;background:#16162b;color:#ffce57;cursor:move;user-select:none;flex:0 0 auto}
+.fwt{flex:1}.fwk{font:inherit;font-size:10px;color:#a9a9c8!important;background:none!important;border:0!important;padding:0!important;box-shadow:none!important}.fwx{width:20px;height:18px;padding:0;border:0;background:transparent;color:#fff;font:inherit;font-size:14px;cursor:pointer}.fwx:hover{color:#ff8a8a}
+.fwb{flex:1;overflow:auto;padding:6px}.fwb>.ppage{display:block;height:auto!important;max-height:none!important;overflow:visible!important}.fwb>.ppage[hidden]{display:none}
+.panelsbtn{font-size:15px;line-height:1;margin-top:auto!important;color:var(--ink,#fff)}body.mobile .panelsbtn{display:none}
 .syncbtn{height:22px;padding:0 6px;font:inherit;font-size:11px;color:var(--ink,#fff);background:transparent;border:1px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap}.syncbtn[data-st=err]{color:#ff8a8a;border-color:#ff8a8a}.syncbtn[data-st=busy]{opacity:.75}
 .syncdlg ol{padding-left:18px;margin:6px 0}.syncdlg li{margin:5px 0}.syncdlg a{color:var(--accent)}.syncdlg .sy-row{display:flex;gap:8px;align-items:center;margin:8px 0}.syncdlg .sy-row input[type=text],.syncdlg .sy-row input[type=password]{flex:1;min-width:0}.syncdlg .sy-st{min-height:1.2em;color:var(--accent)}.syncdlg .muted{color:var(--muted)}
 .wnew .wnbody{max-height:60vh;overflow:auto;font-size:12px}.wnew h3{margin:10px 0 4px;font-size:13px;color:var(--accent)}.wnew h3 small{color:var(--muted);font-weight:400}.wnew ul{margin:0;padding-left:18px}.wnew li{margin:3px 0}
@@ -1103,6 +1114,7 @@ document.querySelectorAll('[data-icon]').forEach(el => { const k = el.dataset.ic
 const view = $('#view');
 let vctx = view.getContext('2d');
 let dpr = window.devicePixelRatio || 1;
+const VTOOLS = ['vselect', 'vdirect', 'pen', 'rect', 'ellipse', 'poly', 'star', 'line', 'picker'], VTOOLS_ONLY = ['vselect', 'vdirect', 'pen', 'poly', 'star'];   // vector art tools
 
 /* ---------- sparse tiled surface: the canvas is endless, memory is spent only where you draw ---------- */
 const TS = 256;
@@ -1275,7 +1287,7 @@ function drawStroke(ctx, st) {
   for (let n = 2; n <= pts.length; n++) seg(ctx, pts, n);
   tail(ctx, pts);
 }
-const strokeBox = st => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const p of st.pts) { const h = p[2] / 2; x0 = Math.min(x0, p[0] - h); y0 = Math.min(y0, p[1] - h); x1 = Math.max(x1, p[0] + h); y1 = Math.max(y1, p[1] + h); } return { x0, y0, x1, y1 }; };
+const strokeBox = st => { if (st.shape) return vBoxStroke(st); let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const p of st.pts) { const h = p[2] / 2; x0 = Math.min(x0, p[0] - h); y0 = Math.min(y0, p[1] - h); x1 = Math.max(x1, p[0] + h); y1 = Math.max(y1, p[1] + h); } return { x0, y0, x1, y1 }; };
 // semi-transparent strokes go through a temp canvas of the same pixel size, so their own overlaps do not darken
 function drawStrokes(ctx, strokes, la, tmp, r) {
   const tg = tmp.getContext('2d');
@@ -1608,6 +1620,7 @@ function draw() {
   if (shapeDrag) drawShapePreview();
   drawSelOverlay();
   drawExtOverlay();
+  if (MODE === 'vector') drawVecOverlay();
   if (gradDrag) {
     const a = toScreen(gradDrag.x0, gradDrag.y0), b = toScreen(gradDrag.x1, gradDrag.y1);
     vctx.strokeStyle = '#000'; vctx.lineWidth = 3 * dpr; vctx.beginPath(); vctx.moveTo(a[0], a[1]); vctx.lineTo(b[0], b[1]); vctx.stroke();
@@ -2230,12 +2243,12 @@ view.addEventListener('pointerdown', e => {
     camDrag = { sx: p.x, sy: p.y, c0: { x: c0.x, y: c0.y, z: c0.z, r: c0.r || 0 } };
     return;
   }
-  if (S.tool === 'picker' || e.altKey) { pick(p); return; }
+  if ((S.tool === 'picker' || e.altKey) && MODE !== 'vector') { pick(p); return; }
   const l = S.layers[S.layer];
   if (!isDraw(l)) { flash(isSprite(l) ? 'A sprite is drawn in its clip: right-click it → Edit clip. Here the Move tool (V) moves, scales and turns it' : 'Pick a drawing layer to draw on'); return; }
   { const ef = effOf(S.layer); if (!l.visible || !ef.vis) { flash('“' + l.name + '” is hidden'); return; }
     if (l.locked || ef.locked) { flash('“' + l.name + '” is locked'); return; } }
-  if (EXT_TOOL[S.tool]) { view.setPointerCapture(e.pointerId); extDrag = EXT_TOOL[S.tool](p, e) || null; render(); return; }
+  { const ET = MODE === 'vector' ? VEC_TOOL[S.tool] : EXT_TOOL[S.tool]; if (ET) { view.setPointerCapture(e.pointerId); extDrag = ET(p, e) || null; render(); return; } }
   if ((S.tool === 'fill' || S.tool === 'gradient') && layerTurned()) { flash('This layer is turned or scaled by motion keys on this frame'); return; }
   if (S.tool === 'fill') { MODE === 'vector' ? recolor(p) : fill(p); return; }
   view.setPointerCapture(e.pointerId);
@@ -2861,7 +2874,8 @@ const stageCenter = () => { const r = stage.getBoundingClientRect(); return [r.w
 
 /* ---------- tools ---------- */
 function setTool(t) {
-  if (MODE === 'vector' && t !== 'rect' && t !== 'ellipse') { if (S.tool === 'rect' || S.tool === 'ellipse') return; t = 'rect'; }   // vector art: only shapes
+  if (MODE === 'vector' && !VTOOLS.includes(t)) { if (VTOOLS.includes(S.tool)) return; t = 'vselect'; }   // vector art has its own tools
+  if (MODE !== 'vector' && VTOOLS_ONLY.includes(t)) t = 'brush';
   if (xf && t !== S.tool) xfCommit();
   S.tool = t; if (S.camSel) selectCam(false); syncToolOpts();
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
@@ -3060,7 +3074,8 @@ function setColor(c, fromPicker) {
   if (!fromPicker) S.hsv = rgbToHsv(hexToRgb(S.color));
   $('#hex').value = S.color; $('#hexSw').style.background = S.color;
   drawPicker(); markSwatches(); updBrushDot();
-  if (S.tool === 'picker') setTool('brush');
+  if (S.tool === 'picker' && MODE !== 'vector') setTool('brush');
+  if (MODE === 'vector') vecColorPicked(S.color);
   uiRec('color', S.color);
 }
 $('#hex').onchange = e => { let v = e.target.value.trim(); if (!v.startsWith('#')) v = '#' + v; if (/^#[0-9a-f]{6}$/i.test(v)) setColor(v); else e.target.value = S.color; };
@@ -3670,7 +3685,8 @@ function applyModeUI() {
   const fillB = document.querySelector('[data-tool="fill"]');
   fillB.dataset.tip = vec ? 'Recolor line|Click a line to give it the current color|G' : 'Fill|Fill an area inside the camera frame|G';
   document.querySelector('[data-tool="gradient"]').hidden = vec;
-  if (vec && S.tool !== 'rect' && S.tool !== 'ellipse') setTool('rect');
+  if (vec && !VTOOLS.includes(S.tool)) setTool('vselect');
+  if (!vec && VTOOLS_ONLY.includes(S.tool)) setTool('brush');
   syncVecUI();
   $('#helpFill').textContent = vec ? 'Recolor a line with the current color' : 'Fill (inside the camera frame)';
   const uk = (UPSCALE[S.render.up] || UPSCALE.none).k;
@@ -3877,8 +3893,8 @@ tg.addEventListener('contextmenu', e => {
 });
 
 /* ---------- saving & loading (format 5: endless canvas in tiles, layer types, camera size) ---------- */
-function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; } return o; }
-function deStroke(o) { const p = []; for (let i = 0; i + 2 < o.p.length; i += 3) p.push([o.p[i], o.p[i + 1], o.p[i + 2]]); const st = { color: o.c, opacity: o.o == null ? 1 : o.o, pts: p }; if (o.k === 'square') st.cap = 'square'; if (o.sh) { st.shape = o.sh; st.fc = o.fc || null; st.ol = !!o.ol; st.rr = o.rr || 0; } return st; }
+function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
+function deStroke(o) { const p = []; for (let i = 0; i + 2 < o.p.length; i += 3) p.push([o.p[i], o.p[i + 1], o.p[i + 2]]); const st = { color: o.c, opacity: o.o == null ? 1 : o.o, pts: p }; if (o.k === 'square') st.cap = 'square'; if (o.sh) { st.shape = o.sh; st.fc = o.fc || null; st.ol = !!o.ol; st.rr = o.rr || 0; if (o.x) Object.assign(st, o.x); } return st; }
 function serSurf(s) {
   const out = [];
   for (const t of s.t.values()) {
@@ -5717,9 +5733,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.29.0';
+const APP_VERSION = '1.30.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.30.0', date: '2026-11-09', items: ['Brush, Animation, Render and Export settings are now separate windows: F5, F6, F7, F8 (or the ☰ button). Move them anywhere, they remember their place. The canvas gets the space', 'Vector art: Selection (V) — move, scale, turn, Alt-drag copies; Direct selection (A) — edit points and curves; Pen (P); Rectangle, Ellipse, Polygon, Star, Line; Eyedropper', 'Vector art: fill and stroke colors (X switches, Shift+X swaps), gradient fill, dashed / dotted strokes, ends and corners, round corners', 'Vector art: arrange (Ctrl+[ ]), align and spread evenly, flip, turn 90°, copy / paste / duplicate, smart guides that stick to other shapes and the camera'] },
   { v: '1.29.0', date: '2026-11-09', items: ['Vector art has its own simple menu: only Rectangle and Circle', 'Shapes are real vector shapes: fill with the current color, outline with its own color and width, round corners, opacity', 'The Brush tab becomes the Shape tab in vector files; old vector drawings still show as before'] },
   { v: '1.28.2', date: '2026-11-08', items: ['Phone: no black frames around the canvas while zooming out or moving'] },
   { v: '1.28.1', date: '2026-11-08', items: ['Phone: pinch zoom in pixel art no longer jumps 100% → 200%: it stays exactly where you leave it'] },
@@ -5838,6 +5855,7 @@ applyMobile();
 const touches = new Map(); let gest = null, handOn = false, gestShown = null, gestT = 0;
 const stageXY = (x, y) => { const r = stage.getBoundingClientRect(); return [x - r.left, y - r.top]; };
 function abortStroke() {
+  if (typeof vecAbort === 'function') vecAbort();
   if (stroke) { stroke = null; mirrors = []; buffer.clear(); }
   shapeDrag = null; if (selDrag) selDrag = null; extDrag = null; gradDrag = null; render();
 }
@@ -6202,79 +6220,683 @@ setTimeout(() => {
 }, 0);
 window.__S = S;
 
-/* ================= vector art: shapes only (rectangles and circles with fill and outline) ================= */
-const VSH = Object.assign({ fill: true, line: true, lc: '#1d1d36', lw: 4, rr: 0 }, prefGet('vshape', {}) || {});
+/* ================= v30: vector art — selecting, editing and drawing shapes (ideas from vector editors, own design) =================
+   A shape is one object in cel.strokes:
+     { shape: 'rect' | 'ellipse', pts: [[x0, y0, lineWidth], [x1, y1, lineWidth]], rot }   box before turning, turned around its middle
+     { shape: 'path', pts: [anchor, handleIn, handleOut, …] (3 points per node, each [x, y, lineWidth]), cl: closed }
+   plus style: fc (fill color or null), fg ({ c2, ang } = gradient fill), color (outline color), ol (outline on), rr (round corners 0..1),
+   dash ('solid' | 'dash' | 'dot'), lcap, ljoin, opacity.
+   Every point is in pts, so the old move / scale code for vector cels keeps working on shapes too. */
+var VSH = Object.assign({ fill: true, fc: '#e2574c', ftype: 'solid', fc2: '#ffce57', fang: 90, line: true, lc: '#1d1d36', lw: 4, dash: 'solid', cap: 'round', join: 'round', rr: 0, sides: 6, points: 5, inner: 0.5, target: 'fill', toCam: false }, prefGet('vshape', {}) || {});
 const vshSave = () => prefSet('vshape', VSH);
-function vshPath(ctx, st) {
-  const a = st.pts[0], b = st.pts[1] || a, x0 = Math.min(a[0], b[0]), y0 = Math.min(a[1], b[1]), w = Math.abs(b[0] - a[0]), h = Math.abs(b[1] - a[1]);
-  ctx.beginPath();
-  if (st.shape === 'ellipse') ctx.ellipse(x0 + w / 2, y0 + h / 2, Math.max(0.01, w / 2), Math.max(0.01, h / 2), 0, 0, Math.PI * 2);
-  else { const r = Math.min(w, h) / 2 * clamp(st.rr || 0, 0, 1); if (r > 0 && ctx.roundRect) ctx.roundRect(x0, y0, w, h, r); else ctx.rect(x0, y0, w, h); }
+let vsel = new Set(), vnode = null, vpen = null, vclip = null, vguides = [], vhover = null, vmarq = null, vprev = null, vpasteN = 0;
+const KAPPA = 0.5522847;
+const vcel = () => { const c = curCel(); return c && c.strokes ? c : null; };
+const mapPt = (M, x, y) => [M.a * x + M.c * y + M.e, M.b * x + M.d * y + M.f];
+const vtol = () => 6 / Math.max(0.01, S.zoom.scale);
+function vSelList() { const c = vcel(); if (!c) { vsel = new Set(); return []; } const out = c.strokes.filter(s => vsel.has(s)); if (out.length !== vsel.size) vsel = new Set(out); return out; }
+function vClone(st, patch) { const o = Object.assign({}, st, patch); delete o.box; return o; }
+
+/* ---------- geometry ---------- */
+function vBoxRaw(st) { const a = st.pts[0], b = st.pts[1] || a; return { x0: Math.min(a[0], b[0]), y0: Math.min(a[1], b[1]), x1: Math.max(a[0], b[0]), y1: Math.max(a[1], b[1]) }; }
+function vNodes(st) { const n = []; for (let i = 0; i + 2 < st.pts.length; i += 3) n.push([st.pts[i], st.pts[i + 1], st.pts[i + 2]]); return n; }
+const vGeoCache = new WeakMap();
+function vTrace(g, st) {
+  if (st.shape === 'path') {
+    const N = vNodes(st); if (!N.length) return;
+    g.moveTo(N[0][0][0], N[0][0][1]);
+    for (let i = 1; i < N.length; i++) { const p = N[i - 1], q = N[i]; g.bezierCurveTo(p[2][0], p[2][1], q[1][0], q[1][1], q[0][0], q[0][1]); }
+    if (st.cl && N.length > 1) { const p = N[N.length - 1], q = N[0]; g.bezierCurveTo(p[2][0], p[2][1], q[1][0], q[1][1], q[0][0], q[0][1]); g.closePath(); }
+    return;
+  }
+  const r = vBoxRaw(st), w = r.x1 - r.x0, h = r.y1 - r.y0, cx = (r.x0 + r.x1) / 2, cy = (r.y0 + r.y1) / 2, rot = st.rot || 0;
+  if (st.shape === 'ellipse') { g.ellipse(cx, cy, Math.max(0.01, w / 2), Math.max(0.01, h / 2), rot, 0, Math.PI * 2); g.closePath(); return; }
+  const p = vToPath(st), N = vNodes(p);
+  g.moveTo(N[0][0][0], N[0][0][1]);
+  for (let i = 1; i <= N.length; i++) { const a = N[i - 1], b = N[i % N.length]; g.bezierCurveTo(a[2][0], a[2][1], b[1][0], b[1][1], b[0][0], b[0][1]); }
+  g.closePath();
 }
+function vGeom(st) { let p = vGeoCache.get(st); if (!p) { p = new Path2D(); vTrace(p, st); vGeoCache.set(st, p); } return p; }
+function vSamplePts(st) {   // points on the outline (for the real bounds of curves)
+  if (st.shape === 'ellipse') { const r = vBoxRaw(st), cx = (r.x0 + r.x1) / 2, cy = (r.y0 + r.y1) / 2, rx = (r.x1 - r.x0) / 2, ry = (r.y1 - r.y0) / 2, c = Math.cos(st.rot || 0), s = Math.sin(st.rot || 0), out = []; for (let i = 0; i < 48; i++) { const a = i / 48 * Math.PI * 2, x = Math.cos(a) * rx, y = Math.sin(a) * ry; out.push([cx + x * c - y * s, cy + x * s + y * c]); } return out; }
+  const p = st.shape === 'path' ? st : vToPath(st), N = vNodes(p), out = [];
+  const seg = (a, b) => { for (let k = 0; k <= 12; k++) { const t = k / 12, u = 1 - t; out.push([u * u * u * a[0][0] + 3 * u * u * t * a[2][0] + 3 * u * t * t * b[1][0] + t * t * t * b[0][0], u * u * u * a[0][1] + 3 * u * u * t * a[2][1] + 3 * u * t * t * b[1][1] + t * t * t * b[0][1]]); } };
+  if (N.length === 1) out.push(N[0][0]);
+  for (let i = 1; i < N.length; i++) seg(N[i - 1], N[i]);
+  if (p.cl && N.length > 1) seg(N[N.length - 1], N[0]);
+  return out;
+}
+function vBounds(st) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const q of vSamplePts(st)) { x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]); } return { x0, y0, x1, y1 }; }
+function vBoxStroke(st) { const b = vBounds(st), h = st.ol ? (st.pts[0][2] || 0) * (st.ljoin === 'miter' ? 2 : 0.5) + 1 : 1; return { x0: b.x0 - h, y0: b.y0 - h, x1: b.x1 + h, y1: b.y1 + h }; }
+function vUnion(list) { let b = null; for (const st of list) { const q = vBounds(st); b = b ? { x0: Math.min(b.x0, q.x0), y0: Math.min(b.y0, q.y0), x1: Math.max(b.x1, q.x1), y1: Math.max(b.y1, q.y1) } : q; } return b; }
+function vToPath(st) {
+  if (st.shape === 'path') return st;
+  const lw = st.pts[0][2], r = vBoxRaw(st), cx = (r.x0 + r.x1) / 2, cy = (r.y0 + r.y1) / 2, rot = st.rot || 0, c = Math.cos(rot), s = Math.sin(rot);
+  const P = (x, y) => [cx + (x - cx) * c - (y - cy) * s, cy + (x - cx) * s + (y - cy) * c], N = [];
+  if (st.shape === 'ellipse') {
+    const rx = (r.x1 - r.x0) / 2, ry = (r.y1 - r.y0) / 2, kx = rx * KAPPA, ky = ry * KAPPA;
+    N.push([P(cx + rx, cy), P(cx + rx, cy - ky), P(cx + rx, cy + ky)], [P(cx, cy + ry), P(cx + kx, cy + ry), P(cx - kx, cy + ry)], [P(cx - rx, cy), P(cx - rx, cy + ky), P(cx - rx, cy - ky)], [P(cx, cy - ry), P(cx - kx, cy - ry), P(cx + kx, cy - ry)]);
+  } else {
+    const { x0, y0, x1, y1 } = r, rr = Math.min(x1 - x0, y1 - y0) / 2 * clamp(st.rr || 0, 0, 1), k = rr * (1 - KAPPA);
+    if (rr <= 0) [[x0, y0], [x1, y0], [x1, y1], [x0, y1]].forEach(([x, y]) => { const q = P(x, y); N.push([q, q, q]); });
+    else {
+      const A = (x, y) => P(x, y);
+      N.push([A(x0 + rr, y0), A(x0 + k, y0), A(x0 + rr, y0)], [A(x1 - rr, y0), A(x1 - rr, y0), A(x1 - k, y0)],
+        [A(x1, y0 + rr), A(x1, y0 + k), A(x1, y0 + rr)], [A(x1, y1 - rr), A(x1, y1 - rr), A(x1, y1 - k)],
+        [A(x1 - rr, y1), A(x1 - k, y1), A(x1 - rr, y1)], [A(x0 + rr, y1), A(x0 + rr, y1), A(x0 + k, y1)],
+        [A(x0, y1 - rr), A(x0, y1 - k), A(x0, y1 - rr)], [A(x0, y0 + rr), A(x0, y0 + rr), A(x0, y0 + k)]);
+    }
+  }
+  return vClone(st, { shape: 'path', pts: N.flat().map(q => [q[0], q[1], lw]), cl: true, rr: 0, rot: 0 });
+}
+function vApply(st, M) {
+  const det = M.a * M.d - M.b * M.c, k = Math.sqrt(Math.abs(det)) || 1;
+  if (st.shape !== 'path') {
+    const lw = st.pts[0][2] * k, r = vBoxRaw(st);
+    if (!st.rot && Math.abs(M.b) < 1e-9 && Math.abs(M.c) < 1e-9) { const a = mapPt(M, r.x0, r.y0), b = mapPt(M, r.x1, r.y1); return vClone(st, { pts: [[Math.min(a[0], b[0]), Math.min(a[1], b[1]), lw], [Math.max(a[0], b[0]), Math.max(a[1], b[1]), lw]] }); }
+    if (det > 0 && Math.abs(M.a - M.d) < 1e-6 && Math.abs(M.b + M.c) < 1e-6) {   // turn + same scale both ways: stays a rectangle / ellipse
+      const c = mapPt(M, (r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2), hw = (r.x1 - r.x0) / 2 * k, hh = (r.y1 - r.y0) / 2 * k;
+      let rot = (st.rot || 0) + Math.atan2(M.b, M.a); rot = Math.atan2(Math.sin(rot), Math.cos(rot)); if (Math.abs(rot) < 1e-6) rot = 0;
+      return vClone(st, { pts: [[c[0] - hw, c[1] - hh, lw], [c[0] + hw, c[1] + hh, lw]], rot });
+    }
+    st = vToPath(st);
+  }
+  return vClone(st, { pts: st.pts.map(q => { const p = mapPt(M, q[0], q[1]); return [p[0], p[1], q[2] * k]; }) });
+}
+const mTrans = (dx, dy) => ({ a: 1, b: 0, c: 0, d: 1, e: dx, f: dy });
+const mScale = (sx, sy, ax, ay) => ({ a: sx, b: 0, c: 0, d: sy, e: ax - sx * ax, f: ay - sy * ay });
+const mRot = (t, cx, cy) => { const c = Math.cos(t), s = Math.sin(t); return { a: c, b: s, c: -s, d: c, e: cx - c * cx + s * cy, f: cy - s * cx - c * cy }; };
+
+/* ---------- drawing ---------- */
+function vDash(st, lw) { return st.dash === 'dash' ? [lw * 3, lw * 2] : st.dash === 'dot' ? [0.001, lw * 2] : []; }
 function drawVShape(ctx, st) {
-  vshPath(ctx, st);
-  if (st.fc) { ctx.fillStyle = st.fc; ctx.fill(); }
-  const lw = st.pts[0][2]; if (st.ol && lw > 0) { ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.strokeStyle = st.color; ctx.stroke(); }
+  const p = vGeom(st);
+  if (st.fc) {
+    if (st.fg) { const b = vBounds(st), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2, a = (st.fg.ang || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a), L = (Math.abs((b.x1 - b.x0) * ca) + Math.abs((b.y1 - b.y0) * sa)) / 2 || 1, g = ctx.createLinearGradient(cx - ca * L, cy - sa * L, cx + ca * L, cy + sa * L); g.addColorStop(0, st.fc); g.addColorStop(1, st.fg.c2 || st.fc); ctx.fillStyle = g; }
+    else ctx.fillStyle = st.fc;
+    ctx.fill(p);
+  }
+  const lw = st.pts[0] ? st.pts[0][2] : 0;
+  if (st.ol && lw > 0) {
+    ctx.lineWidth = lw; ctx.lineJoin = st.ljoin || 'round'; ctx.lineCap = st.dash === 'dot' ? 'round' : (st.lcap || 'round'); ctx.miterLimit = 6;
+    ctx.setLineDash(vDash(st, lw)); ctx.strokeStyle = st.color; ctx.stroke(p); ctx.setLineDash([]);
+  }
 }
-function hitVShape(st, x, y, r) {
-  const a = st.pts[0], b = st.pts[1] || a, h = (st.ol ? a[2] / 2 : 0) + r;
-  return x >= Math.min(a[0], b[0]) - h && x <= Math.max(a[0], b[0]) + h && y >= Math.min(a[1], b[1]) - h && y <= Math.max(a[1], b[1]) + h;
+const hctx = document.createElement('canvas').getContext('2d');
+function vHit(st, x, y, tol) {
+  const p = vGeom(st); if (st.fc && hctx.isPointInPath(p, x, y)) return true;
+  hctx.lineWidth = (st.ol ? st.pts[0][2] : 0) + tol * 2; hctx.lineJoin = 'round'; return hctx.isPointInStroke(p, x, y);
 }
-function makeVShape(v) {
-  return { shape: v.k, pts: [[v.x0, v.y0, VSH.lw], [v.x1, v.y1, VSH.lw]].map(q => q.map(n => Math.round(n * 10) / 10)), color: VSH.lc, ol: VSH.line && VSH.lw > 0, fc: VSH.fill ? S.color : null, rr: v.k === 'rect' ? VSH.rr : 0, opacity: S.opacity };
+function hitVShape(st, x, y, r) { return vHit(st, x, y, r); }
+function vTopAt(x, y) { const c = vcel(); if (!c) return null; const t = vtol(); for (let i = c.strokes.length - 1; i >= 0; i--) { const st = c.strokes[i]; if (st.shape ? vHit(st, x, y, t) : hitStroke(st, x, y, t)) return st; } return null; }
+
+/* ---------- new shapes ---------- */
+function vStyle() {
+  return { color: VSH.lc, ol: VSH.line && VSH.lw > 0, fc: VSH.fill ? VSH.fc : null, fg: VSH.fill && VSH.ftype === 'grad' ? { c2: VSH.fc2, ang: VSH.fang } : undefined, dash: VSH.dash !== 'solid' ? VSH.dash : undefined, lcap: VSH.cap !== 'round' ? VSH.cap : undefined, ljoin: VSH.join !== 'round' ? VSH.join : undefined, opacity: S.opacity };
 }
-function commitVecShape(sd) {
-  const l = S.layers[S.layer]; if (!l || !isDraw(l) || !l.visible || l.locked) { render(); return; }
-  if (Math.hypot(sd.x1 - sd.x0, sd.y1 - sd.y0) < 0.5) { render(); return; }
-  if (!VSH.fill && !(VSH.line && VSH.lw > 0)) { flash('Turn on Fill or Outline first'); render(); return; }
-  const f = curFrame(), cel = curCel(), li = S.layer; if (!cel || !cel.strokes) { render(); return; }
-  const before = cel.strokes, after = before.concat(shapeVariants(sd).map(makeVShape));
-  cel.strokes = after; cel.dirty = true;
-  push({ t: 'v', f, cel, li, before, after });
-  invComp(); updateDots(f); onionValid = false; render(); renderPreview();
+function vBoxShape(kind, x0, y0, x1, y1) { const lw = VSH.lw; return Object.assign(vStyle(), { shape: kind, pts: [[Math.min(x0, x1), Math.min(y0, y1), lw], [Math.max(x0, x1), Math.max(y0, y1), lw]], rr: kind === 'rect' ? VSH.rr : 0 }); }
+function vPolyShape(cx, cy, r, ang, star) {
+  const n = star ? Math.max(3, VSH.points) * 2 : Math.max(3, VSH.sides), pts = [];
+  for (let i = 0; i < n; i++) { const a = ang + i / n * Math.PI * 2, rr = star && i % 2 ? r * VSH.inner : r, q = [cx + Math.cos(a) * rr, cy + Math.sin(a) * rr, VSH.lw]; pts.push(q, q.slice(), q.slice()); }
+  return Object.assign(vStyle(), { shape: 'path', pts, cl: true });
 }
-function vecShapePreview(sd) {   // the real shape while dragging
-  const o = toScreen(0, 0), ex = toScreen(1, 0), ey = toScreen(0, 1);
-  vctx.save(); vctx.transform(ex[0] - o[0], ex[1] - o[1], ey[0] - o[0], ey[1] - o[1], o[0], o[1]);
-  vctx.globalAlpha = 0.85;
-  for (const v of shapeVariants(sd)) drawVShape(vctx, makeVShape(v));
-  vctx.restore(); return true;
+function vLineShape(x0, y0, x1, y1) { const a = [x0, y0, VSH.lw], b = [x1, y1, VSH.lw]; return Object.assign(vStyle(), { shape: 'path', pts: [a, a.slice(), a.slice(), b, b.slice(), b.slice()], cl: false, fc: null, fg: undefined, ol: true, color: VSH.lc }); }
+
+/* ---------- changing the cel ---------- */
+function vRefresh() { vhover = null; const c = vcel(); if (c) c.dirty = true; invComp(); onionValid = false; render(); }
+function vPush(c, before, after) { c.strokes = after; c.dirty = true; push({ t: 'v', f: curFrame(), cel: c, li: S.layer, before, after }); vRefresh(); updateDots(curFrame()); renderPreview(); }
+function vEditSel(fn) {   // one undo step: change every selected shape
+  const c = vcel(); if (!c || !vlayerOk() || !vSelList().length) return false;
+  const before = c.strokes, nsel = new Set(); let changed = false;
+  const after = before.map(st => { if (!vsel.has(st)) return st; const n = fn(st); nsel.add(n); if (n !== st) changed = true; return n; });
+  if (!changed) return false; vsel = nsel; vPush(c, before, after); return true;
 }
-// the Shape panel (instead of the brush settings)
+const vlayerOk = () => { const l = S.layers[S.layer]; return !!(l && isDraw(l) && l.visible && !l.locked); };
+// live changes (sliders, color picker): shown at once, saved as one undo step when you stop
+let vlive = null;
+function vLive(fn) {
+  const c = vcel(); if (!c || !vlayerOk()) return; if (!vlive && !vSelList().length) return;
+  if (!vlive || vlive.c !== c) vlive = { c, before: c.strokes, sel: new Set(vsel) };
+  const nsel = new Set(); c.strokes = vlive.before.map(st => { if (!vlive.sel.has(st)) return st; const n = fn(st); nsel.add(n); return n; });
+  vsel = nsel; vRefresh(); clearTimeout(vlive.t); vlive.t = setTimeout(vLiveEnd, 700);
+}
+function vLiveEnd() { const L = vlive; vlive = null; if (!L) return; clearTimeout(L.t); if (L.c.strokes !== L.before) { push({ t: 'v', f: curFrame(), cel: L.c, li: S.layer, before: L.before, after: L.c.strokes }); updateDots(curFrame()); renderPreview(); } }
+function vAddShapes(list) {
+  const c = vcel(); if (!c || !vlayerOk()) { flash('Pick a visible, unlocked drawing layer'); return; }
+  vPush(c, c.strokes, c.strokes.concat(list)); vsel = new Set(list);
+}
+
+/* ---------- overlay ---------- */
+function w2s(x, y) { const M = layerMat(S.layers[S.layer], S.cur); if (M) { const q = mapPt(M, x, y); x = q[0]; y = q[1]; } return toScreen(x, y); }
+function withWorld(fn) { const o = w2s(0, 0), ex = w2s(1, 0), ey = w2s(0, 1); vctx.save(); vctx.setTransform(ex[0] - o[0], ex[1] - o[1], ey[0] - o[0], ey[1] - o[1], o[0], o[1]); const k = Math.hypot(ex[0] - o[0], ex[1] - o[1]) || 1; fn(k); vctx.restore(); }
+const VA = '#2f8cff';
+function outlineOf(st, color, k, w) { withWorld(kk => { vctx.lineWidth = (w || 1) * dpr / kk; vctx.strokeStyle = color; vctx.setLineDash([]); vctx.stroke(vGeom(st)); }); }
+function vSelHandles(b) {
+  const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  return [[b.x0, b.y0], [cx, b.y0], [b.x1, b.y0], [b.x1, cy], [b.x1, b.y1], [cx, b.y1], [b.x0, b.y1], [b.x0, cy]];
+}
+function drawVecOverlay() {
+  if (MODE !== 'vector' || !S.inEditor) return;
+  const sq = (x, y, fill, size) => { const s = (size || 7) * dpr, p = w2s(x, y); vctx.fillStyle = fill || '#fff'; vctx.strokeStyle = VA; vctx.lineWidth = dpr; vctx.fillRect(Math.round(p[0] - s / 2), Math.round(p[1] - s / 2), s, s); vctx.strokeRect(Math.round(p[0] - s / 2) + 0.5, Math.round(p[1] - s / 2) + 0.5, s - 1, s - 1); };
+  const dot = (x, y) => { const p = w2s(x, y); vctx.beginPath(); vctx.arc(p[0], p[1], 3.5 * dpr, 0, Math.PI * 2); vctx.fillStyle = '#fff'; vctx.fill(); vctx.strokeStyle = VA; vctx.lineWidth = dpr; vctx.stroke(); };
+  const ln = (a, b, col) => { const p = w2s(a[0], a[1]), q = w2s(b[0], b[1]); vctx.beginPath(); vctx.moveTo(p[0], p[1]); vctx.lineTo(q[0], q[1]); vctx.strokeStyle = col || VA; vctx.lineWidth = dpr; vctx.stroke(); };
+  if (vprev) withWorld(() => { vctx.globalAlpha = 0.9; (Array.isArray(vprev) ? vprev : [vprev]).forEach(st => drawVShape(vctx, st)); vctx.globalAlpha = 1; });
+  const sel = vSelList();
+  const cc = vcel(); if (vhover && cc && cc.strokes.includes(vhover) && !sel.includes(vhover) && (S.tool === 'vselect' || S.tool === 'vdirect')) outlineOf(vhover, VA, 0, 1.5);
+  sel.forEach(st => outlineOf(st, VA, 0, 1));
+  if (S.tool === 'vselect' && sel.length) {
+    const b = vUnion(sel), H = vSelHandles(b), C = [H[0], H[2], H[4], H[6]];
+    for (let i = 0; i < 4; i++) ln(C[i], C[(i + 1) % 4]);
+    H.forEach(h => sq(h[0], h[1]));
+  }
+  if (S.tool === 'vdirect') sel.forEach(st => {
+    const p = st.shape === 'path' ? st : vToPath(st), N = vNodes(p);
+    N.forEach((n, i) => {
+      const on = vnode && vnode.st === st && vnode.i === i;
+      if (on || (vnode && vnode.st === st && (i === vnode.i - 1 || i === vnode.i + 1 || (p.cl && ((vnode.i === 0 && i === N.length - 1) || (vnode.i === N.length - 1 && i === 0)))))) {
+        if (Math.hypot(n[1][0] - n[0][0], n[1][1] - n[0][1]) > 0.01) { ln(n[0], n[1]); dot(n[1][0], n[1][1]); }
+        if (Math.hypot(n[2][0] - n[0][0], n[2][1] - n[0][1]) > 0.01) { ln(n[0], n[2]); dot(n[2][0], n[2][1]); }
+      }
+      sq(n[0][0], n[0][1], on ? VA : '#fff', 6);
+    });
+  });
+  if (vpen && vpen.nodes.length) {
+    const tmp = Object.assign(vStyle(), { shape: 'path', pts: vpen.nodes.flat().map(q => [q[0], q[1], VSH.lw]), cl: false });
+    withWorld(() => { vctx.globalAlpha = 0.85; drawVShape(vctx, tmp); vctx.globalAlpha = 1; });
+    outlineOf(tmp, VA, 0, 1);
+    const last = vpen.nodes[vpen.nodes.length - 1];
+    if (vpen.hover && !vpen.down) { const p = w2s(last[0][0], last[0][1]), q = w2s(vpen.hover.x, vpen.hover.y); vctx.setLineDash([4 * dpr, 3 * dpr]); vctx.beginPath(); vctx.moveTo(p[0], p[1]); vctx.lineTo(q[0], q[1]); vctx.strokeStyle = VA; vctx.lineWidth = dpr; vctx.stroke(); vctx.setLineDash([]); }
+    vpen.nodes.forEach((n, i) => { sq(n[0][0], n[0][1], i === 0 && vpen.nodes.length > 1 && vpen.closeHint ? VA : '#fff', 6); });
+    if (vpen.down) { const n = last; ln(n[1], n[2]); dot(n[1][0], n[1][1]); dot(n[2][0], n[2][1]); }
+  }
+  if (vmarq) { const a = w2s(vmarq.x0, vmarq.y0), b = w2s(vmarq.x1, vmarq.y1); vctx.setLineDash([4 * dpr, 3 * dpr]); vctx.strokeStyle = VA; vctx.lineWidth = dpr; vctx.strokeRect(Math.min(a[0], b[0]) + 0.5, Math.min(a[1], b[1]) + 0.5, Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])); vctx.fillStyle = 'rgba(47,140,255,.08)'; vctx.fillRect(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])); vctx.setLineDash([]); }
+  for (const g of vguides) ln(g[0], g[1], '#ff3dbd');
+}
+
+/* ---------- smart guides: edges and middles stick to other shapes and to the camera frame ---------- */
+function vSnapTargets(skip) {
+  const xs = [], ys = [], c = vcel(); if (!c) return { xs, ys };
+  const add = b => { xs.push(b.x0, (b.x0 + b.x1) / 2, b.x1); ys.push(b.y0, (b.y0 + b.y1) / 2, b.y1); };
+  c.strokes.forEach(st => { if (st.shape && !skip.has(st)) add(vBounds(st)); });
+  const cb = camBox(); add({ x0: cb.x0, y0: cb.y0, x1: cb.x0 + cb.w, y1: cb.y0 + cb.h });
+  return { xs, ys };
+}
+function vSnap(b, T) {
+  const tol = vtol(), mine = [[b.x0, 'x'], [(b.x0 + b.x1) / 2, 'x'], [b.x1, 'x']], mineY = [b.y0, (b.y0 + b.y1) / 2, b.y1];
+  let dx = 0, dy = 0, bx = tol + 1, by = tol + 1, gx = null, gy = null;
+  for (const [m] of mine) for (const t of T.xs) { const d = t - m; if (Math.abs(d) < bx) { bx = Math.abs(d); dx = d; gx = t; } }
+  for (const m of mineY) for (const t of T.ys) { const d = t - m; if (Math.abs(d) < by) { by = Math.abs(d); dy = d; gy = t; } }
+  if (bx > tol) dx = 0, gx = null; if (by > tol) dy = 0, gy = null;
+  const G = []; const big = 1e5;
+  if (gx != null) G.push([[gx, -big], [gx, big]]); if (gy != null) G.push([[-big, gy], [big, gy]]);
+  return { dx, dy, G };
+}
+
+/* ---------- tools ---------- */
+var VEC_TOOL = {};
+function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selection (Alt while moving: copy)
+  const c = vcel(); const base = c.strokes, sel = new Set(vSelList()), b = vUnion([...sel]);
+  if (!b) return null;
+  const T = mode === 'move' ? vSnapTargets(sel) : null;
+  let last = e0, moved = false, copies = null;
+  const H = vSelHandles(b), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  return {
+    move(e) {
+      last = e; const p = pos(e); let M;
+      if (!moved && Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 3) return; moved = true;
+      if (mode === 'move') {
+        let dx = p.x - p0.x, dy = p.y - p0.y;
+        if (e.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0; }
+        vguides = [];
+        if (!e.ctrlKey) { const sn = vSnap({ x0: b.x0 + dx, y0: b.y0 + dy, x1: b.x1 + dx, y1: b.y1 + dy }, T); dx += sn.dx; dy += sn.dy; vguides = sn.G; }
+        M = mTrans(dx, dy);
+      } else if (mode === 'scale') {
+        const corner = h % 2 === 0, opp = H[(h + 4) % 8], ax = e.altKey ? cx : opp[0], ay = e.altKey ? cy : opp[1], hp = H[h];
+        let sx = Math.abs(hp[0] - ax) > 1e-6 ? (p.x - ax) / (hp[0] - ax) : 1, sy = Math.abs(hp[1] - ay) > 1e-6 ? (p.y - ay) / (hp[1] - ay) : 1;
+        if (!corner) { if (h === 1 || h === 5) sx = e.shiftKey ? sy : 1; else sy = e.shiftKey ? sx : 1; }
+        else if (e.shiftKey) { const s = Math.max(Math.abs(sx), Math.abs(sy)); sx = Math.sign(sx || 1) * s; sy = Math.sign(sy || 1) * s; }
+        if (Math.abs(sx) < 1e-3) sx = 1e-3; if (Math.abs(sy) < 1e-3) sy = 1e-3;
+        M = mScale(sx, sy, ax, ay);
+      } else {
+        let t = Math.atan2(p.y - cy, p.x - cx) - Math.atan2(p0.y - cy, p0.x - cx);
+        if (e.shiftKey) t = Math.round(t / (Math.PI / 12)) * (Math.PI / 12);
+        M = mRot(t, cx, cy);
+      }
+      const nsel = new Set();
+      if (mode === 'move' && e.altKey) { copies = [...sel].map(st => { const n = vApply(st, M); nsel.add(n); return n; }); c.strokes = base.concat(copies); }
+      else { copies = null; c.strokes = base.map(st => { if (!sel.has(st)) return st; const n = vApply(st, M); nsel.add(n); return n; }); }
+      vsel = nsel; vRefresh();
+    },
+    up() {
+      vguides = [];
+      if (!moved) { const hit = vTopAt(p0.x, p0.y); if (mode === 'move' && hit && !e0.shiftKey) vsel = new Set([hit]); render(); return; }
+      push({ t: 'v', f: curFrame(), cel: c, li: S.layer, before: base, after: c.strokes }); c.dirty = true; updateDots(curFrame()); renderPreview(); syncVecUI(); render();
+    },
+    cancel() { c.strokes = base; vsel = sel; vguides = []; vRefresh(); }
+  };
+}
+function vHandleAt(p) {
+  const sel = vSelList(); if (!sel.length) return null; const b = vUnion(sel), t = vtol() * 1.2, H = vSelHandles(b);
+  for (let i = 0; i < 8; i++) if (Math.abs(p.x - H[i][0]) <= t && Math.abs(p.y - H[i][1]) <= t) return { mode: 'scale', h: i };
+  for (const i of [0, 2, 4, 6]) { const d = Math.hypot(p.x - H[i][0], p.y - H[i][1]); const out = p.x < b.x0 || p.x > b.x1 || p.y < b.y0 || p.y > b.y1; if (out && d <= t * 3.5) return { mode: 'rot', h: i }; }
+  return null;
+}
+let vActive = null;   // the drag in progress (so a second finger can cancel it)
+function vMarquee(p0, e0, onDone) {
+  vmarq = { x0: p0.x, y0: p0.y, x1: p0.x, y1: p0.y }; const keep = e0.shiftKey ? new Set(vSelList()) : new Set();
+  return {
+    move(e) { const p = pos(e); vmarq.x1 = p.x; vmarq.y1 = p.y; render(); },
+    up() {
+      const m = vmarq; vmarq = null; const x0 = Math.min(m.x0, m.x1), x1 = Math.max(m.x0, m.x1), y0 = Math.min(m.y0, m.y1), y1 = Math.max(m.y0, m.y1), c = vcel();
+      const out = new Set(keep);
+      if (c && (x1 - x0 > vtol() / 2 || y1 - y0 > vtol() / 2)) c.strokes.forEach(st => { if (!st.shape) return; const b = vBounds(st); if (b.x1 >= x0 && b.x0 <= x1 && b.y1 >= y0 && b.y0 <= y1) out.add(st); });
+      vsel = out; vnode = null; if (onDone) onDone(); syncVecUI(); render();
+    },
+    cancel() { vmarq = null; render(); }
+  };
+}
+VEC_TOOL.vselect = (p, e) => {
+  const hd = vHandleAt(p); if (hd) return vActive = vDragTransform(p, e, hd.mode, hd.h);
+  const hit = vTopAt(p.x, p.y);
+  if (hit) {
+    if (e.shiftKey) { if (vsel.has(hit)) vsel.delete(hit); else vsel.add(hit); syncVecUI(); render(); if (!vsel.has(hit)) return null; }
+    else if (!vsel.has(hit)) { vsel = new Set([hit]); syncVecUI(); }
+    if (!hit.shape) { render(); return null; }   // an old brush line: can be selected and deleted, not moved
+    return vActive = vDragTransform(p, e, 'move');
+  }
+  return vActive = vMarquee(p, e);
+};
+function vBoxTool(kind) {
+  return (p0, e0) => {
+    let last = e0;
+    const make = e => {
+      const p = pos(e); let dx = p.x - p0.x, dy = p.y - p0.y;
+      if (kind === 'poly' || kind === 'star') { const r = Math.hypot(dx, dy); let a = Math.atan2(dy, dx); if (e.shiftKey || r < vtol()) a = -Math.PI / 2; return vPolyShape(p0.x, p0.y, r, a, kind === 'star'); }
+      if (kind === 'line') { if (e.shiftKey) { const a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4), r = Math.hypot(dx, dy); dx = Math.cos(a) * r; dy = Math.sin(a) * r; } return vLineShape(p0.x, p0.y, p0.x + dx, p0.y + dy); }
+      if (e.shiftKey) { const m = Math.max(Math.abs(dx), Math.abs(dy)); dx = Math.sign(dx || 1) * m; dy = Math.sign(dy || 1) * m; }
+      return e.altKey ? vBoxShape(kind, p0.x - dx, p0.y - dy, p0.x + dx, p0.y + dy) : vBoxShape(kind, p0.x, p0.y, p0.x + dx, p0.y + dy);
+    };
+    return vActive = {
+      move(e) { last = e; vprev = make(e); render(); },
+      up() {
+        const p = pos(last), small = Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 2; vprev = null;
+        if (small) { render(); return; }
+        if (kind !== 'line' && !VSH.fill && !(VSH.line && VSH.lw > 0)) { flash('Turn on Fill or Stroke first'); render(); return; }
+        vAddShapes([make(last)]); syncVecUI();
+      },
+      cancel() { vprev = null; render(); }
+    };
+  };
+}
+['rect', 'ellipse', 'poly', 'star', 'line'].forEach(k => { VEC_TOOL[k] = vBoxTool(k); });
+// eyedropper: takes the look of a shape (and gives it to the selected shapes)
+VEC_TOOL.picker = p => {
+  const st = vTopAt(p.x, p.y); if (!st || !st.shape) { flash('Click a shape to take its colors'); return null; }
+  Object.assign(VSH, { fill: !!st.fc, fc: st.fc || VSH.fc, ftype: st.fg ? 'grad' : 'solid', fc2: st.fg ? st.fg.c2 : VSH.fc2, fang: st.fg ? st.fg.ang : VSH.fang, line: !!st.ol, lc: st.color || VSH.lc, lw: st.pts[0][2] || VSH.lw, dash: st.dash || 'solid', cap: st.lcap || 'round', join: st.ljoin || 'round' });
+  vshSave();
+  if (vsel.size && !vsel.has(st)) vEditSel(o => vClone(o, styleOf(st)));
+  syncVecUI(); flash('Look taken'); return null;
+};
+const styleOf = st => ({ fc: st.fc, fg: st.fg, color: st.color, ol: st.ol, dash: st.dash, lcap: st.lcap, ljoin: st.ljoin, opacity: st.opacity, pts: undefined });
+// direct selection: points and handles of a path
+function vNodeAt(p) {
+  const t = vtol() * 1.1, sel = vSelList();
+  const scan = (st, withHandles) => {
+    const path = st.shape === 'path' ? st : vToPath(st), N = vNodes(path);
+    if (withHandles && vnode && vnode.st === st) for (let i = 0; i < N.length; i++) for (const k of [1, 2]) { const q = N[i][k]; if (Math.hypot(q[0] - N[i][0][0], q[1] - N[i][0][1]) > 0.01 && Math.hypot(p.x - q[0], p.y - q[1]) <= t) return { st, i, k }; }
+    for (let i = 0; i < N.length; i++) { const q = N[i][0]; if (Math.hypot(p.x - q[0], p.y - q[1]) <= t) return { st, i, k: 0 }; }
+    return null;
+  };
+  for (const st of sel) { if (!st.shape) continue; const r = scan(st, true); if (r) return r; }
+  return null;
+}
+VEC_TOOL.vdirect = (p0, e0) => {
+  const hitN = vNodeAt(p0), c = vcel();
+  if (hitN) {
+    let st = hitN.st; const base = c.strokes;
+    if (e0.altKey && hitN.k === 0) {   // Alt + click a point: sharp corner ↔ smooth curve
+      const path = vToPath(st), N = vNodes(path), n = N[hitN.i], A = n[0];
+      const sharp = Math.hypot(n[1][0] - A[0], n[1][1] - A[1]) > 0.01 || Math.hypot(n[2][0] - A[0], n[2][1] - A[1]) > 0.01;
+      let I, O;
+      if (sharp) { I = A.slice(); O = A.slice(); }
+      else { const pv = N[(hitN.i - 1 + N.length) % N.length][0], nx = N[(hitN.i + 1) % N.length][0], dx = (nx[0] - pv[0]) / 6, dy = (nx[1] - pv[1]) / 6; I = [A[0] - dx, A[1] - dy, A[2]]; O = [A[0] + dx, A[1] + dy, A[2]]; }
+      const pts = path.pts.slice(); pts[hitN.i * 3 + 1] = I; pts[hitN.i * 3 + 2] = O;
+      const n2 = vClone(path, { pts }); vsel = new Set([n2]); vnode = { st: n2, i: hitN.i }; vPush(c, base, base.map(x => x === st ? n2 : x)); return null;
+    }
+    const path0 = vToPath(st); let cur = st, moved = false;
+    vnode = { st, i: hitN.i };
+    return vActive = {
+      move(e) {
+        const p = pos(e); if (!moved && Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 3) return; moved = true;
+        const pts = path0.pts.map(q => q.slice()), i3 = hitN.i * 3, dx = p.x - p0.x, dy = p.y - p0.y;
+        if (hitN.k === 0) for (let k = 0; k < 3; k++) { pts[i3 + k][0] += dx; pts[i3 + k][1] += dy; }
+        else {
+          const h = pts[i3 + hitN.k], o = pts[i3 + (hitN.k === 1 ? 2 : 1)], A = pts[i3]; h[0] += dx; h[1] += dy;
+          if (!e.altKey) { const L = Math.hypot(o[0] - A[0], o[1] - A[1]), a = Math.atan2(h[1] - A[1], h[0] - A[0]) + Math.PI; if (L > 0.01) { o[0] = A[0] + Math.cos(a) * L; o[1] = A[1] + Math.sin(a) * L; } }
+        }
+        const n = vClone(path0, { pts }); c.strokes = base.map(x => x === st ? n : x); cur = n; vsel = new Set([n]); vnode = { st: n, i: hitN.i }; vRefresh();
+      },
+      up() { if (moved) { push({ t: 'v', f: curFrame(), cel: c, li: S.layer, before: base, after: c.strokes }); updateDots(curFrame()); renderPreview(); } render(); },
+      cancel() { c.strokes = base; vsel = new Set([st]); vnode = null; vRefresh(); }
+    };
+  }
+  const hit = vTopAt(p0.x, p0.y);
+  if (hit) { vnode = null; if (e0.shiftKey) vsel.add(hit); else if (!vsel.has(hit)) vsel = new Set([hit]); syncVecUI(); render(); return hit.shape ? (vActive = vDragTransform(p0, e0, 'move')) : null; }
+  vnode = null; return vActive = vMarquee(p0, e0);
+};
+// pen: click = sharp point, drag = curve, click the first point = closed shape, Enter / Esc / double-click = done
+VEC_TOOL.pen = (p, e) => {
+  if (!vpen) vpen = { nodes: [] };
+  const N = vpen.nodes, t = vtol() * 1.2;
+  if (N.length > 1 && Math.hypot(p.x - N[0][0][0], p.y - N[0][0][1]) <= t) { vPenDone(true); return null; }
+  const A = [p.x, p.y]; N.push([A, A.slice(), A.slice()]); vpen.down = true;
+  return vActive = {
+    move(ev) { const q = pos(ev), n = N[N.length - 1]; if (Math.hypot(q.x - A[0], q.y - A[1]) < vtol() / 3) return; n[2] = [q.x, q.y]; n[1] = [2 * A[0] - q.x, 2 * A[1] - q.y]; render(); },
+    up() { vpen.down = false; render(); },
+    cancel() { vpen = null; render(); }
+  };
+};
+function vPenDone(close) {
+  const P = vpen; vpen = null; if (!P) return;
+  if (P.nodes.length < 2) { render(); return; }
+  const st = Object.assign(vStyle(), { shape: 'path', pts: P.nodes.flat().map(q => [q[0], q[1], VSH.lw]), cl: !!close });
+  if (!close && !st.ol) st.ol = true;
+  vAddShapes([st]); syncVecUI();
+}
+function vecAbort() { if (vActive && vActive.cancel) vActive.cancel(); vActive = null; vprev = null; vmarq = null; vguides = []; }
+view.addEventListener('pointerup', () => { vActive = null; });
+view.addEventListener('dblclick', () => { if (MODE === 'vector' && vpen) { const N = vpen.nodes; if (N.length > 2) N.pop(); vPenDone(false); } });
+// hover: which shape the select tools would take, and the right mouse pointer
+view.addEventListener('pointermove', e => {
+  if (MODE !== 'vector' || !S.inEditor || e.buttons) return;
+  const p = pos(e);
+  if (vpen) { vpen.hover = p; const N = vpen.nodes; vpen.closeHint = N.length > 1 && Math.hypot(p.x - N[0][0][0], p.y - N[0][0][1]) <= vtol() * 1.2; render(); }
+  let cur = '';
+  if (S.tool === 'vselect' || S.tool === 'vdirect') {
+    const h = S.tool === 'vselect' ? vHandleAt(p) : null;
+    if (h) cur = h.mode === 'rot' ? 'alias' : ['nwse-resize', 'ns-resize', 'nesw-resize', 'ew-resize'][h.h % 4];
+    else if (S.tool === 'vdirect' && vNodeAt(p)) cur = 'pointer';
+    const hv = h ? null : vTopAt(p.x, p.y); if (hv !== vhover) { vhover = hv; render(); }
+    if (!cur) cur = hv ? 'move' : 'default';
+  } else if (S.tool === 'pen') cur = vpen && vpen.closeHint ? 'cell' : 'crosshair';
+  else if (S.tool === 'picker') cur = 'copy';
+  else cur = 'crosshair';
+  view.style.cursor = cur;
+});
+
+/* ---------- commands ---------- */
+function vDelete() {
+  const c = vcel(); if (!c || !vlayerOk()) return false;
+  const sel = vSelList(); if (!sel.length) return false;
+  const s = new Set(sel); vPush(c, c.strokes, c.strokes.filter(st => !s.has(st))); vsel = new Set(); vnode = null; syncVecUI(true); return true;
+}
+function vDeletePoint() {
+  const c = vcel(); if (!c || !vnode || !vnode.st.shape) return false;
+  const st = vnode.st, path = vToPath(st), N = vNodes(path); if (N.length <= 2) return false;
+  const pts = path.pts.slice(); pts.splice(vnode.i * 3, 3); const n = vClone(path, { pts }), base = c.strokes;
+  vsel = new Set([n]); vnode = null; vPush(c, base, base.map(x => x === st ? n : x)); return true;
+}
+function vNudge(dx, dy) { return vEditSel(st => st.shape ? vApply(st, mTrans(dx, dy)) : st); }
+function vArrange(how) {
+  const c = vcel(); if (!c || !vsel.size || !vlayerOk()) return;
+  const a = c.strokes.slice(), sel = vsel;
+  if (how === 'front') { const s = a.filter(x => sel.has(x)); vPush(c, c.strokes, a.filter(x => !sel.has(x)).concat(s)); }
+  else if (how === 'back') { const s = a.filter(x => sel.has(x)); vPush(c, c.strokes, s.concat(a.filter(x => !sel.has(x)))); }
+  else if (how === 'fwd') { for (let i = a.length - 2; i >= 0; i--) if (sel.has(a[i]) && !sel.has(a[i + 1])) [a[i], a[i + 1]] = [a[i + 1], a[i]]; vPush(c, c.strokes, a); }
+  else { for (let i = 1; i < a.length; i++) if (sel.has(a[i]) && !sel.has(a[i - 1])) [a[i], a[i - 1]] = [a[i - 1], a[i]]; vPush(c, c.strokes, a); }
+}
+function vAlign(how) {
+  const sel = vSelList().filter(s => s.shape); if (!sel.length) return;
+  const cb = camBox(), cam = { x0: cb.x0, y0: cb.y0, x1: cb.x0 + cb.w, y1: cb.y0 + cb.h };
+  const ref = sel.length === 1 || VSH.toCam ? cam : vUnion(sel);
+  if (how === 'dh' || how === 'dv') {   // spread evenly
+    if (sel.length < 3) { flash('Pick 3 or more shapes to spread them evenly'); return; }
+    const k = how === 'dh' ? 'x' : 'y', items = sel.map(st => ({ st, b: vBounds(st) })).sort((p, q) => (p.b[k + '0'] + p.b[k + '1']) - (q.b[k + '0'] + q.b[k + '1']));
+    const first = items[0].b, lastB = items[items.length - 1].b, c0 = (first[k + '0'] + first[k + '1']) / 2, c1 = (lastB[k + '0'] + lastB[k + '1']) / 2, step = (c1 - c0) / (items.length - 1), mv = new Map();
+    items.forEach((it, i) => { const cc = (it.b[k + '0'] + it.b[k + '1']) / 2, d = c0 + step * i - cc; mv.set(it.st, k === 'x' ? mTrans(d, 0) : mTrans(0, d)); });
+    vEditSel(st => mv.has(st) ? vApply(st, mv.get(st)) : st); return;
+  }
+  vEditSel(st => {
+    if (!st.shape) return st; const b = vBounds(st); let dx = 0, dy = 0;
+    if (how === 'l') dx = ref.x0 - b.x0; if (how === 'r') dx = ref.x1 - b.x1; if (how === 'ch') dx = (ref.x0 + ref.x1) / 2 - (b.x0 + b.x1) / 2;
+    if (how === 't') dy = ref.y0 - b.y0; if (how === 'b') dy = ref.y1 - b.y1; if (how === 'cv') dy = (ref.y0 + ref.y1) / 2 - (b.y0 + b.y1) / 2;
+    return dx || dy ? vApply(st, mTrans(dx, dy)) : st;
+  });
+}
+function vFlipRot(how) {
+  const sel = vSelList().filter(s => s.shape); if (!sel.length) { flash('Select shapes first (V)'); return; }
+  const b = vUnion(sel), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  const M = how === 'fh' ? mScale(-1, 1, cx, cy) : how === 'fv' ? mScale(1, -1, cx, cy) : mRot(how === 'rl' ? -Math.PI / 2 : Math.PI / 2, cx, cy);
+  vEditSel(st => st.shape ? vApply(st, M) : st);
+}
+function vCopy(cut) { const sel = vSelList(); if (!sel.length) return false; vclip = sel.map(st => vClone(st, {})); vpasteN = 0; if (cut) vDelete(); flash(sel.length + ' shape' + (sel.length > 1 ? 's' : '') + (cut ? ' cut' : ' copied')); return true; }
+function vPaste(inPlace) { if (!vclip || !vclip.length) return false; vpasteN = inPlace ? 0 : vpasteN + 1; const d = 10 * vpasteN; vAddShapes(vclip.map(st => st.shape ? vApply(st, mTrans(d, d)) : vClone(st, {}))); syncVecUI(); return true; }
+function vDuplicate() { const sel = vSelList(); if (!sel.length) return; vAddShapes(sel.map(st => st.shape ? vApply(st, mTrans(10, 10)) : vClone(st, {}))); syncVecUI(); }
+function vSelectAll() { const c = vcel(); if (!c) return; vsel = new Set(c.strokes); setTool('vselect'); syncVecUI(); render(); }
+// a color picked in the palette goes to the Fill or the Stroke (and to the selected shapes)
+function vecColorPicked(col) {
+  if (VSH.target === 'stroke') VSH.lc = col; else { VSH.fc = col; VSH.fill = true; }
+  vshSave();
+  if (vsel.size) vLive(st => st.shape ? vClone(st, VSH.target === 'stroke' ? { color: col, ol: true } : { fc: col }) : vClone(st, { color: col }));
+  syncVecUI(true);
+}
+function vApplyStyle(keys) {   // a style setting changed in the panel: the selected shapes take it
+  if (!vsel.size) return;
+  vLive(st => {
+    if (!st.shape) return st; const o = {};
+    if (keys.includes('fill')) { o.fc = VSH.fill ? (st.fc || VSH.fc) : null; if (!VSH.fill) o.fg = undefined; }
+    if (keys.includes('fc')) o.fc = VSH.fc;
+    if (keys.includes('grad')) o.fg = VSH.fill && VSH.ftype === 'grad' ? { c2: VSH.fc2, ang: VSH.fang } : undefined;
+    if (keys.includes('line')) o.ol = VSH.line && VSH.lw > 0;
+    if (keys.includes('lc')) { o.color = VSH.lc; o.ol = true; }
+    if (keys.includes('lw')) o.pts = st.pts.map(q => [q[0], q[1], VSH.lw]);
+    if (keys.includes('dash')) o.dash = VSH.dash !== 'solid' ? VSH.dash : undefined;
+    if (keys.includes('cap')) o.lcap = VSH.cap !== 'round' ? VSH.cap : undefined;
+    if (keys.includes('join')) o.ljoin = VSH.join !== 'round' ? VSH.join : undefined;
+    if (keys.includes('rr') && st.shape === 'rect') o.rr = VSH.rr;
+    if (keys.includes('op')) o.opacity = S.opacity;
+    return vClone(st, o);
+  });
+}
+
+/* ---------- keys (vector files only) ---------- */
+const VKEYS = { KeyV: 'vselect', KeyA: 'vdirect', KeyP: 'pen', KeyU: 'rect', KeyM: 'rect', KeyL: 'ellipse', KeyN: 'poly', KeyS: 'star', Backslash: 'line', KeyI: 'picker' };
+window.addEventListener('keydown', e => {
+  if (MODE !== 'vector' || !S.inEditor || document.querySelector('dialog[open]')) return;
+  const t = e.target; if (t.closest && t.closest('input:not([type=range]):not([type=checkbox]):not([type=radio]),textarea,select,[contenteditable]')) return;
+  const c = e.code, mod = e.ctrlKey || e.metaKey, done = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+  if (mod) {
+    if (c === 'KeyA') { done(); vSelectAll(); return; }
+    if (c === 'KeyC' && !e.shiftKey && vsel.size) { done(); vCopy(false); return; }
+    if (c === 'KeyX' && vsel.size) { done(); vCopy(true); return; }
+    if (c === 'KeyV' && !e.shiftKey && vclip) { done(); vPaste(false); return; }
+    if (c === 'KeyF' && vclip) { done(); vPaste(true); return; }
+    if (c === 'KeyD' && vsel.size) { done(); vDuplicate(); return; }
+    if (c === 'BracketRight' && vsel.size) { done(); vArrange(e.shiftKey ? 'front' : 'fwd'); return; }
+    if (c === 'BracketLeft' && vsel.size) { done(); vArrange(e.shiftKey ? 'back' : 'bwd'); return; }
+    return;
+  }
+  if (vpen && (c === 'Enter' || c === 'Escape')) { done(); vPenDone(false); return; }
+  if (c === 'Escape' && (vsel.size || vnode)) { done(); vsel = new Set(); vnode = null; syncVecUI(); render(); return; }
+  if ((c === 'Delete' || c === 'Backspace') && (vsel.size || vnode)) { done(); if (S.tool === 'vdirect' && vnode && vDeletePoint()) return; vDelete(); return; }
+  if (c.startsWith('Arrow') && vsel.size) { done(); const s = e.shiftKey ? 10 : 1; vNudge(c === 'ArrowLeft' ? -s : c === 'ArrowRight' ? s : 0, c === 'ArrowUp' ? -s : c === 'ArrowDown' ? s : 0); return; }
+  if (c === 'KeyX') { done(); if (e.shiftKey) { const f = VSH.fc; VSH.fc = VSH.lc; VSH.lc = f; vshSave(); if (vsel.size) vEditSel(st => st.shape ? vClone(st, { fc: st.fc ? st.color : null, color: st.fc || st.color }) : st); } else VSH.target = VSH.target === 'fill' ? 'stroke' : 'fill'; syncVecUI(); return; }
+  if (e.shiftKey && c === 'KeyH') { done(); vFlipRot('fh'); return; }
+  if (e.shiftKey && c === 'KeyV') { done(); vFlipRot('fv'); return; }
+  if (e.shiftKey && c === 'KeyR') { done(); vFlipRot('rr'); return; }
+  if (e.shiftKey && c === 'KeyU') { done(); setTool('ellipse'); syncVecUI(); return; }
+  if (!e.shiftKey && !e.altKey && VKEYS[c]) { done(); if (vpen && VKEYS[c] !== 'pen') vPenDone(false); setTool(VKEYS[c]); syncVecUI(); return; }
+}, true);
+
+/* ---------- tool buttons and the Shape panel ---------- */
+const VT_BTNS = [['vselect', '➤', 'Selection (V)|Click a shape to select it, drag to move it. Handles scale it, just outside a corner turns it. Shift adds to the selection, Alt + drag makes a copy'],
+  ['vdirect', '⌖', 'Direct selection (A)|Drag the points and curve handles of a shape. Alt + click a point: sharp ↔ smooth. Delete removes a point'],
+  ['pen', '✒', 'Pen (P)|Click for sharp points, drag for curves. Click the first point to close the shape. Enter, Esc or a double-click ends it'],
+  ['poly', '⬡', 'Polygon (N)|Drag from the middle. The number of sides is in the Shape panel'],
+  ['star', '★', 'Star (S)|Drag from the middle. Points and inner size are in the Shape panel']];
 (() => {
+  const tools = document.querySelector('#app > .tools'); if (!tools) return;
+  const first = tools.querySelector('[data-tool]');
+  VT_BTNS.forEach(([t, ic, tip]) => { const b = document.createElement('button'); b.className = 'tb vt'; b.dataset.tool = t; b.dataset.tip = tip; b.title = tip.split('|')[0]; b.textContent = ic; b.onclick = () => { if (vpen && t !== 'pen') vPenDone(false); setTool(t); syncVecUI(); }; first.before(b); });
   const page = $('#pageBrush'); if (!page) return;
-  const fs = document.createElement('fieldset'); fs.className = 'aset vshape'; fs.id = 'vecShapeSet';
-  fs.innerHTML = '<legend>Shape</legend>' +
-    '<div class="arow vsh-kind"><button class="pb" data-vk="rect">▭ Rectangle</button><button class="pb" data-vk="ellipse">◯ Circle</button></div>' +
-    '<label class="toggle"><input type="checkbox" id="vFill"> Fill with the current color</label>' +
-    '<label class="toggle"><input type="checkbox" id="vLine"> Outline</label>' +
-    '<div class="arow">Outline color <input type="color" id="vLineC"></div>' +
-    '<div class="bopt"><label for="vLineW">Outline width</label><output id="vLineWOut"></output><input type="range" id="vLineW" min="1" max="60"></div>' +
-    '<div class="bopt" id="vRoundRow"><label for="vRound">Round corners</label><output id="vRoundOut"></output><input type="range" id="vRound" min="0" max="100"></div>' +
-    '<div class="bopt"><label for="vOp">Opacity</label><output id="vOpOut"></output><input type="range" id="vOp" min="5" max="100"></div>' +
-    '<p class="ainfo">Drag on the canvas to draw. Hold Shift for a perfect square or circle. Pick the fill color in the palette. Ctrl+Z takes a shape back.</p>';
+  const fs = document.createElement('div'); fs.className = 'vshape'; fs.id = 'vecShapeSet';
+  const opt = (name, list, v) => '<select id="' + name + '">' + list.map(([k, n]) => '<option value="' + k + '">' + n + '</option>').join('') + '</select>';
+  fs.innerHTML =
+    '<fieldset class="aset"><legend>Fill &amp; stroke</legend>' +
+      '<div class="vfs"><button type="button" class="vsw" id="vSwFill" title="Fill: palette colors go here (X switches)"><i></i></button><button type="button" class="vsw stroke" id="vSwLine" title="Stroke: palette colors go here (X switches)"><i></i></button>' +
+      '<div class="vfsr"><label class="toggle"><input type="checkbox" id="vFill"> Fill</label><label class="toggle"><input type="checkbox" id="vLine"> Stroke</label><button type="button" class="pb" id="vSwap" title="Swap fill and stroke colors (Shift+X)">⇄ Swap</button></div></div>' +
+      '<div class="arow">Fill ' + opt('vFType', [['solid', 'Color'], ['grad', 'Gradient']]) + '<input type="color" id="vFillC" title="Fill color"><input type="color" id="vFillC2" title="Second gradient color"></div>' +
+      '<div class="bopt" id="vAngRow"><label for="vAng">Gradient angle</label><output id="vAngOut"></output><input type="range" id="vAng" min="0" max="360"></div>' +
+      '<div class="arow">Stroke <input type="color" id="vLineC" title="Stroke color"> ' + opt('vDash', [['solid', 'Solid'], ['dash', 'Dashed'], ['dot', 'Dotted']]) + '</div>' +
+      '<div class="bopt"><label for="vLineW">Stroke width</label><output id="vLineWOut"></output><input type="range" id="vLineW" min="1" max="80"></div>' +
+      '<div class="arow">Ends ' + opt('vCap', [['round', 'Round'], ['butt', 'Flat'], ['square', 'Square']]) + ' Corners ' + opt('vJoin', [['round', 'Round'], ['miter', 'Sharp'], ['bevel', 'Cut']]) + '</div>' +
+      '<div class="bopt"><label for="vOp">Opacity</label><output id="vOpOut"></output><input type="range" id="vOp" min="5" max="100"></div>' +
+    '</fieldset>' +
+    '<fieldset class="aset"><legend>Shapes</legend>' +
+      '<div class="bopt"><label for="vRound">Round corners</label><output id="vRoundOut"></output><input type="range" id="vRound" min="0" max="100"></div>' +
+      '<div class="arow">Polygon sides <input class="num" type="number" id="vSides" min="3" max="40" style="width:48px"> Star points <input class="num" type="number" id="vPoints" min="3" max="40" style="width:48px"></div>' +
+      '<div class="bopt"><label for="vInner">Star inner size</label><output id="vInnerOut"></output><input type="range" id="vInner" min="10" max="95"></div>' +
+    '</fieldset>' +
+    '<fieldset class="aset"><legend>Arrange &amp; align</legend>' +
+      '<div class="arow vbtns"><button type="button" class="pb" data-va="front" title="Bring to front (Ctrl+Shift+])">⇈ Front</button><button type="button" class="pb" data-va="fwd" title="Bring forward (Ctrl+])">↑</button><button type="button" class="pb" data-va="bwd" title="Send backward (Ctrl+[)">↓</button><button type="button" class="pb" data-va="back" title="Send to back (Ctrl+Shift+[)">⇊ Back</button></div>' +
+      '<div class="arow vbtns"><button type="button" class="pb" data-al="l" title="Align left edges">⇤</button><button type="button" class="pb" data-al="ch" title="Align centers (left–right)">↔</button><button type="button" class="pb" data-al="r" title="Align right edges">⇥</button><button type="button" class="pb" data-al="t" title="Align top edges">⤒</button><button type="button" class="pb" data-al="cv" title="Align middles (up–down)">↕</button><button type="button" class="pb" data-al="b" title="Align bottom edges">⤓</button></div>' +
+      '<div class="arow vbtns"><button type="button" class="pb" data-al="dh" title="Spread evenly left to right (3 or more shapes)">⋯ Spread ↔</button><button type="button" class="pb" data-al="dv" title="Spread evenly top to bottom (3 or more shapes)">⋮ Spread ↕</button></div>' +
+      '<label class="toggle"><input type="checkbox" id="vToCam"> Align to the camera frame</label>' +
+      '<div class="arow vbtns"><button type="button" class="pb" data-vt="fh" title="Flip left–right (Shift+H)">⇋ Flip</button><button type="button" class="pb" data-vt="fv" title="Flip up–down (Shift+V)">⥮ Flip</button><button type="button" class="pb" data-vt="rl" title="Turn 90° left">⟲ 90°</button><button type="button" class="pb" data-vt="rr" title="Turn 90° right (Shift+R)">⟳ 90°</button></div>' +
+      '<div class="arow vbtns"><button type="button" class="pb" data-vc="dup" title="Duplicate (Ctrl+D)">Duplicate</button><button type="button" class="pb" data-vc="path" title="Turn into a free path, to edit its points (A)">To path</button><button type="button" class="pb" data-vc="del" title="Delete (Delete)">Delete</button></div>' +
+    '</fieldset>' +
+    '<p class="ainfo vsel-info" id="vSelInfo"></p>' +
+    '<p class="ainfo">V select · A points · P pen · U rectangle · L ellipse · N polygon · S star · \\ line · I eyedropper. Ctrl+C / V / D copy, paste, duplicate. Arrows move (Shift: 10). Shapes stick to each other and to the camera (hold Ctrl to stop it).</p>';
   page.prepend(fs);
-  const q = s => fs.querySelector(s);
-  fs.querySelectorAll('[data-vk]').forEach(b => b.onclick = () => { setTool(b.dataset.vk); syncVecUI(); });
-  q('#vFill').onchange = e => { VSH.fill = e.target.checked; vshSave(); };
-  q('#vLine').onchange = e => { VSH.line = e.target.checked; vshSave(); };
-  q('#vLineC').oninput = e => { VSH.lc = e.target.value; vshSave(); };
-  q('#vLineW').oninput = e => { VSH.lw = +e.target.value; q('#vLineWOut').textContent = VSH.lw + ' px'; vshSave(); };
-  q('#vRound').oninput = e => { VSH.rr = +e.target.value / 100; q('#vRoundOut').textContent = e.target.value + '%'; vshSave(); };
-  q('#vOp').oninput = e => { S.opacity = +e.target.value / 100; q('#vOpOut').textContent = e.target.value + '%'; const o = $('#opacity'); if (o) { o.value = e.target.value; } };
+  const q = s => fs.querySelector(s), on = (id, ev, fn) => q(id).addEventListener(ev, fn);
+  q('#vSwFill').onclick = () => { if (VSH.target === 'fill') { q('#vFillC').click(); } VSH.target = 'fill'; vshSave(); syncVecUI(); };
+  q('#vSwLine').onclick = () => { if (VSH.target === 'stroke') { q('#vLineC').click(); } VSH.target = 'stroke'; vshSave(); syncVecUI(); };
+  on('#vFill', 'change', e => { VSH.fill = e.target.checked; vshSave(); vApplyStyle(['fill']); syncVecUI(true); });
+  on('#vLine', 'change', e => { VSH.line = e.target.checked; vshSave(); vApplyStyle(['line']); });
+  on('#vSwap', 'click', () => { const f = VSH.fc; VSH.fc = VSH.lc; VSH.lc = f; vshSave(); vApplyStyle(['fc', 'lc']); syncVecUI(true); });
+  on('#vFType', 'change', e => { VSH.ftype = e.target.value; VSH.fill = true; vshSave(); vApplyStyle(['fill', 'grad']); syncVecUI(true); });
+  on('#vFillC', 'input', e => { VSH.fc = e.target.value; VSH.fill = true; vshSave(); vApplyStyle(['fc']); syncVecUI(true); });
+  on('#vFillC2', 'input', e => { VSH.fc2 = e.target.value; vshSave(); vApplyStyle(['grad']); });
+  on('#vAng', 'input', e => { VSH.fang = +e.target.value; q('#vAngOut').textContent = VSH.fang + '°'; vshSave(); vApplyStyle(['grad']); });
+  on('#vLineC', 'input', e => { VSH.lc = e.target.value; VSH.line = true; vshSave(); vApplyStyle(['lc']); syncVecUI(true); });
+  on('#vDash', 'change', e => { VSH.dash = e.target.value; vshSave(); vApplyStyle(['dash']); });
+  on('#vCap', 'change', e => { VSH.cap = e.target.value; vshSave(); vApplyStyle(['cap']); });
+  on('#vJoin', 'change', e => { VSH.join = e.target.value; vshSave(); vApplyStyle(['join']); });
+  on('#vLineW', 'input', e => { VSH.lw = +e.target.value; q('#vLineWOut').textContent = VSH.lw + ' px'; vshSave(); vApplyStyle(['lw']); });
+  on('#vOp', 'input', e => { S.opacity = +e.target.value / 100; q('#vOpOut').textContent = e.target.value + '%'; const o = $('#opacity'); if (o) o.value = e.target.value; vApplyStyle(['op']); });
+  on('#vRound', 'input', e => { VSH.rr = +e.target.value / 100; q('#vRoundOut').textContent = e.target.value + '%'; vshSave(); vApplyStyle(['rr']); });
+  on('#vSides', 'change', e => { VSH.sides = clamp(Math.round(+e.target.value || 6), 3, 40); vshSave(); });
+  on('#vPoints', 'change', e => { VSH.points = clamp(Math.round(+e.target.value || 5), 3, 40); vshSave(); });
+  ['#vSides', '#vPoints'].forEach(id => q(id).addEventListener('keydown', e => e.stopPropagation()));
+  on('#vInner', 'input', e => { VSH.inner = +e.target.value / 100; q('#vInnerOut').textContent = e.target.value + '%'; vshSave(); });
+  on('#vToCam', 'change', e => { VSH.toCam = e.target.checked; vshSave(); });
+  fs.querySelectorAll('[data-va]').forEach(b => b.onclick = () => vArrange(b.dataset.va));
+  fs.querySelectorAll('[data-al]').forEach(b => b.onclick = () => vAlign(b.dataset.al));
+  fs.querySelectorAll('[data-vt]').forEach(b => b.onclick = () => vFlipRot(b.dataset.vt));
+  fs.querySelectorAll('[data-vc]').forEach(b => b.onclick = () => { const k = b.dataset.vc; if (k === 'dup') vDuplicate(); else if (k === 'del') vDelete(); else { vEditSel(st => st.shape && st.shape !== 'path' ? vToPath(st) : st); setTool('vdirect'); syncVecUI(); } });
 })();
-function syncVecUI() {
+function syncVecUI(keepSel) {
   const vec = MODE === 'vector', fs = $('#vecShapeSet'); if (!fs) return;
   const tab = $('#tabBrush'); if (tab) tab.textContent = vec ? 'Shape' : 'Brush';
-  if (!vec) return;
-  const q = s => fs.querySelector(s);
-  q('#vFill').checked = VSH.fill; q('#vLine').checked = VSH.line; q('#vLineC').value = VSH.lc;
+  if (!vec) { view.style.cursor = ''; vsel = new Set(); vpen = null; vnode = null; return; }
+  const q = s => fs.querySelector(s), sel = vSelList().filter(s => s.shape);
+  if (!keepSel && sel.length === 1) {   // the panel shows the look of the selected shape
+    const st = sel[0];
+    Object.assign(VSH, { fill: !!st.fc, fc: st.fc || VSH.fc, ftype: st.fg ? 'grad' : 'solid', fc2: st.fg ? st.fg.c2 : VSH.fc2, fang: st.fg ? st.fg.ang : VSH.fang, line: !!st.ol, lc: st.color || VSH.lc, lw: Math.round(st.pts[0][2] * 10) / 10 || VSH.lw, dash: st.dash || 'solid', cap: st.lcap || 'round', join: st.ljoin || 'round', rr: st.shape === 'rect' ? (st.rr || 0) : VSH.rr });
+  }
+  q('#vSwFill i').style.background = VSH.fill ? (VSH.ftype === 'grad' ? 'linear-gradient(' + (VSH.fang + 90) + 'deg,' + VSH.fc + ',' + VSH.fc2 + ')' : VSH.fc) : 'repeating-linear-gradient(45deg,#fff 0 3px,#d33 3px 5px)';
+  q('#vSwLine i').style.borderColor = VSH.line ? VSH.lc : '#d33';
+  q('#vSwFill').classList.toggle('on', VSH.target === 'fill'); q('#vSwLine').classList.toggle('on', VSH.target === 'stroke');
+  q('#vFill').checked = VSH.fill; q('#vLine').checked = VSH.line; q('#vFType').value = VSH.ftype;
+  q('#vFillC').value = VSH.fc; q('#vFillC2').value = VSH.fc2; q('#vFillC2').hidden = VSH.ftype !== 'grad'; q('#vAngRow').hidden = VSH.ftype !== 'grad';
+  q('#vAng').value = VSH.fang; q('#vAngOut').textContent = VSH.fang + '°';
+  q('#vLineC').value = VSH.lc; q('#vDash').value = VSH.dash; q('#vCap').value = VSH.cap; q('#vJoin').value = VSH.join;
   q('#vLineW').value = VSH.lw; q('#vLineWOut').textContent = VSH.lw + ' px';
-  q('#vRound').value = Math.round(VSH.rr * 100); q('#vRoundOut').textContent = Math.round(VSH.rr * 100) + '%';
   q('#vOp').value = Math.round(S.opacity * 100); q('#vOpOut').textContent = Math.round(S.opacity * 100) + '%';
-  fs.querySelectorAll('[data-vk]').forEach(b => b.classList.toggle('on', b.dataset.vk === S.tool));
+  q('#vRound').value = Math.round(VSH.rr * 100); q('#vRoundOut').textContent = Math.round(VSH.rr * 100) + '%';
+  q('#vSides').value = VSH.sides; q('#vPoints').value = VSH.points; q('#vInner').value = Math.round(VSH.inner * 100); q('#vInnerOut').textContent = Math.round(VSH.inner * 100) + '%';
+  q('#vToCam').checked = !!VSH.toCam;
+  const n = vSelList().length; q('#vSelInfo').textContent = n ? n + ' selected — the settings above change ' + (n > 1 ? 'them' : 'it') : 'Nothing selected — the settings above are for new shapes';
 }
-document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => setTimeout(syncVecUI, 0)));
+document.querySelectorAll('[data-tool]').forEach(b => b.addEventListener('click', () => setTimeout(() => syncVecUI(true), 0)));
+// keep old names used by the editor working
+function commitVecShape(sd) { vAddShapes([vBoxShape(sd.k, sd.x0, sd.y0, sd.x1, sd.y1)]); }
+function vecShapePreview() { return true; }
+/* ================= v30: settings as separate windows (F5–F8) — palette and layers stay where they are ================= */
+const PANELS = [
+  { page: 'pageBrush', tab: 'tabBrush', name: () => MODE === 'vector' ? 'Shape' : 'Brush', act: 'panelBrush', key: 'F5', sync: () => { if (typeof syncBrushTab === 'function') syncBrushTab(); syncVecUI(true); } },
+  { page: 'pageAnim', tab: 'tabAnim', name: () => 'Animation', act: 'panelAnim', key: 'F6' },
+  { page: 'pageRender', tab: 'tabRender', name: () => 'Render', act: 'panelRender', key: 'F7', sync: () => { if (typeof syncRenderTab === 'function') syncRenderTab(); } },
+  { page: 'pageExport', tab: 'tabExport', name: () => 'Export', act: 'panelExport', key: 'F8', sync: () => { if (typeof syncExportTab === 'function') syncExportTab(); } }
+];
+let floating = false, fwTop = 50;
+const fwState = () => prefGet('fwins', {}) || {};
+function fwSave(P, patch) { const st = fwState(); st[P.page] = Object.assign(st[P.page] || {}, patch); prefSet('fwins', st); }
+function makeWin(P, i) {
+  const w = document.createElement('section'); w.className = 'pwin box'; w.id = 'fw_' + P.page; w.hidden = true; w.setAttribute('role', 'dialog');
+  w.innerHTML = '<header class="fwh"><span class="fwt"></span><kbd class="fwk"></kbd><button type="button" class="fwx" title="Close">×</button></header><div class="fwb"></div>';
+  const st = fwState()[P.page] || {};
+  w.style.left = (st.x != null ? st.x : innerWidth - 260 - i * 24) + 'px'; w.style.top = (st.y != null ? st.y : 60 + i * 28) + 'px';
+  if (st.h) w.style.height = st.h + 'px';
+  w.querySelector('.fwx').onclick = () => panelShow(P, false);
+  w.addEventListener('pointerdown', () => { w.style.zIndex = ++fwTop; }, true);
+  const h = w.querySelector('.fwh');
+  h.addEventListener('pointerdown', e => {
+    if (e.target.closest('button')) return; e.preventDefault(); h.setPointerCapture(e.pointerId);
+    const r = w.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+    const mv = ev => { const x = clamp(ev.clientX - dx, -r.width + 60, innerWidth - 60), y = clamp(ev.clientY - dy, 0, innerHeight - 30); w.style.left = x + 'px'; w.style.top = y + 'px'; };
+    const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); fwSave(P, { x: parseInt(w.style.left), y: parseInt(w.style.top) }); };
+    h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+  });
+  new ResizeObserver(() => { if (!w.hidden && w.offsetHeight) fwSave(P, { h: w.offsetHeight }); }).observe(w);
+  document.body.appendChild(w); P.win = w; return w;
+}
+function panelOpen(P) { return floating ? !!(P.win && !P.win.hidden) : !$('#' + P.page).hidden; }
+function panelShow(P, on) {
+  const page = $('#' + P.page); if (!page) return;
+  if (!floating) { if (on) { const t = $('#' + P.tab); if (t) { floating = false; t.dispatchEvent(new MouseEvent('click', { bubbles: true })); } } return; }
+  const w = P.win; if (!w) return;
+  w.querySelector('.fwt').textContent = P.name(); w.querySelector('.fwk').textContent = keyLabel(keyOf(P.act));
+  w.hidden = !on; page.hidden = !on;
+  if (on) {
+    w.style.zIndex = ++fwTop;
+    const r = w.getBoundingClientRect(); if (r.left > innerWidth - 60 || r.top > innerHeight - 40 || r.right < 60) { w.style.left = Math.max(8, innerWidth - r.width - 20) + 'px'; w.style.top = '60px'; }
+    if (P.sync) setTimeout(P.sync, 0);
+  }
+  fwSave(P, { open: !!on }); render();
+}
+function togglePanel(P) { panelShow(P, !panelOpen(P)); }
+function placePanels() {
+  const want = !document.body.classList.contains('mobile');
+  if (want === floating && (floating ? PANELS[0].win : true)) return;
+  const side = $('#side');
+  if (want) {
+    PANELS.forEach((P, i) => { const w = P.win || makeWin(P, i), page = $('#' + P.page); if (page) w.querySelector('.fwb').appendChild(page); });
+    floating = true; document.body.classList.add('floatpanels');
+    const st = fwState(); PANELS.forEach(P => panelShow(P, !!(st[P.page] && st[P.page].open)));
+  } else {
+    floating = false; document.body.classList.remove('floatpanels');
+    PANELS.forEach(P => { const page = $('#' + P.page); if (page && side) side.appendChild(page); if (P.win) P.win.hidden = true; page.hidden = P.page !== 'pageBrush'; });
+    const t = $('#tabBrush'); if (t) t.click();
+  }
+  if (typeof layout === 'function') setTimeout(() => { layout(); render(); }, 0);
+}
+// the old tabs (and buttons that open a tab, like Export) open the window instead
+PANELS.forEach(P => { const t = $('#' + P.tab); if (t) t.addEventListener('click', e => { if (!floating) return; e.stopImmediatePropagation(); e.preventDefault(); panelShow(P, true); }, true); });
+// shortcuts: F5 Brush / Shape, F6 Animation, F7 Render, F8 Export (can be changed in the shortcut list)
+PANELS.forEach(P => { const a = { id: P.act, label: P.name() + ' window', def: P.key, fn: () => togglePanel(P) }; ACTIONS.push(a); ACT_BY_ID[P.act] = a; });
+PANELS[0].label = 'Brush / Shape window'; ACT_BY_ID.panelBrush.label = 'Brush / Shape window';
+// a button in the tool bar lists the windows
+(() => {
+  const tools = document.querySelector('#app > .tools'); if (!tools) return;
+  const b = document.createElement('button'); b.className = 'tb panelsbtn'; b.id = 'panelsBtn'; b.textContent = '☰';
+  b.dataset.tip = 'Windows|Brush, Animation, Render and Export settings as separate windows (F5, F6, F7, F8)'; b.title = 'Windows (F5–F8)';
+  b.onclick = e => { const r = b.getBoundingClientRect(); openMenu(PANELS.map(P => ({ label: (panelOpen(P) ? '✓ ' : '') + P.name() + ' — ' + keyLabel(keyOf(P.act)), action: () => togglePanel(P) })), r.right + 2, r.top); };
+  tools.appendChild(b);
+})();
+setTimeout(placePanels, 0);
+addEventListener('resize', () => setTimeout(placePanels, 50));
+new MutationObserver(() => placePanels()).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 /* ---------- paths & storage ---------- */
 const EXT = { trad: 'sdt', vector: 'sdv', pixel: 'sdp' }, EXT_MODE = { sdt: 'trad', sdv: 'vector', sdp: 'pixel' };
 const TYPE_LABEL = { trad: 'Traditional animation', vector: 'Vector animation', pixel: 'Pixel art animation' };

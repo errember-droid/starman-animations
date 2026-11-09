@@ -1,6 +1,16 @@
 {
- "version": "1.29.0",
+ "version": "1.30.0",
  "changelog": [
+  {
+   "v": "1.30.0",
+   "date": "2026-11-09",
+   "items": [
+    "Brush, Animation, Render and Export settings are now separate windows: F5, F6, F7, F8 (or the ☰ button). Move them anywhere, they remember their place. The canvas gets the space",
+    "Vector art: Selection (V) — move, scale, turn, Alt-drag copies; Direct selection (A) — edit points and curves; Pen (P); Rectangle, Ellipse, Polygon, Star, Line; Eyedropper",
+    "Vector art: fill and stroke colors (X switches, Shift+X swaps), gradient fill, dashed / dotted strokes, ends and corners, round corners",
+    "Vector art: arrange (Ctrl+[ ]), align and spread evenly, flip, turn 90°, copy / paste / duplicate, smart guides that stick to other shapes and the camera"
+   ]
+  },
   {
    "v": "1.29.0",
    "date": "2026-11-09",
