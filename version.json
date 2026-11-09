@@ -1,6 +1,17 @@
 {
- "version": "1.32.3",
+ "version": "1.33.0",
  "changelog": [
+  {
+   "v": "1.33.0",
+   "date": "2026-11-09",
+   "items": [
+    "MP4 export rewritten: real H.264 MP4 files made frame by frame (exact timing, plays and seeks everywhere, faster than real time), sound included",
+    "Playback follows the clock: no more slowing down, a late frame is skipped instead of dragging",
+    "Playback is prepared in the background while you rest, so Play starts at once; the timeline is barely touched while playing",
+    "Onion skin: ghost frames are kept ready, stepping through frames is much quicker",
+    "Settings → Speed: Fast mode for weak laptops (fewer screen pixels on high-DPI screens), Auto picks it for weak computers"
+   ]
+  },
   {
    "v": "1.32.3",
    "date": "2026-11-09",

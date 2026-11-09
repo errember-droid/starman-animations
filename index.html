@@ -1529,18 +1529,28 @@ function ensureOnion() {
   onx.setTransform(1, 0, 0, 1, 0, 0); onx.clearRect(0, 0, onionC.width, onionC.height);
   if (!S.onion) return;
   const r = visibleWorld();
+  // each ghost frame is kept as a ready picture, so stepping through frames only draws the one new neighbour
+  worldTransform(scx); const T = scx.getTransform(), vk = [T.a, T.b, T.c, T.d, T.e, T.f, scr.width, scr.height, upVer, onionPrefs.tint ? 1 : 0, S.layer, JSON.stringify(onionPrefs), S.layers.map(l => (l.visible ? 1 : 0) + ':' + l.opacity).join('')].join(',');
+  const keep = new Set();
   const add = (i, col, a) => {
     const f = S.frames[i]; if (!f) return;
-    scx.setTransform(1, 0, 0, 1, 0, 0); scx.globalCompositeOperation = 'source-over'; scx.clearRect(0, 0, scr.width, scr.height);
-    worldTransform(scx); drawLayers(scx, f, { onion: true, tmp: onTmp, r });
-    if (onionPrefs.tint) { scx.setTransform(1, 0, 0, 1, 0, 0); scx.globalCompositeOperation = 'source-in'; scx.fillStyle = col; scx.fillRect(0, 0, scr.width, scr.height); }
-    scx.globalCompositeOperation = 'source-over';
-    onx.globalAlpha = a; onx.drawImage(scr, 0, 0); onx.globalAlpha = 1;
+    const key = vk + ',' + col; let ent = onionPics.get(f);
+    if (!ent || ent.key !== key) {
+      const c = ent && ent.c.width === scr.width && ent.c.height === scr.height ? ent.c : mk(scr.width, scr.height), g = c.getContext('2d');
+      g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, c.width, c.height);
+      worldTransform(g); drawLayers(g, f, { onion: true, tmp: onTmp, r });
+      if (onionPrefs.tint) { g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = col; g.fillRect(0, 0, c.width, c.height); }
+      g.globalCompositeOperation = 'source-over'; ent = { c, key }; onionPics.set(f, ent);
+    }
+    keep.add(f); onx.globalAlpha = a; onx.drawImage(ent.c, 0, 0); onx.globalAlpha = 1;
   };
   const op = onionPrefs.op;
   for (let k = S.onionPrev; k >= 1; k--) add(S.cur - k, onionPrefs.prev, op / k);
   for (let k = S.onionNext; k >= 1; k--) add(S.cur + k, onionPrefs.next, op / k);
+  for (const f of [...onionPics.keys()]) if (!keep.has(f) && Math.abs(S.frames.indexOf(f) - S.cur) > Math.max(S.onionPrev, S.onionNext) + 2) onionPics.delete(f);   // keep a few around for stepping back and forth
+  if (onionPics.size > 24) [...onionPics.keys()].slice(0, onionPics.size - 24).forEach(f => onionPics.delete(f));
 }
+const onionPics = new Map();
 let checkerPat = null, checkerDpr = 0;
 function checker(ctx, size) {
   if (!checkerPat || checkerDpr !== size) { const c = mk(size * 2, size * 2), g = c.getContext('2d'); g.fillStyle = '#c9c9d4'; g.fillRect(0, 0, size * 2, size * 2); g.fillStyle = '#9d9db0'; g.fillRect(0, 0, size, size); g.fillRect(size, size, size, size); checkerPat = ctx.createPattern(c, 'repeat'); checkerDpr = size; }
@@ -2842,7 +2852,7 @@ const stage = $('#stage');
 function fitScale(r) { let s = Math.min((r.width - 40) / W, (r.height - 70) / H); if (MODE === 'pixel' && s >= 1) s = Math.floor(s); return Math.max(0.02, s); }
 function layout() {
   const r = stage.getBoundingClientRect(); if (!r.width) return;
-  dpr = window.devicePixelRatio || 1;
+  dpr = typeof viewDpr === 'function' ? viewDpr() : (window.devicePixelRatio || 1);
   const pw = Math.round(r.width * dpr), ph = Math.round(r.height * dpr);
   if (view.width !== pw || view.height !== ph) { view.width = pw; view.height = ph; }
   view.style.width = r.width + 'px'; view.style.height = r.height + 'px';
@@ -5008,8 +5018,8 @@ async function playPrep() {
   const n = S.frames.length, sc = playScale(), bytes = n * W * H * sc * sc * 4;
   if (bytes > (document.body.classList.contains('mobile') || isCap() ? 90e6 : 500e6)) { playCache = { ver: upVer, sc, pics: null, live: true }; return true; }   // too big to keep: play live
   prepBusy = true; const box = $('#playPrep'), bar = box.querySelector('i'), txt = box.querySelector('span'); box.hidden = false;
-  const pics = [], ver = upVer;
-  for (let i = 0; i < n; i++) {
+  const ver = upVer, pics = idleSeed && idleSeed.ver === ver && idleSeed.sc === sc ? idleSeed.pics.slice() : [];   // frames already made in the background are kept
+  for (let i = pics.length; i < n; i++) {
     if (!prepBusy || upVer !== ver) { box.hidden = true; prepBusy = false; return false; }
     const c = renderFrame(S.frames[i], sc, false); pics.push(window.createImageBitmap ? await createImageBitmap(c) : c);
     bar.style.width = Math.round((i + 1) / n * 100) + '%'; txt.textContent = 'Preparing playback… ' + (i + 1) + ' / ' + n;
@@ -5386,7 +5396,7 @@ function syncExtraExport(f) {
   if (f === 'mp4') { $('#exQualRow').hidden = false; $('#exSoundRow').hidden = !S.layers.some(l => l.type === 'sound' && l._buf); $('#exBuild').textContent = 'Record video'; $('#exTrimRow').hidden = true; }
   if (f === 'json') { $('#exColsRow').hidden = false; }
   if (f === 'pack') { ['#exRangeRow', '#exTagRow', '#exTrimRow', '#exColsRow', '#exXmlRow', '#exLoopRow'].forEach(id => { if ($(id)) $(id).hidden = true; }); }
-  if (f === 'mp4' && window.MediaRecorder && !['video/mp4;codecs=avc1', 'video/mp4'].some(t => MediaRecorder.isTypeSupported(t))) $('#exFmtInfo').textContent = 'MP4 recording is not supported by this version of the program: use WebM (any video editor and Discord open it).';
+  if (f === 'mp4' && !window.VideoEncoder) $('#exFmtInfo').textContent = 'MP4 cannot be made on this device: WebM will be saved instead (any video editor and Discord open it).';
 }
 /* ================= v23: Hue / Saturation (Ctrl+U), like Aseprite ================= */
 function rgb2hsv(r, g, b) { const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; let h = 0; if (d) { h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; if (h < 0) h += 360; } return [h, mx ? d / mx : 0, mx]; }
@@ -5754,9 +5764,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.32.3';
+const APP_VERSION = '1.33.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.33.0', date: '2026-11-09', items: ['MP4 export rewritten: real H.264 MP4 files made frame by frame (exact timing, plays and seeks everywhere, faster than real time), sound included', 'Playback follows the clock: no more slowing down, a late frame is skipped instead of dragging', 'Playback is prepared in the background while you rest, so Play starts at once; the timeline is barely touched while playing', 'Onion skin: ghost frames are kept ready, stepping through frames is much quicker', 'Settings → Speed: Fast mode for weak laptops (fewer screen pixels on high-DPI screens), Auto picks it for weak computers'] },
   { v: '1.32.3', date: '2026-11-09', items: ['Duplicate several frames at once: select them (Shift + click on the frame numbers or cels) and press D or the duplicate button — the copies go right after them and stay selected'] },
   { v: '1.32.2', date: '2026-11-09', items: ['Timeline: Backspace empties the current cel; with cels selected (Shift + click) Backspace or Delete empties all of them; with whole frames selected it removes the frames. Ctrl+Z brings them back'] },
   { v: '1.32.1', date: '2026-11-09', items: ['Vector art stays sharp while playing (it was prepared at camera size and looked pixelated when zoomed in)'] },
@@ -7603,6 +7614,227 @@ vLoadMore = function (st) {
   ['inner', 'iglow', 'light'].forEach(k => { if (!st.fx || !st.fx[k]) VSH.fx[k] = d[k]; });
   if (!st.fx || !st.fx.mat) VSH.fx.mat = undefined;
 };
+/* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
+   No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
+const MP4 = (() => {
+  const enc = new TextEncoder();
+  const u8 = n => [n & 255], u16 = n => [(n >> 8) & 255, n & 255], u24 = n => [(n >> 16) & 255, (n >> 8) & 255, n & 255], u32 = n => [(n >>> 24) & 255, (n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const str = s => [...enc.encode(s)];
+  function cat(parts) { let n = 0; for (const p of parts) n += p.length; const o = new Uint8Array(n); let i = 0; for (const p of parts) { o.set(p instanceof Uint8Array ? p : Uint8Array.from(p), i); i += p.length; } return o; }
+  function box(type, ...parts) { const body = cat(parts), o = new Uint8Array(8 + body.length); o.set(u32(8 + body.length), 0); o.set(str(type), 4); o.set(body, 8); return o; }
+  const full = (type, v, f, ...parts) => box(type, [v, ...u24(f)], ...parts);
+  const MATRIX = [...u32(0x10000), ...u32(0), ...u32(0), ...u32(0), ...u32(0x10000), ...u32(0), ...u32(0), ...u32(0), ...u32(0x40000000)];
+  function desc(tag, body) { const len = body.length, sz = [0x80 | ((len >> 21) & 127), 0x80 | ((len >> 14) & 127), 0x80 | ((len >> 7) & 127), len & 127]; return cat([[tag], sz, body]); }
+  function stts(durs) { const runs = []; for (const d of durs) { const r = runs[runs.length - 1]; if (r && r[1] === d) r[0]++; else runs.push([1, d]); } return full('stts', 0, 0, u32(runs.length), ...runs.map(([c, d]) => [...u32(c), ...u32(d)])); }
+  function stbl(entry, t, offset) {
+    const parts = [full('stsd', 0, 0, u32(1), entry), stts(t.samples.map(s => s.dur))];
+    if (t.video && t.samples.some(s => !s.key)) { const ks = []; t.samples.forEach((s, i) => { if (s.key) ks.push(i + 1); }); parts.push(full('stss', 0, 0, u32(ks.length), ...ks.map(u32))); }
+    parts.push(full('stsc', 0, 0, u32(1), u32(1), u32(t.samples.length), u32(1)));
+    parts.push(full('stsz', 0, 0, u32(0), u32(t.samples.length), ...t.samples.map(s => u32(s.data.length))));
+    parts.push(full('stco', 0, 0, u32(1), u32(offset)));
+    return box('stbl', ...parts);
+  }
+  function videoEntry(t) {
+    const head = [0, 0, 0, 0, 0, 0, ...u16(1), ...u16(0), ...u16(0), ...u32(0), ...u32(0), ...u32(0), ...u16(t.w), ...u16(t.h), ...u32(0x480000), ...u32(0x480000), ...u32(0), ...u16(1), ...new Array(32).fill(0), ...u16(0x18), ...u16(0xffff)];
+    if (t.codec === 'avc1') return box('avc1', head, box('avcC', t.config), box('pasp', u32(1), u32(1)));
+    return box('vp09', head, full('vpcC', 1, 0, [t.vp.profile, t.vp.level, (8 << 4) | (1 << 1), 1, 1, 1], u16(0)));
+  }
+  function audioEntry(t) {
+    const head = [0, 0, 0, 0, 0, 0, ...u16(1), ...u32(0), ...u32(0), ...u16(t.ch), ...u16(16), ...u16(0), ...u16(0), ...u32(t.sr * 65536 >>> 0)];
+    if (t.codec === 'opus') return box('Opus', head, box('dOps', [0, t.ch], u16(t.preskip || 312), u32(t.sr), u16(0), [0]));
+    const es = desc(3, cat([u16(2), [0], desc(4, cat([[0x40, 0x15], u24(0), u32(t.bitrate || 128000), u32(t.bitrate || 128000), desc(5, t.config)])), desc(6, [2])]));
+    return box('mp4a', head, full('esds', 0, 0, es));
+  }
+  // tracks: [{ video, codec, w, h, timescale, samples: [{ data, dur, key }], config }]
+  return function mux(tracks) {
+    const mvTs = 1000, durOf = t => t.samples.reduce((s, x) => s + x.dur, 0), mvDur = Math.max(...tracks.map(t => Math.round(durOf(t) / t.timescale * mvTs)));
+    const ftyp = box('ftyp', str('isom'), u32(512), str('isom'), str('iso2'), str('avc1'), str('mp41'));
+    const build = offsets => box('moov',
+      full('mvhd', 0, 0, u32(0), u32(0), u32(mvTs), u32(mvDur), u32(0x10000), u16(0x100), u16(0), u32(0), u32(0), MATRIX, new Array(24).fill(0), u32(tracks.length + 1)),
+      ...tracks.map((t, i) => box('trak',
+        full('tkhd', 0, 3, u32(0), u32(0), u32(i + 1), u32(0), u32(Math.round(durOf(t) / t.timescale * mvTs)), u32(0), u32(0), u16(0), u16(0), u16(t.video ? 0 : 0x100), u16(0), MATRIX, u32(t.video ? t.w * 65536 : 0), u32(t.video ? t.h * 65536 : 0)),
+        box('mdia',
+          full('mdhd', 0, 0, u32(0), u32(0), u32(t.timescale), u32(durOf(t)), u16(0x55c4), u16(0)),
+          full('hdlr', 0, 0, u32(0), str(t.video ? 'vide' : 'soun'), u32(0), u32(0), u32(0), str(t.video ? 'Video' : 'Sound'), [0]),
+          box('minf', t.video ? full('vmhd', 0, 1, u16(0), u16(0), u16(0), u16(0)) : full('smhd', 0, 0, u16(0), u16(0)),
+            box('dinf', full('dref', 0, 0, u32(1), full('url ', 0, 1))),
+            stbl(t.video ? videoEntry(t) : audioEntry(t), t, offsets[i]))))));
+    let moov = build(tracks.map(() => 0));
+    const mdatStart = ftyp.length + moov.length + 8, offsets = []; let o = mdatStart;
+    tracks.forEach(t => { offsets.push(o); o += t.samples.reduce((s, x) => s + x.data.length, 0); });
+    moov = build(offsets);
+    const mdatSize = o - mdatStart + 8, parts = [ftyp, moov, Uint8Array.from([...u32(mdatSize), ...str('mdat')])];
+    tracks.forEach(t => t.samples.forEach(s => parts.push(s.data)));
+    return new Blob(parts, { type: 'video/mp4' });
+  };
+})();
+
+async function pickVideoCodec(w, h, fps, bitrate) {
+  if (!window.VideoEncoder) return null;
+  const tries = [['avc1.420034', 'avc1'], ['avc1.42002a', 'avc1'], ['avc1.4d0034', 'avc1'], ['avc1.640034', 'avc1'], ['avc1.42001f', 'avc1'], ['vp09.00.40.08', 'vp09'], ['vp09.00.31.08', 'vp09']];
+  for (const [codec, kind] of tries) {
+    const cfg = { codec, width: w, height: h, bitrate, framerate: fps, latencyMode: 'quality', bitrateMode: 'variable' };
+    if (kind === 'avc1') cfg.avc = { format: 'avc' };
+    try { const r = await VideoEncoder.isConfigSupported(cfg); if (r.supported) return { cfg: r.config || cfg, kind }; } catch (e) {}
+  }
+  return null;
+}
+async function mixSound(frames) {   // the sound layers mixed into one track, the same way playback plays them
+  const layers = S.layers.filter(l => l.type === 'sound' && l._buf && l.visible); if (!layers.length || !window.OfflineAudioContext) return null;
+  const fi0 = S.frames.indexOf(frames[0]), t0 = timeAt(fi0), total = frames.reduce((s, f) => s + frameSecs(f), 0), sr = 48000;
+  const ctx = new OfflineAudioContext(2, Math.max(1, Math.ceil(total * sr)), sr);
+  layers.forEach(l => { const delay = timeAt(l.offset || 0) - t0, g = ctx.createGain(); g.gain.value = l.volume == null ? 1 : l.volume; g.connect(ctx.destination); const s = ctx.createBufferSource(); s.buffer = l._buf; s.connect(g); if (delay >= 0) s.start(delay); else if (-delay < l._buf.duration) s.start(0, -delay); });
+  return ctx.startRendering();
+}
+async function encodeSound(buf) {
+  if (!buf || !window.AudioEncoder) return null;
+  let codec = null;
+  for (const c of ['mp4a.40.2', 'opus']) { try { if ((await AudioEncoder.isConfigSupported({ codec: c, sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 })).supported) { codec = c; break; } } catch (e) {} }
+  if (!codec) return null;
+  const samples = []; let config = null, err = null;
+  const ae = new AudioEncoder({ output: (ch, meta) => { const d = new Uint8Array(ch.byteLength); ch.copyTo(d); samples.push({ data: d, dur: Math.round((ch.duration || 20000) * 48000 / 1e6) }); if (meta && meta.decoderConfig && meta.decoderConfig.description && !config) config = new Uint8Array(meta.decoderConfig.description.buffer ? meta.decoderConfig.description.buffer.slice(0) : meta.decoderConfig.description); }, error: e => { err = e; } });
+  ae.configure({ codec, sampleRate: 48000, numberOfChannels: 2, bitrate: 160000 });
+  const L = buf.getChannelData(0), R = buf.numberOfChannels > 1 ? buf.getChannelData(1) : L, step = 4800;
+  for (let i = 0; i < L.length; i += step) {
+    const n = Math.min(step, L.length - i), data = new Float32Array(n * 2); data.set(L.subarray(i, i + n), 0); data.set(R.subarray(i, i + n), n);
+    const ad = new AudioData({ format: 'f32-planar', sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(i / 48000 * 1e6), data }); ae.encode(ad); ad.close();
+  }
+  await ae.flush(); ae.close(); if (err || !samples.length) return null;
+  let preskip = 312; if (codec === 'opus' && config && config.length >= 12 && String.fromCharCode(...config.slice(0, 8)) === 'OpusHead') preskip = config[10] | (config[11] << 8);
+  if (codec === 'mp4a.40.2' && !config) config = Uint8Array.from([0x11, 0x90]);   // AAC-LC, 48 kHz, stereo
+  return { video: false, codec: codec === 'opus' ? 'opus' : 'mp4a', sr: 48000, ch: 2, timescale: 48000, samples, config, preskip, bitrate: 160000 };
+}
+async function exportMp4(frames, sc, wantSound) {
+  const w = Math.max(2, Math.round(W * sc / 2) * 2), h = Math.max(2, Math.round(H * sc / 2) * 2), fps = Math.max(1, S.fps || 12);
+  const bitrate = Math.max(500000, +($('#exQual') && $('#exQual').value) || 8e6);
+  const pick = await pickVideoCodec(w, h, fps, bitrate);
+  if (!pick) return null;
+  const c = mk(w, h), g = c.getContext('2d'), vs = []; let vconf = null, err = null;
+  const ve = new VideoEncoder({ output: (ch, meta) => { const d = new Uint8Array(ch.byteLength); ch.copyTo(d); vs.push({ data: d, key: ch.type === 'key' }); if (meta && meta.decoderConfig && meta.decoderConfig.description && !vconf) { const ds = meta.decoderConfig.description; vconf = new Uint8Array(ds.buffer ? ds.buffer.slice(ds.byteOffset || 0, (ds.byteOffset || 0) + ds.byteLength) : ds); } }, error: e => { err = e; } });
+  ve.configure(pick.cfg);
+  const TS = 90000; let t = 0, lastKey = -1e9; const durs = [];
+  for (let i = 0; i < frames.length; i++) {
+    if (err) break;
+    const secs = frameSecs(frames[i]), pic = renderFrame(frames[i], sc, true);
+    g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(pic, 0, 0, w, h);
+    const t1 = t + secs, d = Math.max(1, Math.round(t1 * TS) - Math.round(t * TS)); durs.push(d);
+    const vf = new VideoFrame(c, { timestamp: Math.round(t * 1e6), duration: Math.round(secs * 1e6) });
+    const key = i === 0 || t - lastKey >= 2; if (key) lastKey = t;
+    ve.encode(vf, { keyFrame: key }); vf.close(); t = t1;
+    exStatus('Making MP4… frame ' + (i + 1) + ' / ' + frames.length);
+    if (i % 4 === 3 || ve.encodeQueueSize > 6) await new Promise(r => setTimeout(r, 0));
+    while (ve.encodeQueueSize > 12) await new Promise(r => setTimeout(r, 10));
+  }
+  await ve.flush(); ve.close();
+  if (err || vs.length !== frames.length) { console.warn('mp4 encode', err, vs.length, frames.length); return null; }
+  vs.forEach((s, i) => { s.dur = durs[i]; });
+  if (!vs[0].key) vs[0].key = true;
+  const tracks = [{ video: true, codec: pick.kind, w, h, timescale: TS, samples: vs, config: vconf, vp: { profile: 0, level: 40 } }];
+  let soundNote = '';
+  if (wantSound) { exStatus('Making MP4… sound'); const a = await encodeSound(await mixSound(frames)); if (a) tracks.push(a); else soundNote = ' (sound could not be added here)'; }
+  const blob = MP4(tracks);
+  exStatus(w + '×' + h + ' px · ' + t.toFixed(2) + ' s · ' + (pick.kind === 'avc1' ? 'H.264' : 'VP9') + (tracks[1] ? ' + sound' : '') + ' · ' + Math.round(blob.size / 1024) + ' KB' + soundNote);
+  return blob;
+}
+EXTRA_EX.mp4 = async (sc, name) => {
+  const frames = exRange(), wantSound = $('#exSound') && $('#exSound').checked && !$('#exSoundRow').hidden;
+  let blob = null; try { blob = await exportMp4(frames, sc, wantSound); } catch (e) { console.warn(e); }
+  if (blob) { lastEx = { name }; await exSave(name + '.mp4', blob); return; }
+  exStatus('This device cannot make MP4 — saving WebM instead (it opens in video editors, browsers and Discord)…');
+  const wb = await recordWebm(frames, sc); if (wb) { lastEx = { name }; await exSave(name + '.webm', wb); }
+};
+window.__mp4 = { MP4, exportMp4, encodeSound };
+
+/* ================= v33: smoother playback for slow laptops =================
+   • frames follow the clock (requestAnimationFrame + exact times), so the animation never runs slow; if the computer falls behind it skips a frame instead of dragging
+   • during playback only the old and the new frame column of the timeline are touched (not every cel)
+   • playback pictures are prepared quietly in the background while you are not doing anything, so Play starts at once */
+let markIdx = null, markTl = null;
+function markIndex() {
+  if (markIdx && markTl === tg.firstElementChild && markTl && markTl.isConnected) return markIdx;
+  markTl = tg.firstElementChild; markIdx = new Map();
+  tg.querySelectorAll('[data-f]').forEach(el => { const k = +el.dataset.f; let a = markIdx.get(k); if (!a) markIdx.set(k, a = []); a.push(el); });
+  return markIdx;
+}
+const _buildTimeline = buildTimeline;
+buildTimeline = function () { markIdx = null; return _buildTimeline.apply(this, arguments); };
+function fastMark(prev, cur) {
+  const I = markIndex(), set = (fi, on) => (I.get(fi) || []).forEach(el => {
+    const c = el.classList;
+    if (c.contains('fh')) c.toggle('on', on);
+    else if (c.contains('cel')) { c.toggle('col', on); c.toggle('on', on && !S.camSel && +el.dataset.l === S.layer); }
+    else if (c.contains('ccel')) { c.toggle('col', on); c.toggle('on', on && S.camSel); }
+  });
+  if (prev !== cur) set(prev, false); set(cur, true);
+  const h = (I.get(cur) || []).find(el => el.classList.contains('fh'));
+  if (h) { if (h._x == null) h._x = h.offsetLeft; const left = h._x - 146, right = h._x + 40; if (left < tg.scrollLeft) tg.scrollLeft = Math.max(0, left); else if (right > tg.scrollLeft + tg.clientWidth) tg.scrollLeft = left; }
+}
+let playRaf = 0;
+function playAdvance() {   // the next frame of the range; false = stop
+  const r = playRange(), lp = S.loop || r.loop; let n;
+  if (r.dir === 'reverse') { n = S.cur - 1; if (n < r.a) { if (lp) n = r.b; else return false; } }
+  else if (r.dir === 'pingpong') { n = S.cur + pingDir; if (n > r.b || n < r.a) { pingDir = -pingDir; n = S.cur + pingDir; if (n > r.b || n < r.a) n = S.cur; else if (!lp && pingDir === 1) return false; } }
+  else { n = S.cur + 1; if (n > r.b) { if (lp) { n = r.a; startSounds(n); } else return false; } }
+  S.cur = n; return true;
+}
+play = function () {
+  if (S.frames.length < 2 || S.playing) return;
+  if (playNeedsPrep()) { stopIdlePrep(); playPrep().then(ok => { if (ok) play(); }); return; }
+  stopIdlePrep();
+  S.playing = true; $('#playBtn').classList.add('on'); $('#playBtn').innerHTML = pix(ICN.pause); markTimeline();
+  { const r0 = playRange(); if (S.cur < r0.a || S.cur > r0.b) S.cur = r0.dir === 'reverse' ? r0.b : r0.a; pingDir = r0.dir === 'reverse' ? -1 : 1; }
+  startSounds(S.cur); markTimeline(); updateTC(); render();
+  let due = performance.now() + 1000 * frameSecs(curFrame());
+  const loop = now => {
+    if (!S.playing) return;
+    if (now >= due - 2) {
+      const prev = S.cur; let guard = 0;
+      while (now >= due - 2 && guard++ < 500) {
+        if (!playAdvance()) { stopPlay(); return; }
+        due += 1000 * frameSecs(curFrame());
+        if (now - due > 300) { due = now + 1000 * frameSecs(curFrame()); break; }   // fell far behind (the window was hidden): carry on from here
+      }
+      fastMark(prev, S.cur); updateTC(); draw();
+    }
+    playRaf = requestAnimationFrame(loop);
+  };
+  playRaf = requestAnimationFrame(loop);
+};
+const _stopPlay = stopPlay;
+stopPlay = function () { cancelAnimationFrame(playRaf); return _stopPlay.apply(this, arguments); };
+
+// background preparation
+var idleSeed = null;
+let idleJob = null, lastInput = performance.now();
+function stopIdlePrep() { if (idleJob) idleJob.stop = true; idleJob = null; }
+['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, () => { lastInput = performance.now(); stopIdlePrep(); }, true));
+const nextIdle = fn => window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 200 }) : setTimeout(fn, 16);
+function runIdlePrep() {
+  if (idleJob || S.playing || prepBusy || !S.inEditor || document.hidden || S.frames.length < 2 || stroke || !playNeedsPrep()) return;
+  const n = S.frames.length, sc = playScale(), bytes = n * W * H * sc * sc * 4;
+  if (bytes > (document.body.classList.contains('mobile') || isCap() ? 90e6 : 500e6)) return;
+  const job = idleJob = { stop: false, ver: upVer, pics: [], sc, frames: S.frames.slice() };
+  const stepJ = async deadline => {
+    const t0 = performance.now();
+    do {
+      if (job.stop || upVer !== job.ver || S.frames.length !== job.frames.length || job.frames.some((f, i) => S.frames[i] !== f)) { if (idleJob === job) idleJob = null; return; }
+      const i = job.pics.length; const c = renderFrame(job.frames[i], sc, false);
+      job.pics.push(window.createImageBitmap ? await createImageBitmap(c) : c);
+      idleSeed = { ver: job.ver, sc, pics: job.pics };
+      if (job.pics.length >= n) { if (!job.stop && upVer === job.ver) playCache = { ver: job.ver, sc, pics: job.pics }; if (idleJob === job) idleJob = null; return; }
+    } while (performance.now() - t0 < (deadline && deadline.timeRemaining ? Math.max(4, deadline.timeRemaining() - 2) : 12));
+    nextIdle(stepJ);
+  };
+  nextIdle(stepJ);
+}
+setInterval(() => { if (performance.now() - lastInput > 1200) runIdlePrep(); }, 800);
+
+window.__drawT = n => { const t = performance.now(); for (let i = 0; i < n; i++) { onionValid = false; draw(); } return (performance.now() - t) / n; };
+
+// speed setting: fewer screen pixels on weak computers with high-DPI screens
+function weakDevice() { return (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4; }
+function viewDpr() { const d = window.devicePixelRatio || 1, m = prefGet('speed', 'auto'); if (m === 'sharp') return d; if (m === 'fast' || (m === 'auto' && weakDevice())) return Math.min(d, 1); return d; }
+function applySpeed() { onionValid = false; invComp(); layout(); render(); flash(viewDpr() < (window.devicePixelRatio || 1) ? 'Fast mode: on' : 'Fast mode: off'); }
 /* ================= v30: settings as separate windows (F5–F8) — palette and layers stay where they are ================= */
 const PANELS = [
   { page: 'pageBrush', tab: 'tabBrush', name: () => MODE === 'vector' ? 'Shape' : 'Brush', act: 'panelBrush', key: 'F5', sync: () => { if (typeof syncBrushTab === 'function') syncBrushTab(); syncVecUI(true); } },
@@ -8660,6 +8892,9 @@ const SPECIAL = {
     const uid = Math.random().toString(36).slice(2, 6);
     let s = sec('Wallpaper');
     radios(s, 'wall', [['vivid', 'Vivid'], ['soft', 'Soft'], ['dark', 'Dark']], L.wall, v => setWall(v));
+    s = sec('Speed');
+    radios(s, 'speed' + uid, [['auto', 'Auto'], ['fast', 'Fast (slow laptops)'], ['sharp', 'Sharpest']], prefGet('speed', 'auto'), v => { prefSet('speed', v); applySpeed(); });
+    { const p = document.createElement('p'); p.className = 'wnote'; p.textContent = 'Fast draws the canvas with fewer screen pixels on high-DPI screens: everything moves much quicker, the picture on screen is a little softer (files and exports are not changed). Auto turns it on for weak computers.'; s.appendChild(p); }
     s = sec('Desktop');
     const ex = document.createElement('label'); ex.className = 'opt'; const ei = document.createElement('input'); ei.type = 'checkbox'; ei.checked = L.ext; ei.onchange = () => { L.ext = ei.checked; saveLayout(); refreshAll(); }; ex.append(ei, document.createTextNode('Show file extensions')); s.appendChild(ex);
     const ar = document.createElement('div'); ar.className = 'opts'; ar.append(document.createTextNode('Arrange icons:'));
@@ -9016,7 +9251,7 @@ const EX_INFO = {
   sheet: 'All frames in one grid image. With XML it plugs straight into FNF / Codename Engine. Held frames appear once and repeat in the XML.',
   gif: 'Plays anywhere: Discord, browsers, chats. Up to 256 colors per frame, holds keep their timing.',
   apng: 'Animated PNG: like a GIF but with every color and soft transparency. Opens in browsers, Discord and Telegram.',
-  mp4: 'MP4 video (H.264): plays on phones, YouTube, TikTok and in every video editor. Records in real time, sound layers can be included.',
+  mp4: 'MP4 video (H.264): plays on phones, YouTube, TikTok and in every video editor. Made frame by frame (exact timing, faster than real time), sound layers can be included.',
   json: 'One sheet PNG with a JSON (Aseprite / TexturePacker layout) with every frame, its time and the frame tags: Unity, Godot, Phaser, GameMaker and LibGDX read it.',
   pack: 'A .sdz package to move this animation to another computer exactly as it is: every frame, layer, camera key, sound and image, plus your palette, brush, shortcuts and tool settings. Open it with Import or drag it onto the desktop there.',
   webm: 'A video file that plays in real time while it records, so it takes as long as the animation. Sound layers can be included.',
