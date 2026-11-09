@@ -1,6 +1,13 @@
 {
- "version": "1.35.2",
+ "version": "1.36.0",
  "changelog": [
+  {
+   "v": "1.36.0",
+   "date": "2026-11-09",
+   "items": [
+    "Scale drawings on all frames at once (Shift+T, the Animation window, or right-click a layer): any size %, width and height separately, around the middle of the drawings, the feet, the canvas, the camera or the corner; this layer or all layers; all, selected or one frame. You see it while you change it, the canvas stays the same size"
+   ]
+  },
   {
    "v": "1.35.2",
    "date": "2026-11-09",

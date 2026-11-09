@@ -597,6 +597,7 @@ body.floatpanels:not(.mobile) #side,body.floatpanels:not(.mobile) #splitR{displa
 .palpacks{width:min(780px,calc(100vw - 24px))!important;max-width:none!important}.palpacks .dlg{width:100%;box-sizing:border-box;max-height:calc(100vh - 40px);display:flex;flex-direction:column}.pp-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 8px}.pp-cats{display:flex;gap:3px;flex-wrap:wrap;flex:1}.pp-cats .pb.on{outline:2px solid var(--accent);outline-offset:-2px}#ppFind{width:150px}
 .pp-list{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;padding-right:4px;min-height:200px}.pp-card{border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;gap:5px}
 .pp-h{display:flex;justify-content:space-between;gap:6px;align-items:baseline}.pp-h span{font-size:10px;opacity:.7}.pp-sw{display:grid;grid-template-columns:repeat(16,1fr);gap:1px}.pp-sw i{display:block;aspect-ratio:1}.pp-sw.dense{grid-template-columns:repeat(24,1fr)}.pp-note{font-size:10px;opacity:.75}.pp-b{display:flex;gap:4px;margin-top:auto}.pp-b .txtbtn{flex:1;padding:2px 6px!important;min-height:0!important;height:24px}
+.scaledlg::backdrop{background:transparent}.scaledlg{margin:auto 16px auto auto!important;width:min(420px,calc(100vw - 32px))}.scaledlg .fdrow input[type=range]{flex:1;min-width:0}
 .lobadge{position:absolute;right:-2px;bottom:-2px;min-width:16px;height:16px;line-height:15px;text-align:center;font-size:12px;font-family:system-ui,sans-serif;color:#16162b;background:#ffce57;border:1px solid #16162b;border-radius:3px;pointer-events:none}.file .ico{position:relative}
 .syncbtn{height:22px;padding:0 6px;font:inherit;font-size:11px;color:var(--ink,#fff);background:transparent;border:1px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap}.syncbtn[data-st=err]{color:#ff8a8a;border-color:#ff8a8a}.syncbtn[data-st=busy]{opacity:.75}
 .syncdlg ol{padding-left:18px;margin:6px 0}.syncdlg li{margin:5px 0}.syncdlg a{color:var(--accent)}.syncdlg .sy-row{display:flex;gap:8px;align-items:center;margin:8px 0}.syncdlg .sy-row input[type=text],.syncdlg .sy-row input[type=password]{flex:1;min-width:0}.syncdlg .sy-st{min-height:1.2em;color:var(--accent)}.syncdlg .muted{color:var(--muted)}
@@ -751,6 +752,7 @@ body.filedrag #stage,body.filedrag #icons{outline:3px dashed var(--accent);outli
         <div class="arow"><button class="pb wide" id="camKey">Add key</button><button class="pb wide" id="camUnkey">Remove</button></div>
         <label class="arow">To next key <select id="camEase"><option value="smooth">Smooth</option><option value="linear">Linear</option><option value="hold">Hold (jump)</option></select></label>
         <button class="pb wide" id="camSelBtn">Move camera with mouse</button>
+        <button class="pb wide" id="scaleDrawBtn" title="Make the drawings bigger or smaller on every frame at once; the canvas stays the same">Scale drawings on all frames…</button>
         <button class="pb wide" id="scaleAnimBtn">Scale the whole animation…</button>
         <label class="toggle" title="On: the camera frame always stands on whole pixels (crisp pixel art). Off: it glides smoothly between pixels"><input type="checkbox" id="camPx"> Move by whole pixels</label>
       </fieldset>
@@ -3838,6 +3840,7 @@ function layerMenu(li, x, y) {
     { label: 'Move down', disabled: li <= 0, action: () => moveLayer(-1) },
     { label: 'Merge down', disabled: li <= 0 || !isPlain(l) || !isPlain(S.layers[li - 1]) || (l.lv || 0) !== (S.layers[li - 1].lv || 0), action: () => mergeDown(li) },
     { sep: true },
+    { label: 'Scale this layer on all frames…', disabled: !isDraw(l), action: () => scaleDrawingsUI(li) },
     { label: 'Clear layer in all frames', disabled: !isDraw(l), action: () => clearLayer(li) },
     { label: 'Delete layer', disabled: S.layers.length < 2, action: delLayer }]), x, y);
 }
@@ -5771,9 +5774,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.35.2';
+const APP_VERSION = '1.36.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.36.0', date: '2026-11-09', items: ['Scale drawings on all frames at once (Shift+T, the Animation window, or right-click a layer): any size %, width and height separately, around the middle of the drawings, the feet, the canvas, the camera or the corner; this layer or all layers; all, selected or one frame. You see it while you change it, the canvas stays the same size'] },
   { v: '1.35.2', date: '2026-11-09', items: ['Uses much less memory: ready playback pictures have a smaller limit that depends on the computer and are freed as soon as they are out of date, onion ghosts keep only the frames around you, smoothed (Render) pictures are kept only for the frame on screen, big effect pictures are given back'] },
   { v: '1.35.1', date: '2026-11-09', items: ['Vector effects: inner shadow, inner glow and the edge bevel are drawn a new way — no more stray stripes, and a sharp (softness 0) inner shadow is no longer cut off'] },
   { v: '1.35.0', date: '2026-11-09', items: ['Palette packs: Palette ⋯ → Palette packs — 35 ready palettes from 2 to 256 colors: classic (PICO-8, Game Boy, CGA, web safe…), big ramps (up to 256), greys, skin tones, hair, eyes, forest, ocean, sky, desert, ice, fire, autumn, spring, pastel, neon, candy, night city, spooky, muted, metals, wood & stone', 'Use replaces your palette, + Add adds the new colors to it; Ctrl+Z brings the old palette back'] },
@@ -7827,6 +7831,84 @@ function openPalPacks() {
   d.addEventListener('close', () => d.remove());
   document.body.appendChild(d); draw(); d.showModal();
 }
+/* ================= v36: scale the drawings on all frames at once (the canvas size stays) ================= */
+function exactBox(c) {   // the real drawn area of a cel (pixels or shapes), in canvas coordinates
+  if (!c) return null;
+  if (c.strokes) { let b = null; for (const st of c.strokes) { const q = strokeBox(st); b = b ? { x0: Math.min(b.x0, q.x0), y0: Math.min(b.y0, q.y0), x1: Math.max(b.x1, q.x1), y1: Math.max(b.y1, q.y1) } : { x0: q.x0, y0: q.y0, x1: q.x1, y1: q.y1 }; } return b; }
+  const B = celBox(c, 0); if (!B) return null;
+  const cv = mk(B.w, B.h), g = cv.getContext('2d', { willReadFrequently: true }); g.translate(-B.x0, -B.y0); c.s.drawTo(g);
+  const d = g.getImageData(0, 0, B.w, B.h).data; let x0 = B.w, y0 = B.h, x1 = -1, y1 = -1;
+  for (let y = 0; y < B.h; y++) for (let x = 0; x < B.w; x++) if (d[(y * B.w + x) * 4 + 3]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  return x1 < 0 ? null : { x0: B.x0 + x0, y0: B.y0 + y0, x1: B.x0 + x1 + 1, y1: B.y0 + y1 + 1 };
+}
+function scaleCelAround(c, kx, ky, ax, ay) {
+  if (!c) return c;
+  if (c.strokes) {
+    const kw = Math.sqrt(Math.abs(kx * ky)), M = { a: kx, b: 0, c: 0, d: ky, e: ax - kx * ax, f: ay - ky * ay };
+    const n = { strokes: c.strokes.map(st => st.shape ? vApply(st, M) : Object.assign({}, st, { box: undefined, pts: st.pts.map(q => [ax + (q[0] - ax) * kx, ay + (q[1] - ay) * ky, q[2] * kw]) })), dirty: true };
+    ['op', 'vkey', 'vgen', 'vez'].forEach(k => { if (c[k] != null) n[k] = c[k]; }); return n;
+  }
+  const n = { s: new Surf(), dirty: true }; if (c.op != null) n.op = c.op; const E = exactBox(c); if (!E) return n; const B = { x0: E.x0, y0: E.y0, w: E.x1 - E.x0, h: E.y1 - E.y0 };
+  const src = mk(B.w, B.h), g = src.getContext('2d'); g.translate(-B.x0, -B.y0); c.s.drawTo(g);
+  const x = Math.round(ax + (B.x0 - ax) * kx), y = Math.round(ay + (B.y0 - ay) * ky), w = Math.max(1, Math.round(B.w * kx)), h = Math.max(1, Math.round(B.h * ky));
+  n.s.paint(x, y, x + w, y + h, g2 => { g2.imageSmoothingEnabled = MODE !== 'pixel'; g2.imageSmoothingQuality = 'high'; g2.drawImage(src, x, y, w, h); });
+  return n;
+}
+function scaleDrawingsUI(onlyLayer) {
+  const range = typeof tlRange !== 'undefined' && tlRange && tlRange.f1 > tlRange.f0 ? [tlRange.f0, tlRange.f1] : null;
+  const d = document.createElement('dialog'); d.className = 'fdlg wnew scaledlg';
+  d.innerHTML = '<form method="dialog" class="dlg"><h2>Scale drawings</h2><p class="fdnote">Makes the drawings bigger or smaller on many frames at once. The canvas and the camera stay as they are. Ctrl+Z puts it back.</p>' +
+    '<div class="fdrow"><label>Size %</label><input type="range" id="scP" min="10" max="400" step="1" value="150"><input type="number" class="num" id="scPn" value="150" min="1" max="2000"></div>' +
+    '<label class="toggle"><input type="checkbox" id="scSep"> Width and height separately</label>' +
+    '<div class="fdrow" id="scHRow" hidden><label>Height %</label><input type="range" id="scH" min="10" max="400" step="1" value="150"><input type="number" class="num" id="scHn" value="150" min="1" max="2000"></div>' +
+    '<div class="arow">Around <select id="scAt"><option value="draw">the middle of the drawings</option><option value="feet">the bottom middle (feet stay on the ground)</option><option value="canvas">the middle of the canvas</option><option value="cam">the middle of the camera</option><option value="tl">the top left corner</option></select></div>' +
+    '<div class="arow">Layers <select id="scL"><option value="one">' + (onlyLayer != null ? 'only “' + esc_(S.layers[onlyLayer].name) + '”' : 'only this layer (“' + esc_(S.layers[S.layer].name) + '”)') + '</option><option value="all">all drawing layers</option></select></div>' +
+    '<div class="arow">Frames <select id="scF"><option value="all">all ' + S.frames.length + ' frames</option>' + (range ? '<option value="range" selected>the selected frames (' + (range[0] + 1) + '–' + (range[1] + 1) + ')</option>' : '') + '<option value="one">only this frame</option></select></div>' +
+    '<div class="actions fdpre"><button type="button" class="txtbtn" data-p="50">50%</button><button type="button" class="txtbtn" data-p="75">75%</button><button type="button" class="txtbtn" data-p="125">125%</button><button type="button" class="txtbtn" data-p="150">150%</button><button type="button" class="txtbtn" data-p="200">200%</button></div>' +
+    '<div class="actions"><button class="txtbtn" value="no">Cancel</button><button class="txtbtn primary" value="yes">Scale</button></div></form>';
+  const q = s => d.querySelector(s);
+  const before = S.frames.map(f => f.cels.slice());
+  const targets = () => {
+    const lis = q('#scL').value === 'all' ? S.layers.map((l, i) => i).filter(i => isDraw(S.layers[i])) : [onlyLayer != null ? onlyLayer : S.layer].filter(i => isDraw(S.layers[i]));
+    const f = q('#scF').value, fis = f === 'one' ? [S.cur] : f === 'range' && range ? Array.from({ length: range[1] - range[0] + 1 }, (_, i) => range[0] + i) : S.frames.map((_, i) => i);
+    return { lis, fis };
+  };
+  let boxCache = new Map();
+  const anchor = (T) => {
+    const at = q('#scAt').value;
+    if (at === 'canvas') return [W / 2, H / 2]; if (at === 'tl') return [0, 0];
+    if (at === 'cam') { const c = camRect(S.cur); return [c.x0 + c.w / 2, c.y0 + c.h / 2]; }
+    let b = null;
+    for (const fi of T.fis) for (const li of T.lis) { const c = before[fi][li]; if (!c) continue; let e = boxCache.get(c); if (e === undefined) { e = exactBox(c); boxCache.set(c, e); } if (e) b = b ? { x0: Math.min(b.x0, e.x0), y0: Math.min(b.y0, e.y0), x1: Math.max(b.x1, e.x1), y1: Math.max(b.y1, e.y1) } : Object.assign({}, e); }
+    if (!b) return [W / 2, H / 2];
+    return at === 'feet' ? [(b.x0 + b.x1) / 2, b.y1] : [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2];
+  };
+  let after = null;
+  const build = () => {
+    const kx = clamp(+q('#scPn').value || 100, 1, 2000) / 100, ky = q('#scSep').checked ? clamp(+q('#scHn').value || 100, 1, 2000) / 100 : kx;
+    const T = targets(), [ax, ay] = anchor(T), map = new Map();
+    after = before.map((cs, fi) => cs.map((c, li) => { if (!c || !T.fis.includes(fi) || !T.lis.includes(li) || (Math.abs(kx - 1) < 1e-6 && Math.abs(ky - 1) < 1e-6)) return c; if (!map.has(c)) map.set(c, scaleCelAround(c, kx, ky, ax, ay)); return map.get(c); }));
+    S.frames.forEach((f, i) => { f.cels = after[i].slice(); }); invComp(); onionValid = false; render(); renderPreview();
+  };
+  let t = 0; const later = () => { clearTimeout(t); t = setTimeout(build, 120); };
+  const link = (r, n) => { r.addEventListener('input', () => { n.value = r.value; later(); }); n.addEventListener('input', () => { if (n.value !== '') { r.value = Math.min(+r.max, +n.value); later(); } }); n.addEventListener('keydown', e => e.stopPropagation()); };
+  link(q('#scP'), q('#scPn')); link(q('#scH'), q('#scHn'));
+  q('#scSep').addEventListener('change', e => { q('#scHRow').hidden = !e.target.checked; later(); });
+  ['#scAt', '#scL', '#scF'].forEach(id => q(id).addEventListener('change', later));
+  d.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => { q('#scP').value = q('#scPn').value = b.dataset.p; if (!q('#scSep').checked) { q('#scH').value = q('#scHn').value = b.dataset.p; } later(); }));
+  d.addEventListener('close', () => {
+    clearTimeout(t);
+    if (d.returnValue === 'yes') {
+      build(); const A = after, Bf = before, frames = S.frames.slice();
+      const put = dir => { frames.forEach((f, i) => { f.cels = (dir ? A : Bf)[i].slice(); }); invComp(); onionValid = false; buildTimeline(); render(); renderPreview(); };
+      put(1); pushX(put); touched(); flash('Drawings scaled to ' + q('#scPn').value + '%' + (q('#scSep').checked ? ' × ' + q('#scHn').value + '%' : ''));
+    } else { S.frames.forEach((f, i) => { f.cels = before[i].slice(); }); invComp(); onionValid = false; render(); renderPreview(); }
+    d.remove();
+  });
+  document.body.appendChild(d); d.showModal(); build();
+}
+$('#scaleDrawBtn').onclick = () => scaleDrawingsUI();
+ACTIONS.push({ id: 'scaleDraw', label: 'Scale drawings on all frames…', def: 'Shift+KeyT', fn: () => scaleDrawingsUI() }); ACT_BY_ID.scaleDraw = ACTIONS[ACTIONS.length - 1];
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
