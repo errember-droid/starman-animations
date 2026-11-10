@@ -596,7 +596,7 @@ body.floatpanels:not(.mobile) #side,body.floatpanels:not(.mobile) #splitR{displa
 .gedit{margin:4px 0 8px}.gedit[hidden]{display:none}.gbar{height:18px;border:1px solid #16162b;cursor:copy;background-color:#fff}.gstops{position:relative;height:16px;margin:0 0 4px}.gstops i{position:absolute;top:2px;width:10px;height:12px;margin-left:-5px;border:1px solid #16162b;box-shadow:0 0 0 1px #fff;cursor:ew-resize;touch-action:none}.gstops i.on{outline:2px solid var(--accent);outline-offset:1px}.gstops i::before{content:'';position:absolute;left:2px;top:-5px;border:3px solid transparent;border-bottom-color:#16162b}
 .palpacks{width:min(780px,calc(100vw - 24px))!important;max-width:none!important}.palpacks .dlg{width:100%;box-sizing:border-box;max-height:calc(100vh - 40px);display:flex;flex-direction:column}.pp-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:4px 0 8px}.pp-cats{display:flex;gap:3px;flex-wrap:wrap;flex:1}.pp-cats .pb.on{outline:2px solid var(--accent);outline-offset:-2px}#ppFind{width:150px}
 .pp-list{flex:1;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;padding-right:4px;min-height:200px}.pp-card{border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column;gap:5px}
-.pp-h{display:flex;justify-content:space-between;gap:6px;align-items:baseline}.pp-h span{font-size:10px;opacity:.7}.pp-sw{display:grid;grid-template-columns:repeat(16,1fr);gap:1px}.pp-sw i{display:block;aspect-ratio:1}.pp-sw.dense{grid-template-columns:repeat(24,1fr)}.pp-note{font-size:10px;opacity:.75}.pp-b{display:flex;gap:4px;margin-top:auto}.pp-b .txtbtn{flex:1;padding:2px 6px!important;min-height:0!important;height:24px}
+.picpal .dlg{min-width:min(420px,92vw)}.picpal .pp-prev{display:flex;justify-content:center;align-items:center;min-height:60px;margin:6px 0;background:repeating-conic-gradient(#ccc 0 25%,#eee 0 50%) 0 0/12px 12px;border:1px solid #0004}.picpal .pp-img{max-width:100%;image-rendering:auto}.picpal .pp-hint{margin:6px;background:#fffe;color:#16162b;padding:2px 6px}.picpal .pp-res{margin:6px 0;min-height:20px}.picpal .pp-res i{min-height:16px}.pp-h{display:flex;justify-content:space-between;gap:6px;align-items:baseline}.pp-h span{font-size:10px;opacity:.7}.pp-sw{display:grid;grid-template-columns:repeat(16,1fr);gap:1px}.pp-sw i{display:block;aspect-ratio:1}.pp-sw.dense{grid-template-columns:repeat(24,1fr)}.pp-note{font-size:10px;opacity:.75}.pp-b{display:flex;gap:4px;margin-top:auto}.pp-b .txtbtn{flex:1;padding:2px 6px!important;min-height:0!important;height:24px}
 .scaledlg::backdrop{background:transparent}.scaledlg{margin:auto 16px auto auto!important;width:min(420px,calc(100vw - 32px))}.scaledlg .fdrow input[type=range]{flex:1;min-width:0}
 .lobadge{position:absolute;right:-2px;bottom:-2px;min-width:16px;height:16px;line-height:15px;text-align:center;font-size:12px;font-family:system-ui,sans-serif;color:#16162b;background:#ffce57;border:1px solid #16162b;border-radius:3px;pointer-events:none}.file .ico{position:relative}
 .syncbtn{height:22px;padding:0 6px;font:inherit;font-size:11px;color:var(--ink,#fff);background:transparent;border:1px solid rgba(255,255,255,.25);cursor:pointer;white-space:nowrap}.syncbtn[data-st=err]{color:#ff8a8a;border-color:#ff8a8a}.syncbtn[data-st=busy]{opacity:.75}
@@ -1178,7 +1178,7 @@ const S = { frames: [], cur: 0, layers: [], layer: 0, fps: 12, tool: 'brush', co
   brush: (() => { try { return Object.assign(brushDefault(), JSON.parse(localStorage.getItem('sda.brush') || '{}')); } catch (e) { return brushDefault(); } })() };
 const saveBrush = () => { try { localStorage.setItem('sda.brush', JSON.stringify(S.brush)); } catch (e) {} };
 const CAM_EASE = { smooth: 'Smooth', linear: 'Linear', hold: 'Hold (jump)' };
-const DOC_KEYS = ['clip', 'camPx', 'bpm', 'guides', 'ftags', 'ftagPlay', 'camRow', 'camOff', 'paper', 'newHold', 'scrub', 'showOutside', 'loop', 'onionPrev', 'onionNext', 'bgMode', 'tags', 'render'];
+const DOC_KEYS = ['palette', 'clip', 'camPx', 'bpm', 'guides', 'ftags', 'ftagPlay', 'camRow', 'camOff', 'paper', 'newHold', 'scrub', 'showOutside', 'loop', 'onionPrev', 'onionNext', 'bgMode', 'tags', 'render'];
 
 /* ---------- layers, cels, frames ---------- */
 const isDraw = l => !l.type || l.type === 'draw' || l.type === 'mask';
@@ -3060,13 +3060,14 @@ function imagePalette(file) {
 }
 async function readPaletteFile(file) {
   const nm = file.name || '';
-  if (/^image\//.test(file.type) || /\.(png|gif|jpe?g|bmp|webp)$/i.test(nm)) return imagePalette(file);
+  if (/^image\//.test(file.type) || /\.(png|gif|jpe?g|bmp|webp)$/i.test(nm)) return openPicPalette(file).then(() => null);
   const buf = await file.arrayBuffer(), u8 = new Uint8Array(buf);
   if (buf.byteLength >= 6 && u8[4] === 0xE0 && u8[5] === 0xA5) return asePalette(buf);   // Aseprite file (.ase or .aseprite)
   const bin = binPalette(nm, buf); if (bin) return bin;
   return parsePalette(nm, new TextDecoder().decode(u8));
 }
 function setPaletteFrom(cols, name) {
+  if (cols === null) return;   // the picture window already did it
   if (!cols.length) { flash('No colors found in that file'); return; }
   S.palette = cols.slice(0, 512); renderPalette(); paletteChanged(); flash((name || 'Palette') + ': ' + S.palette.length + ' colors');
 }
@@ -3078,7 +3079,7 @@ function importPalette() {
   });
 }
 const palSaveItems = () => [{ label: 'GIMP / Aseprite (.gpl)', action: () => exportPalette('gpl') }, { label: 'Hex list (.hex)', action: () => exportPalette('hex') }, { label: 'JASC (.pal)', action: () => exportPalette('pal') }, { label: 'Paint.NET (.txt)', action: () => exportPalette('txt') }, { label: 'Picture strip (.png)', action: () => exportPalette('png') }];
-$('#palMenu').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); openMenu([{ label: 'Palette packs… (ready palettes)', action: () => openPalPacks() }, { sep: true }, { label: 'Import palette… (picture, .ase, .gpl, .pal, .hex, .aco, .act, .txt)', action: importPalette }, { label: 'Save palette', sub: palSaveItems() }, { sep: true }, { label: 'Reset palette', action: () => { S.palette = defaultPalette(); renderPalette(); paletteChanged(); } }], r.left, r.bottom + 4); };
+$('#palMenu').onclick = e => { const r = e.currentTarget.getBoundingClientRect(); openMenu([{ label: 'Palette packs… (ready palettes)', action: () => openPalPacks() }, { label: 'Palette from a picture / this frame…', action: () => openPicPalette() }, { sep: true }, { label: 'Import palette… (picture, .ase, .gpl, .pal, .hex, .aco, .act, .txt)', action: importPalette }, { label: 'Save palette', sub: palSaveItems() }, { sep: true }, { label: 'Reset palette', action: () => { S.palette = defaultPalette(); renderPalette(); paletteChanged(); } }], r.left, r.bottom + 4); };
 function exportPalette(kind) {
   const nm = 'palette', rgb = c => { const v = parseInt(c.slice(1), 16); return [v >> 16 & 255, v >> 8 & 255, v & 255]; };
   if (kind === 'pal') { exSave(nm + '.pal', new Blob(['JASC-PAL\r\n0100\r\n' + S.palette.length + '\r\n' + S.palette.map(c => rgb(c).join(' ')).join('\r\n') + '\r\n'], { type: 'text/plain' })); return; }
@@ -3939,7 +3940,7 @@ function serSurf(s) {
 function projectData() {
   linkReset();
   return { bake: S.clip ? makeBake() : undefined, mode: MODE, w: W, h: H, fps: S.fps, cur: S.cur, layer: S.layer,
-    settings: { paper: S.paper, newHold: S.newHold, scrub: S.scrub, showOutside: S.showOutside, loop: S.loop, onionPrev: S.onionPrev, onionNext: S.onionNext, bgMode: S.bgMode, tags: S.tags, ftags: S.ftags, render: S.render, camRow: S.camRow, camOff: S.camOff, camPx: S.camPx || undefined, clip: S.clip || undefined, bpm: S.bpm || undefined, guides: S.guides && S.guides.length ? S.guides : undefined },
+    settings: { pal: S.palette.slice(), paper: S.paper, newHold: S.newHold, scrub: S.scrub, showOutside: S.showOutside, loop: S.loop, onionPrev: S.onionPrev, onionNext: S.onionNext, bgMode: S.bgMode, tags: S.tags, ftags: S.ftags, render: S.render, camRow: S.camRow, camOff: S.camOff, camPx: S.camPx || undefined, clip: S.clip || undefined, bpm: S.bpm || undefined, guides: S.guides && S.guides.length ? S.guides : undefined },
     layers: S.layers.map(l => {
       const o = { name: l.name, type: l.type || 'draw', visible: l.visible, locked: l.locked, opacity: l.opacity == null ? 1 : l.opacity };
       if (l.lv) o.lv = l.lv; if (l.collapsed) o.collapsed = true; if (l.lc) o.lc = l.lc; if (l.pv) o.pv = { x: l.pv.x, y: l.pv.y };
@@ -3965,6 +3966,7 @@ function loadProject(pp) {
   S.newHold = clamp(st.newHold || 1, 1, 99); S.scrub = st.scrub !== false; S.showOutside = st.showOutside !== false;
   S.loop = st.loop !== false; S.onionPrev = st.onionPrev != null ? st.onionPrev : 2; S.onionNext = st.onionNext != null ? st.onionNext : 1;
   S.bgMode = st.bgMode === 'checker' ? 'checker' : 'color';
+  if (Array.isArray(st.pal) && st.pal.length) { const pl = st.pal.filter(c => /^#[0-9a-f]{6}$/i.test(c)).slice(0, 512); if (pl.length) { S.palette = pl; try { renderPalette(); } catch (e) {} } }
   S.ftags = Array.isArray(st.ftags) ? st.ftags.map(cleanFTag).filter(Boolean).slice(0, 24) : []; S.ftagPlay = '';
   S.tags = Array.isArray(st.tags) ? st.tags.map(x => cleanTag(x)).filter(Boolean).slice(0, 12) : [];
   S.render = Object.assign({ up: 'none', fxPreview: true, soft: 1, pxSize: 1, viewUp: true }, st.render || {}); if (/^smooth/.test(S.render.up)) { S.render.up = 'softpx'; S.render.soft = 1; } if (!UPSCALE[S.render.up]) S.render.up = 'none';
@@ -5774,9 +5776,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.42.1';
+const APP_VERSION = '1.43.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.43.0', date: '2026-11-10', items: ['Palette from a picture (Palette ⋯ → Palette from a picture / this frame): open a picture, take this frame or a copied picture, choose how many colors (4–256) — it picks the main colors smartly and sorts them into ramps. Use as palette or add to yours', 'Each project now keeps its own palette: opening a project brings its palette back. Old projects keep the current palette until you change it'] },
   { v: '1.42.1', date: '2026-11-10', items: ['Mirror: a point on the mirror line keeps its curve handles straight across the line — it cannot turn and both handles stretch the same. Alt+drag a handle for a symmetric sharp corner'] },
   { v: '1.42.0', date: '2026-11-10', items: ['Mirror + points (A): double-click the outline to add a point and its mirror partner appears on the other side too', 'Alt+click a point (sharp ↔ smooth) or the Smooth / Sharp buttons give the partner point the same mirrored curve handles; dragging a handle bends both sides'] },
   { v: '1.41.1', date: '2026-11-10', items: ['Ctrl+Shift+D now makes a linked mirror copy: turn, move, resize or reshape the original and the copy mirrors it. Clicking the copy picks the original. “Separate copy” in Shape → Mirror still makes an independent one'] },
@@ -8556,6 +8559,82 @@ vNudge = function (dx, dy) {
   vsel = nsel; return vCommitMulti(list);
 };
 window.__mask = { host: maskHost, tree: () => JSON.stringify(layerTree()), addMask: addMaskLayer, addLayer, drop: (a, b, w) => dropLayer(a, b, w), move: d => moveLayer(d) };
+/* ================= v43: palette from a picture or the frame (smart color picking), palette saved in each project ================= */
+function quantizeColors(data, n) {   // median cut on a 5-bit color histogram → n colors, sorted in nice ramps
+  const hist = new Map(), exact = new Map();
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 128) continue; const r = data[i], g = data[i + 1], b = data[i + 2];
+    if (exact.size <= 4096) { const k = (r << 16) | (g << 8) | b; exact.set(k, (exact.get(k) || 0) + 1); }
+    const k = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3); let h = hist.get(k); if (!h) hist.set(k, h = [0, 0, 0, 0]); h[0]++; h[1] += r; h[2] += g; h[3] += b;
+  }
+  if (!hist.size) return [];
+  let cols;
+  if (exact.size <= 4096 && exact.size <= n) cols = [...exact.keys()].map(k => [k >> 16 & 255, k >> 8 & 255, k & 255]);   // pixel art: its real colors
+  else {
+    const all = [...hist.values()].map(h => [h[1] / h[0], h[2] / h[0], h[3] / h[0], h[0]]);
+    const boxInfo = box => { let lo = [255, 255, 255], hi = [0, 0, 0], cnt = 0; box.forEach(p => { for (let c = 0; c < 3; c++) { if (p[c] < lo[c]) lo[c] = p[c]; if (p[c] > hi[c]) hi[c] = p[c]; } cnt += p[3]; }); const rg = hi.map((h, c) => h - lo[c]), ch = rg.indexOf(Math.max(...rg)); return { box, cnt, ch, score: rg[ch] * Math.sqrt(cnt) }; };
+    let boxes = [boxInfo(all)];
+    while (boxes.length < n) {
+      let bi = -1, bs = 0; boxes.forEach((b, i) => { if (b.box.length > 1 && b.score > bs) { bs = b.score; bi = i; } }); if (bi < 0) break;
+      const b = boxes[bi], ch = b.ch, s = b.box.slice().sort((p, q) => p[ch] - q[ch]); let acc = 0, cut = 1;
+      for (let i = 0; i < s.length; i++) { acc += s[i][3]; if (acc >= b.cnt / 2) { cut = Math.min(s.length - 1, Math.max(1, i + 1)); break; } }
+      boxes.splice(bi, 1, boxInfo(s.slice(0, cut)), boxInfo(s.slice(cut)));
+    }
+    cols = boxes.map(b => { let r = 0, g = 0, bl = 0; b.box.forEach(p => { r += p[0] * p[3]; g += p[1] * p[3]; bl += p[2] * p[3]; }); return [r / b.cnt, g / b.cnt, bl / b.cnt].map(Math.round); });
+  }
+  // grays first (dark → light), then by hue, each ramp dark → light
+  const info = c => { const [r, g, b] = c.map(v => v / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn; let h = 0; if (d > 1e-6) { h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h = (h * 60 + 360) % 360; } return { c, h, l, s: d }; };
+  const I = cols.map(info), gray = I.filter(x => x.s < 0.08).sort((a, b) => a.l - b.l), rest = I.filter(x => x.s >= 0.08).sort((a, b) => Math.floor(a.h / 30) - Math.floor(b.h / 30) || a.l - b.l);
+  const out = [], keep = [];   // drop near-twins (a color almost the same as one already kept)
+  gray.concat(rest).forEach(x => { if (keep.some(k => Math.hypot(k[0] - x.c[0], k[1] - x.c[1], k[2] - x.c[2]) < 10)) return; keep.push(x.c); out.push(hexOf(x.c[0], x.c[1], x.c[2])); });
+  return out;
+}
+function picPixels(src) {   // a picture or canvas → its pixels (at most ~400k)
+  const w0 = src.naturalWidth || src.width, h0 = src.naturalHeight || src.height, sc = Math.min(1, Math.sqrt(400000 / Math.max(1, w0 * h0)));
+  const w = Math.max(1, Math.round(w0 * sc)), h = Math.max(1, Math.round(h0 * sc)), c = mk(w, h), g = c.getContext('2d', { willReadFrequently: true });
+  g.imageSmoothingEnabled = false; g.drawImage(src, 0, 0, w, h); return g.getImageData(0, 0, w, h).data;
+}
+function openPicPalette(file) {
+  return new Promise(done => {
+    const d = document.createElement('dialog'); d.className = 'fdlg wnew picpal';
+    const counts = [4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 256];
+    d.innerHTML = '<form method="dialog" class="dlg"><h2>Palette from a picture</h2>' +
+      '<div class="arow"><button type="button" class="pb" data-src="file">Open a picture…</button><button type="button" class="pb" data-src="frame">This frame</button><button type="button" class="pb" data-src="paste" title="A picture you copied (Ctrl+C in another program)">Pasted picture</button></div>' +
+      '<div class="pp-prev"><canvas class="pp-img" hidden></canvas><p class="ainfo pp-hint">Pick where to take the colors from.</p></div>' +
+      '<div class="arow">Colors <select id="ppN">' + counts.map(n => '<option' + (n === 16 ? ' selected' : '') + '>' + n + '</option>') .join('') + '</select><span class="ainfo" id="ppInfo"></span></div>' +
+      '<div class="pp-sw pp-res"></div>' +
+      '<div class="dlgbtns"><button type="button" class="txtbtn" value="cancel" data-x>Cancel</button><button type="button" class="txtbtn" data-add disabled>+ Add to palette</button><button type="button" class="txtbtn primary" data-use disabled>Use as palette</button></div></form>';
+    const q = s => d.querySelector(s), res = q('.pp-res'), prev = q('.pp-img');
+    let px = null, cols = [], result = null;
+    const run = () => {
+      if (!px) return; cols = quantizeColors(px, +q('#ppN').value);
+      res.innerHTML = cols.map(c => '<i style="background:' + c + '" title="' + c + '"></i>').join(''); res.classList.toggle('dense', cols.length > 48);
+      q('#ppInfo').textContent = cols.length + ' colors'; q('[data-add]').disabled = q('[data-use]').disabled = !cols.length;
+    };
+    const take = (src, name) => {
+      if (!src) { flash('Could not read that picture'); return; }
+      px = picPixels(src); const w = src.naturalWidth || src.width, h = src.naturalHeight || src.height, s = Math.min(1, 300 / w, 140 / h);
+      prev.width = Math.max(1, Math.round(w * s)); prev.height = Math.max(1, Math.round(h * s)); const g = prev.getContext('2d'); g.imageSmoothingEnabled = MODE !== 'pixel'; g.drawImage(src, 0, 0, prev.width, prev.height);
+      prev.hidden = false; q('.pp-hint').textContent = name || ''; run();
+    };
+    const fromFile = f => fileToDataURL(f).then(loadImg).then(img => take(img, f.name));
+    d.addEventListener('click', async e => {
+      const b = e.target.closest('[data-src]'); if (!b) return;
+      if (b.dataset.src === 'file') { const f = await pickFile('image/*,.png,.jpg,.jpeg,.gif,.bmp,.webp'); if (f) fromFile(f); }
+      else if (b.dataset.src === 'frame') { const f = curFrame(); if (f) take(exportFrame(f, Math.min(1, 1024 / Math.max(W, H)), true), 'This frame (what the camera sees)'); }
+      else { try { const items = await navigator.clipboard.read(); for (const it of items) { const t = it.types.find(x => x.startsWith('image/')); if (t) { const bl = await it.getType(t); fromFile(new File([bl], 'Pasted picture', { type: t })); return; } } flash('No picture copied'); } catch (er) { flash('Could not read the clipboard — press Ctrl+V in this window'); } }
+    });
+    d.addEventListener('paste', e => { const it = [...(e.clipboardData || {}).items || []].find(x => x.type.startsWith('image/')); if (it) { e.preventDefault(); fromFile(it.getAsFile()); } });
+    q('#ppN').addEventListener('change', run);
+    q('[data-x]').onclick = () => d.close();
+    q('[data-use]').onclick = () => { result = cols.slice(); setPaletteFrom(result, 'Picture'); d.close(); };
+    q('[data-add]').onclick = () => { const have = new Set(S.palette.map(c => c.toLowerCase())), add = cols.filter(c => !have.has(c.toLowerCase())); if (!add.length) { flash('All these colors are already in your palette'); return; } result = S.palette.concat(add); setPaletteFrom(result, 'Palette'); d.close(); };
+    d.addEventListener('close', () => { d.remove(); done(result); });
+    document.body.appendChild(d); d.showModal();
+    if (file) fromFile(file);
+  });
+}
+window.__picpal = { quantize: quantizeColors, open: openPicPalette, openFile: p => openFile(p), data: () => projectData(), load: pp => loadProject(pp) };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
@@ -9080,10 +9159,10 @@ function parseProject(raw) {
 /* ---------- open documents (one per taskbar button) ---------- */
 const menu = $('#menu'), appEl = $('#app');
 let docs = [], active = null;
-function stash() { if (active) { Object.assign(active, { mode: MODE, w: W, h: H, frames: S.frames, cur: S.cur, fps: S.fps, hist, redo: redoS, zoom: S.zoom, layers: S.layers, layer: S.layer }); active.doc = {}; for (const k of DOC_KEYS) active.doc[k] = S[k]; } }
+function stash() { if (active) { Object.assign(active, { mode: MODE, w: W, h: H, frames: S.frames, cur: S.cur, fps: S.fps, hist, redo: redoS, zoom: S.zoom, layers: S.layers, layer: S.layer }); active.doc = {}; for (const k of DOC_KEYS) active.doc[k] = k === 'palette' ? S.palette.slice() : S[k]; } }
 function unstash(doc) {
   active = doc; MODE = doc.mode; setCanvasSize(doc.w, doc.h);
-  if (doc.doc) Object.assign(S, doc.doc);
+  if (doc.doc) { Object.assign(S, doc.doc); if (Array.isArray(doc.doc.palette)) { S.palette = doc.doc.palette.slice(); try { renderPalette(); } catch (e) {} } }
   S.camSel = false; S.camPreview = null; view.classList.remove('camera');
   S.layers = doc.layers; S.layer = doc.layer; S.frames = doc.frames; S.cur = doc.cur; S.fps = doc.fps; hist = doc.hist; redoS = doc.redo; S.zoom = doc.zoom || { fit: true };
 }
@@ -10485,7 +10564,7 @@ if (desk) document.querySelectorAll('.desk-only').forEach(el => el.hidden = fals
 
 /* ---------- boot ---------- */
 S.palette = defaultPalette(); renderPalette(); setColor(S.color); updateUndo();
-paletteChanged = () => { L.palette = S.palette.slice(); saveLayout(); uiRec('palette', JSON.stringify(S.palette)); };
+paletteChanged = () => { L.palette = S.palette.slice(); saveLayout(); uiRec('palette', JSON.stringify(S.palette)); touched(); };   // the project keeps its own palette
 store.layoutRead().then(d => { if (d && typeof d === 'object') { Object.assign(L, d); if (!L.pos || typeof L.pos !== 'object') L.pos = {}; } }, () => {})
   .then(() => { menu.dataset.wall = L.wall; if (!Array.isArray(L.history)) L.history = []; if (Array.isArray(L.palette) && L.palette.length) { S.palette = L.palette.filter(c => /^#[0-9a-f]{6}$/.test(c)); renderPalette(); markSwatches(); } tick(); return showDesktop(); })
   .then(() => { dcSync(); dcPush(); })

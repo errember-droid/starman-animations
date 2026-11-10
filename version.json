@@ -1,6 +1,14 @@
 {
- "version": "1.42.1",
+ "version": "1.43.0",
  "changelog": [
+  {
+   "v": "1.43.0",
+   "date": "2026-11-10",
+   "items": [
+    "Palette from a picture (Palette ⋯ → Palette from a picture / this frame): open a picture, take this frame or a copied picture, choose how many colors (4–256) — it picks the main colors smartly and sorts them into ramps. Use as palette or add to yours",
+    "Each project now keeps its own palette: opening a project brings its palette back. Old projects keep the current palette until you change it"
+   ]
+  },
   {
    "v": "1.42.1",
    "date": "2026-11-10",
