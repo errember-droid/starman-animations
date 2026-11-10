@@ -1429,7 +1429,7 @@ function exportFrame(f, sc, bg) {
   const cw = Math.round(W * sc), ch = Math.round(H * sc), c = mk(cw, ch), g = c.getContext('2d', { willReadFrequently: true }), tmp = mk(cw, ch);
   g.imageSmoothingEnabled = MODE !== 'pixel' && sc < 1; g.imageSmoothingQuality = 'high';
   if (bg) { g.fillStyle = S.paper; g.fillRect(0, 0, cw, ch); }
-  const fi = Math.max(0, S.frames.indexOf(f)), cr = camRect(fi), k = sc * cr.z;
+  const fi = f.__fi != null ? f.__fi : Math.max(0, S.frames.indexOf(f)), cr = camRect(fi), k = sc * cr.z;
   camSet(g, cr, sc);
   drawLayers(g, f, { exportOnly: true, tmp, r: cr, cam: cr, applyFx: true, canvas: c, fi, k: sc });
   g.setTransform(1, 0, 0, 1, 0, 0);
@@ -4639,15 +4639,16 @@ async function exportCharacter(sc, name) {
   exStatus('Building the character…'); await new Promise(r => setTimeout(r, 20));
   const sh = buildTagSheet(sc, name), png = new Uint8Array(await (await blobOf(sh.out)).arrayBuffer()), eng = $('#exEngine').value, enc = s => new TextEncoder().encode(s);
   const icon = ($('#exIcon').value.trim() || 'face').replace(/[^\w\-]/g, ''), col = $('#exBarCol').value, player = $('#exPlayer').checked, sing = +$('#exSing').value || 4, aa = MODE !== 'pixel';
-  const anims = S.ftags.map(t => ({ gn: t.gn || guessGameName(t.name), name: t.name, loop: !!t.loop, ox: Math.round((t.ox || 0) * sc), oy: Math.round((t.oy || 0) * sc) }));
+  const same = exSameSize() && sc !== 1, osc = same ? 1 : sc, gsc = same ? +(1 / sc).toFixed(4) : 1, fps = S.fps * (sh.N || 1);   // same size in game: bigger pictures, smaller scale
+  const anims = S.ftags.map(t => ({ gn: t.gn || guessGameName(t.name), name: t.name, loop: !!t.loop, ox: Math.round((t.ox || 0) * osc), oy: Math.round((t.oy || 0) * osc) }));
   const files = [];
   if (eng !== 'codename') {
     files.push({ name: 'psych/images/characters/' + name + '.png', data: png }, { name: 'psych/images/characters/' + name + '.xml', data: enc(sh.xml) });
-    files.push({ name: 'psych/characters/' + name + '.json', data: enc(JSON.stringify({ animations: anims.map(a => ({ anim: a.gn, name: a.name, fps: S.fps, loop: a.loop, indices: [], offsets: [a.ox, a.oy] })), image: 'characters/' + name, scale: 1, sing_duration: sing, healthicon: icon, position: [0, 0], camera_position: [0, 0], flip_x: player, no_antialiasing: !aa, healthbar_colors: hexRGB(col), _editor_isPlayer: player }, null, '\t')) });
+    files.push({ name: 'psych/characters/' + name + '.json', data: enc(JSON.stringify({ animations: anims.map(a => ({ anim: a.gn, name: a.name, fps, loop: a.loop, indices: [], offsets: [a.ox, a.oy] })), image: 'characters/' + name, scale: gsc, sing_duration: sing, healthicon: icon, position: [0, 0], camera_position: [0, 0], flip_x: player, no_antialiasing: !aa, healthbar_colors: hexRGB(col), _editor_isPlayer: player }, null, '\t')) });
   }
   if (eng !== 'psych') {
     files.push({ name: 'codename/images/characters/' + name + '.png', data: png }, { name: 'codename/images/characters/' + name + '.xml', data: enc(sh.xml) });
-    files.push({ name: 'codename/data/characters/' + name + '.xml', data: enc('<!DOCTYPE codename-engine-character>\n<character isPlayer="' + player + '" flipX="' + player + '" holdTime="' + sing + '" color="' + col.toUpperCase() + '" icon="' + icon + '" scale="1" antialiasing="' + aa + '" sprite="' + name + '">\n' + anims.map(a => '\t<anim name="' + a.gn.replace(/"/g, '') + '" anim="' + a.name.replace(/[<>"&]/g, '') + '" fps="' + S.fps + '" loop="' + a.loop + '" x="' + a.ox + '" y="' + a.oy + '"/>').join('\n') + '\n</character>\n') });
+    files.push({ name: 'codename/data/characters/' + name + '.xml', data: enc('<!DOCTYPE codename-engine-character>\n<character isPlayer="' + player + '" flipX="' + player + '" holdTime="' + sing + '" color="' + col.toUpperCase() + '" icon="' + icon + '" scale="' + gsc + '" antialiasing="' + aa + '" sprite="' + name + '">\n' + anims.map(a => '\t<anim name="' + a.gn.replace(/"/g, '') + '" anim="' + a.name.replace(/[<>"&]/g, '') + '" fps="' + fps + '" loop="' + a.loop + '" x="' + a.ox + '" y="' + a.oy + '"/>').join('\n') + '\n</character>\n') });
   }
   const z = makeZip(files); lastEx = { out: sh.out, xml: sh.xml, name }; $('#exXml').value = sh.xml;
   showResult(sh.out, sh.out.width + '×' + sh.out.height + ' px · ' + anims.length + ' animations · files for ' + (eng === 'both' ? 'Psych and Codename' : eng === 'psych' ? 'Psych Engine' : 'Codename Engine'));
@@ -5776,9 +5777,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.43.0';
+const APP_VERSION = '1.44.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.44.0', date: '2026-11-10', items: ['FNF export (sprite sheet / FNF character), vector: Smoothness 2×–4× adds in-between pictures made from your shape keys ◆, and the fps in the character file goes up to match — smooth in the game, no jerky steps', 'FNF character: “Same size in game” — a bigger export Size makes the sprite sharper (the character scale is set to match), so it stays crisp when the camera zooms in'] },
   { v: '1.43.0', date: '2026-11-10', items: ['Palette from a picture (Palette ⋯ → Palette from a picture / this frame): open a picture, take this frame or a copied picture, choose how many colors (4–256) — it picks the main colors smartly and sorts them into ramps. Use as palette or add to yours', 'Each project now keeps its own palette: opening a project brings its palette back. Old projects keep the current palette until you change it'] },
   { v: '1.42.1', date: '2026-11-10', items: ['Mirror: a point on the mirror line keeps its curve handles straight across the line — it cannot turn and both handles stretch the same. Alt+drag a handle for a symmetric sharp corner'] },
   { v: '1.42.0', date: '2026-11-10', items: ['Mirror + points (A): double-click the outline to add a point and its mirror partner appears on the other side too', 'Alt+click a point (sharp ↔ smooth) or the Smooth / Sharp buttons give the partner point the same mirrored curve handles; dragging a handle bends both sides'] },
@@ -8635,6 +8637,82 @@ function openPicPalette(file) {
   });
 }
 window.__picpal = { quantize: quantizeColors, open: openPicPalette, openFile: p => openFile(p), data: () => projectData(), load: pp => loadProject(pp) };
+/* ================= v44: smooth FNF export — extra in-between frames from shape keys, sharper sprites at the same size in game ================= */
+const exSmoothN = () => { const r = $('#exSmRow'), s = $('#exSmooth'); return r && !r.hidden && s ? clamp(+s.value || 1, 1, 4) : 1; };
+const exSameSize = () => { const c = $('#exSame'), r = $('#exSameRow'); return !!(c && c.checked && r && !r.hidden); };
+(() => {
+  const cols = $('#exColsRow'); if (!cols) return;
+  const sm = document.createElement('label'); sm.className = 'arow'; sm.id = 'exSmRow';
+  sm.innerHTML = 'Smoothness <select id="exSmooth"><option value="1">As drawn</option><option value="2">2× smoother</option><option value="3">3× smoother</option><option value="4">4× smoother</option></select>';
+  sm.title = 'Adds in-between pictures made from your shape keys (◆), so the animation plays smoothly in the game. The speed (fps) in the files goes up to match';
+  const same = document.createElement('label'); same.className = 'toggle'; same.id = 'exSameRow';
+  same.innerHTML = '<input type="checkbox" id="exSame" checked> Same size in game (bigger Size = sharper, not bigger)';
+  const info = document.createElement('p'); info.className = 'ainfo'; info.id = 'exSmInfo';
+  cols.after(sm, same, info);
+  ['#exSmooth', '#exScale', '#exSame'].forEach(id => { const el = $(id); if (el) el.addEventListener('change', syncSmoothRows); });
+})();
+function syncSmoothRows() {
+  const f = $('#exFmt').value, vec = MODE === 'vector', on = (f === 'sheet' || f === 'char');
+  const sm = $('#exSmRow'); if (!sm) return; sm.hidden = !on || !vec;
+  const sc = +$('#exScale').value || 1, same = $('#exSameRow'); same.hidden = f !== 'char' || sc === 1;
+  const n = exSmoothN(), info = $('#exSmInfo');
+  info.hidden = !on;
+  info.textContent = !on ? '' : (n > 1 ? 'Plays at ' + (S.fps * n) + ' fps (' + S.fps + ' × ' + n + ')' + (f === 'sheet' ? ' — set this fps for the animation in your game' : ' — written into the character file') + '. ' : '') +
+    (f === 'char' && sc !== 1 && exSameSize() ? 'Pictures are ' + sc + '× bigger, the character scale is ' + (+(1 / sc).toFixed(4)) + ', so it looks the same size but stays sharp when the camera zooms in.' : '');
+}
+const _syncExportTab21 = syncExportTab;
+syncExportTab = function () { _syncExportTab21.apply(this, arguments); syncSmoothRows(); };
+
+// a picture of the animation at a time between two frames (fi + u), from the shape keys
+function vKeysOf(li) { const out = []; S.frames.forEach((f, fi) => { const c = f.cels[li]; if (c && c.vkey) out.push(fi); }); return out; }
+const sameMemo = new WeakMap();
+function sameKeys(A, B) { let m = sameMemo.get(A); if (!m) sameMemo.set(A, m = new WeakMap()); if (!m.has(B)) m.set(B, A.strokes === B.strokes || JSON.stringify(A.strokes) === JSON.stringify(B.strokes)); return m.get(B); }
+function tweenFrameAt(fi, u, next) {   // next: the frame index that plays after fi (or -1)
+  const F = S.frames, f = F[fi]; if (!(u > 0) || next !== fi + 1) return { f, moving: false };
+  let moving = false; const cels = f.cels.slice();
+  S.layers.forEach((l, li) => {
+    if (!isDraw(l)) return; const K = vKeysOf(li); if (K.length < 2) return;
+    let a = -1, b = -1; for (let k = 0; k < K.length - 1; k++) if (K[k] <= fi && fi < K[k + 1]) { a = K[k]; b = K[k + 1]; break; }
+    if (a < 0) return; const A = F[a].cels[li], B = F[b].cels[li]; if (!A || !B || !A.strokes || !B.strokes) return;
+    const ez = EASE[A.vez] || EASE.linear; if (A.vez === 'hold' || sameKeys(A, B)) return;
+    const old = f.cels[li], c = { strokes: vTweenList(A.strokes, B.strokes, ez((fi + u - a) / (b - a))), dirty: true }; if (old && old.op != null) c.op = old.op;
+    cels[li] = c; moving = true;
+  });
+  return moving ? { f: Object.assign({}, f, { cels, __fi: fi }), moving: true } : { f, moving: false };
+}
+// tags → the pictures to put in one sheet, with each animation's list of pictures
+function smoothPlan(tags, N) {
+  const pics = [], at = new Map(), lists = [];
+  tags.forEach(t => {
+    const frames = t.frames, idx = frames.map(f => S.frames.indexOf(f)), list = [];
+    frames.forEach((f, k) => {
+      const fi = idx[k], nx = k + 1 < frames.length ? idx[k + 1] : -1, T = ticksOf(f), steps = T * N;
+      for (let j = 0; j < steps; j++) {
+        const u = N > 1 ? j / steps : 0, tw = tweenFrameAt(fi, u, nx), key = tw.moving ? fi + ':' + Math.round(u * 10000) : 'f' + fi;
+        if (!at.has(key)) { at.set(key, pics.length); pics.push(tw.f); }
+        list.push(at.get(key));
+      }
+    });
+    lists.push({ name: t.name, list });
+  });
+  return { pics, lists };
+}
+// one sheet for many animations (FNF characters, "all tags" sheets) — now with smoothness
+buildTagSheet = function (sc, name, tagsIn) {
+  const N = exSmoothN(), tags = tagsIn || S.ftags.map(t => ({ name: t.name, frames: tagFrames(t) }));
+  const plan = smoothPlan(tags, N), n = plan.pics.length;
+  if (n > 600) throw new Error(n + ' pictures is too many for one sheet — lower the smoothness or export fewer frames');
+  let pics = plan.pics.map(f => renderFrame(f, sc, exBg())), tr = exTrim() ? trimSet(pics) : null; if (tr) pics = tr.pics;
+  const cw = pics[0].width, ch = pics[0].height, trAttr = tr && tr.cut ? ' frameX="' + (-tr.ox) + '" frameY="' + (-tr.oy) + '" frameWidth="' + tr.fw + '" frameHeight="' + tr.fh + '"' : '';
+  const cols = clamp(+$('#exCols').value || Math.max(1, Math.min(n, Math.floor(8192 / cw))), 1, n), rows = Math.ceil(n / cols);
+  if (cols * cw > 16384 || rows * ch > 16384 || cols * cw * rows * ch > 268000000) throw new Error('the sheet would be ' + (cols * cw) + '×' + (rows * ch) + ' px — too big. Lower the Size or the smoothness, or turn on Trim');
+  const out = mk(cols * cw, rows * ch), o = out.getContext('2d'), pos = [];
+  pics.forEach((p, i) => { const x = (i % cols) * cw, y = Math.floor(i / cols) * ch; o.drawImage(p, x, y); pos.push([x, y]); });
+  let xml = '<?xml version="1.0" encoding="utf-8"?>\n<TextureAtlas imagePath="' + name + '.png">\n';
+  plan.lists.forEach(a => a.list.forEach((pi, k) => { const [x, y] = pos[pi]; xml += '  <SubTexture name="' + a.name.replace(/[<>"&]/g, '') + String(k).padStart(4, '0') + '" x="' + x + '" y="' + y + '" width="' + cw + '" height="' + ch + '"' + trAttr + '/>\n'; }));
+  return { out, xml: xml + '</TextureAtlas>\n', n, sc, N, cols, rows };
+};
+window.__smooth = { plan: (N) => { const p = smoothPlan(S.ftags.map(t => ({ name: t.name, frames: tagFrames(t) })), N); return { pics: p.pics.length, lists: p.lists.map(l => l.list.length) }; } };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
@@ -10366,14 +10444,7 @@ $('#exBuild').onclick = async () => {
       await exportCharacter(sc, name);
     } else if (fmt === 'sheet' && exTagSel() === '*') {
       // one sheet, every tag is an animation: SubTextures are named "<tag>0000", frames shared by tags are stored once
-      const used = [...new Set(S.ftags.flatMap(t => tagFrames(t)))].sort((a, b) => S.frames.indexOf(a) - S.frames.indexOf(b)), n = used.length;
-      let pics = used.map(f => renderFrame(f, sc, exBg())), tr = exTrim() ? trimSet(pics) : null; if (tr) pics = tr.pics;
-      const cw = pics[0].width, ch = pics[0].height, trAttr = tr && tr.cut ? ' frameX="' + (-tr.ox) + '" frameY="' + (-tr.oy) + '" frameWidth="' + tr.fw + '" frameHeight="' + tr.fh + '"' : '';
-      const cols = clamp(+$('#exCols').value || Math.max(1, Math.min(n, Math.floor(8192 / cw))), 1, n), rows = Math.ceil(n / cols), out = mk(cols * cw, rows * ch), o = out.getContext('2d'), at = new Map();
-      used.forEach((f, i) => { const x = (i % cols) * cw, y = Math.floor(i / cols) * ch; o.drawImage(pics[i], x, y); at.set(f, [x, y]); });
-      let xml = '<?xml version="1.0" encoding="utf-8"?>\n<TextureAtlas imagePath="' + name + '.png">\n';
-      S.ftags.forEach(t => { let k = 0; tagFrames(t).forEach(f => { const [x, y] = at.get(f); for (let hh = 0; hh < ticksOf(f); hh++) xml += '  <SubTexture name="' + t.name.replace(/[<>"&]/g, '') + String(k++).padStart(4, '0') + '" x="' + x + '" y="' + y + '" width="' + cw + '" height="' + ch + '"' + trAttr + '/>\n'; }); });
-      xml += '</TextureAtlas>\n';
+      const sh = buildTagSheet(sc, name), out = sh.out, xml = sh.xml, n = sh.n;
       lastEx = { out, xml, name }; $('#exXml').value = xml; $('#exCopied').textContent = '';
       showResult(out, out.width + '×' + out.height + ' px · ' + S.ftags.length + ' animations, ' + n + ' frames'); syncExportTab();
       const r1 = await exSave(name + '.png', await blobOf(out));
@@ -10390,18 +10461,7 @@ $('#exBuild').onclick = async () => {
       const z = makeZip(files); showResult(prev, S.ftags.length + ' tags · ' + files.length + ' files · ' + Math.round(z.length / 1024) + ' KB');
       lastEx = { name }; await exSave(name + (fmt === 'gif' ? '_gifs' : '') + '.zip', new Blob([z], { type: 'application/zip' }));
     } else if (fmt === 'sheet') {
-      const frames = exRange(), n = frames.length;
-      let pics = frames.map(f => renderFrame(f, sc, exBg())), tr = exTrim() ? trimSet(pics) : null; if (tr) pics = tr.pics;
-      const cw = pics[0].width, ch = pics[0].height, trAttr = tr && tr.cut ? ' frameX="' + (-tr.ox) + '" frameY="' + (-tr.oy) + '" frameWidth="' + tr.fw + '" frameHeight="' + tr.fh + '"' : '';
-      const cols = clamp(+$('#exCols').value || Math.max(1, Math.min(n, Math.floor(8192 / cw))), 1, n), rows = Math.ceil(n / cols);
-      const out = mk(cols * cw, rows * ch), o = out.getContext('2d');
-      let xml = '<?xml version="1.0" encoding="utf-8"?>\n<TextureAtlas imagePath="' + name + '.png">\n', k = 0;
-      frames.forEach((f, i) => {
-        const x = (i % cols) * cw, y = Math.floor(i / cols) * ch;
-        o.drawImage(pics[i], x, y);
-        for (let hh = 0; hh < ticksOf(f); hh++) { xml += '  <SubTexture name="' + name + String(k).padStart(4, '0') + '" x="' + x + '" y="' + y + '" width="' + cw + '" height="' + ch + '"' + trAttr + '/>\n'; k++; }
-      });
-      xml += '</TextureAtlas>\n';
+      const sh = buildTagSheet(sc, name, [{ name, frames: exRange() }]), out = sh.out, xml = sh.xml, n = sh.n, cols = sh.cols, rows = sh.rows;
       lastEx = { out, xml, name }; $('#exXml').value = xml; $('#exCopied').textContent = '';
       showResult(out, out.width + '×' + out.height + ' px · ' + n + (n === 1 ? ' frame' : ' frames') + ', ' + cols + '×' + rows + ' grid'); syncExportTab();
       const r1 = await exSave(name + '.png', await blobOf(out));

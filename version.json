@@ -1,6 +1,14 @@
 {
- "version": "1.43.0",
+ "version": "1.44.0",
  "changelog": [
+  {
+   "v": "1.44.0",
+   "date": "2026-11-10",
+   "items": [
+    "FNF export (sprite sheet / FNF character), vector: Smoothness 2×–4× adds in-between pictures made from your shape keys ◆, and the fps in the character file goes up to match — smooth in the game, no jerky steps",
+    "FNF character: “Same size in game” — a bigger export Size makes the sprite sharper (the character scale is set to match), so it stays crisp when the camera zooms in"
+   ]
+  },
   {
    "v": "1.43.0",
    "date": "2026-11-10",
