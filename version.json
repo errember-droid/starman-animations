@@ -1,6 +1,14 @@
 {
- "version": "1.41.1",
+ "version": "1.42.0",
  "changelog": [
+  {
+   "v": "1.42.0",
+   "date": "2026-11-10",
+   "items": [
+    "Mirror + points (A): double-click the outline to add a point and its mirror partner appears on the other side too",
+    "Alt+click a point (sharp ↔ smooth) or the Smooth / Sharp buttons give the partner point the same mirrored curve handles; dragging a handle bends both sides"
+   ]
+  },
   {
    "v": "1.41.1",
    "date": "2026-11-10",

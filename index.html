@@ -5774,9 +5774,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.41.1';
+const APP_VERSION = '1.42.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.42.0', date: '2026-11-10', items: ['Mirror + points (A): double-click the outline to add a point and its mirror partner appears on the other side too', 'Alt+click a point (sharp ↔ smooth) or the Smooth / Sharp buttons give the partner point the same mirrored curve handles; dragging a handle bends both sides'] },
   { v: '1.41.1', date: '2026-11-10', items: ['Ctrl+Shift+D now makes a linked mirror copy: turn, move, resize or reshape the original and the copy mirrors it. Clicking the copy picks the original. “Separate copy” in Shape → Mirror still makes an independent one'] },
   { v: '1.41.0', date: '2026-11-10', items: ['Masks belong to their layer: in the layer list a mask is tucked under its layer (└) and moves with it — up/down buttons, dragging, into folders. Drag a mask onto another layer to give it to that one', 'Vector masks: mask shapes are picked only when the mask layer is selected — clicking on other layers no longer grabs them', 'Move, resize, turn or nudge a shape and the mask shapes over it come along; the selection stays just the shape', 'A mask also follows its layer’s own moves and motion paths'] },
   { v: '1.40.0', date: '2026-11-10', items: ['Duplicate mirrored (Ctrl+Shift+D, or the button in Shape → Mirror): copies the picked shapes to the other side of the mirror line, already flipped (4 ways / around make all the copies). Works even with the mirror off — then it flips left ↔ right', '“Live copies” makes mirror copies of shapes you already drew that keep following them'] },
@@ -6660,7 +6661,7 @@ VEC_TOOL.vdirect = (p0, e0) => {
       if (sharp) { I = A.slice(); O = A.slice(); }
       else { const pv = N[(hitN.i - 1 + N.length) % N.length][0], nx = N[(hitN.i + 1) % N.length][0], dx = (nx[0] - pv[0]) / 6, dy = (nx[1] - pv[1]) / 6; I = [A[0] - dx, A[1] - dy, A[2]]; O = [A[0] + dx, A[1] + dy, A[2]]; }
       const pts = path.pts.slice(); pts[hitN.i * 3 + 1] = I; pts[hitN.i * 3 + 2] = O;
-      const n2 = vClone(path, { pts }); vsel = new Set([n2]); vnode = { st: n2, i: hitN.i }; vPush(c, base, base.map(x => x === st ? n2 : x)); return null;
+      const n2 = vSymApply(vClone(path, { pts }), [hitN.i]); vsel = new Set([n2]); vnode = { st: n2, i: hitN.i }; vPush(c, base, base.map(x => x === st ? n2 : x)); return null;
     }
     const path0 = vToPath(st); let cur = st, moved = false;
     vnode = { st, i: hitN.i };
@@ -7166,7 +7167,7 @@ function vSetNodeType(smooth, wholeShape) {
     });
     return vClone(st, { pts });
   };
-  if (one) { const c = (vOwner(one.st) || {}).c; if (!c) return; const base = c.strokes, n2 = conv(one.st, one.i); vsel = new Set([n2]); vnode = { st: n2, i: one.i }; vPush(c, base, base.map(x => x === one.st ? n2 : x)); return; }
+  if (one) { const c = (vOwner(one.st) || {}).c; if (!c) return; const base = c.strokes, n2 = vSymApply(conv(one.st, one.i), [one.i]); vsel = new Set([n2]); vnode = { st: n2, i: one.i }; vPush(c, base, base.map(x => x === one.st ? n2 : x)); return; }
   if (!vEditSel(st => conv(st, null))) flash('Select shapes first (V or A)');
 }
 view.addEventListener('dblclick', e => {   // A tool: double-click the line to add a point there
@@ -8403,6 +8404,52 @@ syncVecMore = function () {
   if (el && S.tool === 'vdirect' && n > 1) el.textContent = n + ' points picked — drag one to move them all, Delete removes them, Shift+click adds/removes';
 };
 window.__pts = { count: vPtCount, sel: () => [...vpsel].map(([st, s]) => [st.id, [...s]]), pivot: () => vpivot };
+
+/* ---------- mirror inside one shape: new points and curve handles on one side appear on the other too ---------- */
+function vSymApply(st, idxs) {   // copy the curve handles of these points to their mirror partners in the same shape
+  const sym = vMirLin(); if (!sym || !st || !st.shape) return st;
+  const pts = st.pts.map(q => q.slice()), path = vClone(st, { pts });
+  idxs.forEach(i => vSymPartners(path, i, sym).forEach(pp => {
+    const i3 = i * 3, j3 = pp.j * 3, M = pp.M, set = (d, s) => { const q = mapPt(M, pts[s][0], pts[s][1]); pts[d] = [q[0], q[1], pts[d][2]]; };
+    if (pp.self) {   // a point on the mirror line: its two handles mirror each other
+      if (!pp.flip) return; const a = pts[i3], o = pts[i3 + 2], q = mapPt(M, o[0], o[1]); if (Math.hypot(o[0] - a[0], o[1] - a[1]) > 0.01) pts[i3 + 1] = [q[0], q[1], pts[i3 + 1][2]]; return;
+    }
+    if (pp.flip) { set(j3 + 1, i3 + 2); set(j3 + 2, i3 + 1); } else { set(j3 + 1, i3 + 1); set(j3 + 2, i3 + 2); }
+  }));
+  return vClone(st, { pts });
+}
+function vInsertAt(st, p, t) {   // split the outline of a path at the place nearest p → { st, i } or null
+  const N = vNodes(st), segs = N.length - 1 + (st.cl ? 1 : 0); let best = null;
+  const bz = (a, b, u) => { const v = 1 - u; return [v * v * v * a[0][0] + 3 * v * v * u * a[2][0] + 3 * v * u * u * b[1][0] + u * u * u * b[0][0], v * v * v * a[0][1] + 3 * v * v * u * a[2][1] + 3 * v * u * u * b[1][1] + u * u * u * b[0][1]]; };
+  for (let i = 0; i < segs; i++) { const a = N[i], b = N[(i + 1) % N.length]; for (let k = 1; k < 80; k++) { const u = k / 80, q = bz(a, b, u), d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d < t && (!best || d < best.d)) best = { i, u, d }; } }
+  if (!best) return null;
+  { const a = N[best.i], b = N[(best.i + 1) % N.length]; let lo = Math.max(0.001, best.u - 1 / 80), hi = Math.min(0.999, best.u + 1 / 80); const f = u => { const q = bz(a, b, u); return Math.hypot(q[0] - p.x, q[1] - p.y); }; for (let k = 0; k < 40; k++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; if (f(m1) < f(m2)) hi = m2; else lo = m1; } best.u = (lo + hi) / 2; }
+  const a = N[best.i], b = N[(best.i + 1) % N.length], u = best.u, L = (P, Q) => [P[0] + (Q[0] - P[0]) * u, P[1] + (Q[1] - P[1]) * u];
+  const p01 = L(a[0], a[2]), p12 = L(a[2], b[1]), p23 = L(b[1], b[0]), p012 = L(p01, p12), p123 = L(p12, p23), m = L(p012, p123), w = a[0][2];
+  const pts = st.pts.map(q => q.slice()), ia = best.i * 3, ib = ((best.i + 1) % N.length) * 3;
+  pts[ia + 2] = [p01[0], p01[1], w]; pts[ib + 1] = [p23[0], p23[1], w];
+  pts.splice(ia + 3, 0, [m[0], m[1], w], [p012[0], p012[1], w], [p123[0], p123[1], w]);
+  return { st: vClone(st, { pts }), i: best.i + 1, at: m };
+}
+view.addEventListener('dblclick', e => {
+  if (MODE !== 'vector' || S.tool !== 'vdirect' || !vMirLin()) return;   // without the mirror the old way does it
+  const p = pos(e), t = vtol() * 1.5, sym = vMirLin();
+  for (const st0 of vSelList()) {
+    if (!st0.shape || st0.shape === 'compound' || st0.mir) continue;
+    const o = vOwner(st0); if (!o) continue;
+    const r = vInsertAt(vToPath(st0), p, t); if (!r) continue;
+    e.stopImmediatePropagation(); e.preventDefault();
+    let cur = r.st, added = 1; const at = r.at;
+    sym.L.forEach(M => {
+      const q = mapPt(M, at[0], at[1]); if (Math.hypot(q[0] - at[0], q[1] - at[1]) < t) return;   // the new point is on the mirror line
+      if (vNodes(cur).some(n => Math.hypot(n[0][0] - q[0], n[0][1] - q[1]) < 0.5)) return;
+      const r2 = vInsertAt(cur, { x: q[0], y: q[1] }, Math.max(t, vtol() * 3)); if (r2) { cur = r2.st; added++; }
+    });
+    const i = vNodes(cur).findIndex(n => Math.hypot(n[0][0] - at[0], n[0][1] - at[1]) < 1e-6);
+    const base = o.c.strokes; vsel = new Set([cur]); vnode = { st: cur, i }; vpsel = new Map([[cur, new Set([i])]]);
+    vPush(o.c, base, base.map(x => x === st0 ? cur : x)); flash(added > 1 ? 'Point added on both sides' : 'Point added'); return;
+  }
+}, true);
 /* ================= v41: masks belong to their layer — move together in the layer list, follow its moves, pick only on the mask layer ================= */
 const maskHostable = l => !!l && !isGroup(l) && !['mask', 'sound', 'fx'].includes(l.type);
 function maskHost(j) {   // the layer a mask belongs to (the first non-mask right below it, same folder level), or -1
