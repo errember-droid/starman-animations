@@ -1,6 +1,13 @@
 {
- "version": "1.42.0",
+ "version": "1.42.1",
  "changelog": [
+  {
+   "v": "1.42.1",
+   "date": "2026-11-10",
+   "items": [
+    "Mirror: a point on the mirror line keeps its curve handles straight across the line — it cannot turn and both handles stretch the same. Alt+drag a handle for a symmetric sharp corner"
+   ]
+  },
   {
    "v": "1.42.0",
    "date": "2026-11-10",

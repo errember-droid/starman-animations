@@ -5774,9 +5774,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.42.0';
+const APP_VERSION = '1.42.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.42.1', date: '2026-11-10', items: ['Mirror: a point on the mirror line keeps its curve handles straight across the line — it cannot turn and both handles stretch the same. Alt+drag a handle for a symmetric sharp corner'] },
   { v: '1.42.0', date: '2026-11-10', items: ['Mirror + points (A): double-click the outline to add a point and its mirror partner appears on the other side too', 'Alt+click a point (sharp ↔ smooth) or the Smooth / Sharp buttons give the partner point the same mirrored curve handles; dragging a handle bends both sides'] },
   { v: '1.41.1', date: '2026-11-10', items: ['Ctrl+Shift+D now makes a linked mirror copy: turn, move, resize or reshape the original and the copy mirrors it. Clicking the copy picks the original. “Separate copy” in Shape → Mirror still makes an independent one'] },
   { v: '1.41.0', date: '2026-11-10', items: ['Masks belong to their layer: in the layer list a mask is tucked under its layer (└) and moves with it — up/down buttons, dragging, into folders. Drag a mask onto another layer to give it to that one', 'Vector masks: mask shapes are picked only when the mask layer is selected — clicking on other layers no longer grabs them', 'Move, resize, turn or nudge a shape and the mask shapes over it come along; the selection stays just the shape', 'A mask also follows its layer’s own moves and motion paths'] },
@@ -8266,7 +8267,7 @@ function vSymPartners(path, i, sym) {   // points of the same shape that sit whe
 const _vdirect0 = VEC_TOOL.vdirect;
 VEC_TOOL.vdirect = (p0, e0) => {
   const hitN = vNodeAt(p0);
-  if (!hitN || e0.altKey) {
+  if (!hitN || (e0.altKey && !hitN.k)) {
     if (!hitN) {   // empty place or a shape: the old behavior, but a box picks points
       const hh = vTopAtE(e0);
       if (!hh) { const keep = e0.shiftKey ? new Map([...vpsel].map(([k, v]) => [k, new Set(v)])) : new Map(); vpsel = new Map(); const r = _vdirect0(p0, e0); if (vmarq) { const m0 = vmarq; return vActive = { move: ev => r.move(ev), cancel: () => r.cancel(), up: () => { const m = Object.assign({}, vmarq || m0); r.up(); vBoxPoints(m, keep); } }; } return r; }
@@ -8324,6 +8325,12 @@ function vNodeDrag(p0, e0, hitN) {
         if (hitN.k) {   // a handle
           const i3 = hitN.i * 3, h = pts[i3 + hitN.k], o = pts[i3 + (hitN.k === 1 ? 2 : 1)], A = pts[i3]; h[0] += dx; h[1] += dy;
           if (!e.altKey) { const L = Math.hypot(o[0] - A[0], o[1] - A[1]), a = Math.atan2(h[1] - A[1], h[0] - A[0]) + Math.PI; if (L > 0.01) { o[0] = A[0] + Math.cos(a) * L; o[1] = A[1] + Math.sin(a) * L; } }
+          const selfF = VSH.mir.mode !== 'radial' && VSH.mir.mode !== 'off' ? vSymPartners(m.path0, hitN.i, sym).find(pp => pp.self && pp.flip) : null;
+          if (selfF) {   // a point on the mirror line: it cannot turn, both handles stretch the same (Alt: a symmetric corner)
+            const L = selfF.M, v = [h[0] - A[0], h[1] - A[1]], lv = linOf(L, v[0], v[1]);
+            if (!e.altKey) { const w = [(v[0] - lv[0]) / 2, (v[1] - lv[1]) / 2]; h[0] = A[0] + w[0]; h[1] = A[1] + w[1]; o[0] = A[0] - w[0]; o[1] = A[1] - w[1]; }
+            else { o[0] = A[0] + lv[0]; o[1] = A[1] + lv[1]; }
+          }
           vSymPartners(m.path0, hitN.i, sym).forEach(pp => {
             if (pp.self) return; const j3 = pp.j * 3, M = pp.M;
             const set = (dst, src) => { const q = mapPt(M, pts[src][0], pts[src][1]); pts[dst][0] = q[0]; pts[dst][1] = q[1]; };
@@ -8412,7 +8419,8 @@ function vSymApply(st, idxs) {   // copy the curve handles of these points to th
   idxs.forEach(i => vSymPartners(path, i, sym).forEach(pp => {
     const i3 = i * 3, j3 = pp.j * 3, M = pp.M, set = (d, s) => { const q = mapPt(M, pts[s][0], pts[s][1]); pts[d] = [q[0], q[1], pts[d][2]]; };
     if (pp.self) {   // a point on the mirror line: its two handles mirror each other
-      if (!pp.flip) return; const a = pts[i3], o = pts[i3 + 2], q = mapPt(M, o[0], o[1]); if (Math.hypot(o[0] - a[0], o[1] - a[1]) > 0.01) pts[i3 + 1] = [q[0], q[1], pts[i3 + 1][2]]; return;
+      if (!pp.flip || VSH.mir.mode === 'radial') return; const a = pts[i3], o = pts[i3 + 2], v = [o[0] - a[0], o[1] - a[1]]; if (Math.hypot(v[0], v[1]) < 0.01) return;
+      const lv = linOf(M, v[0], v[1]), w = [(v[0] - lv[0]) / 2, (v[1] - lv[1]) / 2]; pts[i3 + 2] = [a[0] + w[0], a[1] + w[1], o[2]]; pts[i3 + 1] = [a[0] - w[0], a[1] - w[1], pts[i3 + 1][2]]; return;
     }
     if (pp.flip) { set(j3 + 1, i3 + 2); set(j3 + 2, i3 + 1); } else { set(j3 + 1, i3 + 1); set(j3 + 2, i3 + 2); }
   }));
