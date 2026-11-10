@@ -1,6 +1,14 @@
 {
- "version": "1.39.0",
+ "version": "1.40.0",
  "changelog": [
+  {
+   "v": "1.40.0",
+   "date": "2026-11-10",
+   "items": [
+    "Duplicate mirrored (Ctrl+Shift+D, or the button in Shape → Mirror): copies the picked shapes to the other side of the mirror line, already flipped (4 ways / around make all the copies). Works even with the mirror off — then it flips left ↔ right",
+    "“Live copies” makes mirror copies of shapes you already drew that keep following them"
+   ]
+  },
   {
    "v": "1.39.0",
    "date": "2026-11-10",

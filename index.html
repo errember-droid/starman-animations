@@ -5774,9 +5774,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.39.0';
+const APP_VERSION = '1.40.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.40.0', date: '2026-11-10', items: ['Duplicate mirrored (Ctrl+Shift+D, or the button in Shape → Mirror): copies the picked shapes to the other side of the mirror line, already flipped (4 ways / around make all the copies). Works even with the mirror off — then it flips left ↔ right', '“Live copies” makes mirror copies of shapes you already drew that keep following them'] },
   { v: '1.39.0', date: '2026-11-10', items: ['Points (A): pick many at once — Shift+click or drag a box around them; drag one and they all move, Delete removes them', 'With the mirror on, a shape that sits on the mirror line stays symmetric: move a point or bend a curve on one side and its partner on the other side does the same (cyan rings show the partners); points on the line stay on it', 'Lean (skew): drag the yellow diamonds next to the sides of the selection. Shift: steps of 15°, Alt: around the center point', 'Center point: drag the round cross in the selection to choose what turning (and Alt-resizing) goes around; it moves with the shapes. Double-click it to put it back in the middle'] },
   { v: '1.38.0', date: '2026-11-09', items: ['Snapping for every vector tool: rectangle, ellipse, polygon, star, line, pen, brush ends, spiral, moving, resizing, turning (sticks to 45°), points and the mirror handle. Sticks to centers, edges, points and outlines of shapes, the camera middle/edges/corners and the mirror line, with pink guide lines', 'Key ; (Ж) or the ⌖ button turns snapping on and off; Ctrl still places freely for a moment'] },
   { v: '1.37.0', date: '2026-11-09', items: ['Vector mirror ⇋ (Shift+M): left ↔ right, top ↕ bottom, 4 ways or around like a kaleidoscope (2–24 copies). New shapes get copies that follow the original when you move, reshape or recolor it. Drag the cyan handle to move the mirror — the copies move with it. “Unlink copies” makes them normal shapes'] },
@@ -6811,7 +6812,7 @@ window.addEventListener('keydown', e => {
     if (c === 'KeyX' && vsel.size) { done(); vCopy(true); return; }
     if (c === 'KeyV' && !e.shiftKey && vclip) { done(); vPaste(false); return; }
     if (c === 'KeyF' && vclip) { done(); vPaste(true); return; }
-    if (c === 'KeyD' && vsel.size) { done(); vDuplicate(); return; }
+    if (c === 'KeyD' && vsel.size) { done(); if (e.shiftKey) vDupMirror(false); else vDuplicate(); return; }
     if (c === 'BracketRight' && vsel.size) { done(); vArrange(e.shiftKey ? 'front' : 'fwd'); return; }
     if (c === 'BracketLeft' && vsel.size) { done(); vArrange(e.shiftKey ? 'back' : 'bwd'); return; }
     return;
@@ -8077,6 +8078,31 @@ window.addEventListener('keydown', e => {
 }, true);
 syncMirUI();
 window.__mir = { axis: vMirAxis, w2s, set: vMirSet, detach: () => { vsel = new Set(); vMirDetach(); }, VSH };
+/* ---------- duplicate + mirror the picked shapes (Ctrl+Shift+D) ---------- */
+function vDupMirror(live) {
+  const sel = vSelList().filter(s => s && s.shape && !s.mir); if (!sel.length) { flash('Pick shapes first (V)'); return; }
+  const was = VSH.mir.mode, off = was === 'off'; if (off) VSH.mir.mode = 'x';
+  const list = [], nsel = new Set(); let n = 0;
+  try {
+    const groups = new Map(); sel.forEach(st => { const o = vOwner(st); if (!o) return; if (!groups.has(o.c)) groups.set(o.c, { o, sts: [] }); groups.get(o.c).sts.push(st); });
+    groups.forEach(({ o, sts }) => {
+      const add = new Map(); sts.forEach(st => { const cs = vMirrorCopies([st]).map(c => { if (live) return c; const d = vClone(c, { id: vNewId() }); delete d.mir; return d; }); if (cs.length) add.set(st, cs); });
+      if (!add.size) return;
+      const after = []; o.c.strokes.forEach(s => { after.push(s); const cs = add.get(s); if (cs) { after.push(...cs); cs.forEach(c => nsel.add(c)); n += cs.length; } });
+      list.push({ c: o.c, li: o.li, before: o.c.strokes, after });
+    });
+  } finally { VSH.mir.mode = was; }
+  if (!n) { flash('These shapes are already symmetric on the mirror line'); return; }
+  vCommitMulti(list); if (!live) vsel = nsel; syncVecUI(); render();
+  flash((live ? 'Live mirror copies made — they follow the original' : 'Mirrored copy made') + (off ? ' (mirror was off: flipped left ↔ right on the mirror line)' : ''));
+}
+(() => {
+  const d = $('#vMirD'); if (!d) return;
+  const a = document.createElement('button'); a.type = 'button'; a.className = 'pb'; a.id = 'vMirDup'; a.textContent = 'Duplicate mirrored'; a.title = 'Copy the picked shapes to the other side of the mirror (Ctrl+Shift+D)'; a.onclick = () => vDupMirror(false);
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pb'; b.id = 'vMirLive'; b.textContent = 'Live copies'; b.title = 'Mirror copies of the picked shapes that keep following them'; b.onclick = () => vDupMirror(true);
+  const row = document.createElement('div'); row.className = 'arow vbtns'; row.append(a, b); d.parentNode.after(row);
+})();
+window.__mir.dup = vDupMirror;
 /* ================= v38: snapping everywhere — centers, edges, points, outlines, camera, mirror line; one key turns it on/off ================= */
 if (VSH.snapAll === undefined) VSH.snapAll = true;
 if (VSH.snapCam === undefined) VSH.snapCam = true;
