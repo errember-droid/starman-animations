@@ -439,7 +439,7 @@ kbd{padding:2px 7px;text-shadow:none}
 .tgrid .span.t-bg{background:linear-gradient(90deg,var(--bgc,#fff) 0 14px,#d2d2de 14px)}
 .tgrid .span.t-bg .spanlbl{padding-left:16px}
 .dcin{display:block}.dcin input{box-sizing:border-box;max-width:100%}
-.tagrow{position:relative;min-width:0}.tagbar{position:absolute;height:14px;border:1px solid rgba(0,0,0,.45);box-sizing:border-box;color:#10102a;font-size:10px;line-height:12px;overflow:hidden;white-space:nowrap;cursor:pointer;padding:0 4px;border-radius:2px}.tagbar.on{outline:2px solid #fff;outline-offset:-1px}.tagbar span{pointer-events:none}.ln.t-tags{opacity:.75}.foldbtn{display:inline-block;width:12px;cursor:pointer}.ln.t-group{font-weight:600}.tgrid .span.t-group{background:repeating-linear-gradient(90deg,#d9d3b8 0 8px,#cfc8a9 8px 16px)}.ftcol{width:22px;height:22px;padding:0;border:0;background:none;flex:none}
+.tagrow{position:relative;min-width:0}.tagbar{position:absolute;height:14px;border:1px solid rgba(0,0,0,.45);box-sizing:border-box;color:#10102a;font-size:10px;line-height:12px;overflow:hidden;white-space:nowrap;cursor:pointer;padding:0 4px;border-radius:2px}.tagbar.on{outline:2px solid #fff;outline-offset:-1px}.tagbar span{pointer-events:none}.ln.t-tags{opacity:.75}.foldbtn{display:inline-block;width:12px;cursor:pointer}.ln.t-group{font-weight:600}.ln.mchild{opacity:.92;font-style:italic}.ln .mlink{display:inline-block;width:10px;margin-left:-11px;color:#6d6a8a;font-style:normal}.ln.mhost{box-shadow:inset 0 -2px 0 rgba(255,42,85,.35)}.tgrid .span.t-group{background:repeating-linear-gradient(90deg,#d9d3b8 0 8px,#cfc8a9 8px 16px)}.ftcol{width:22px;height:22px;padding:0;border:0;background:none;flex:none}
 .ftags input[type=color],#ftColor{width:26px;height:24px;padding:0;border:0;background:none;flex:none}#ftFrom,#ftTo{width:46px}
 .ftags{display:flex;flex-direction:column;gap:3px;margin-bottom:6px}.ftrow{display:flex;gap:3px}.ftrow .pb:first-child{flex:1;text-align:left}.ftrow .pb.on{outline:2px solid #ffce57}
 .tgrid .span.t-img{background:repeating-linear-gradient(45deg,#d6e6dc 0 6px,#c8dccf 6px 12px)}
@@ -5774,9 +5774,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.40.0';
+const APP_VERSION = '1.41.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.41.0', date: '2026-11-10', items: ['Masks belong to their layer: in the layer list a mask is tucked under its layer (└) and moves with it — up/down buttons, dragging, into folders. Drag a mask onto another layer to give it to that one', 'Vector masks: mask shapes are picked only when the mask layer is selected — clicking on other layers no longer grabs them', 'Move, resize, turn or nudge a shape and the mask shapes over it come along; the selection stays just the shape', 'A mask also follows its layer’s own moves and motion paths'] },
   { v: '1.40.0', date: '2026-11-10', items: ['Duplicate mirrored (Ctrl+Shift+D, or the button in Shape → Mirror): copies the picked shapes to the other side of the mirror line, already flipped (4 ways / around make all the copies). Works even with the mirror off — then it flips left ↔ right', '“Live copies” makes mirror copies of shapes you already drew that keep following them'] },
   { v: '1.39.0', date: '2026-11-10', items: ['Points (A): pick many at once — Shift+click or drag a box around them; drag one and they all move, Delete removes them', 'With the mirror on, a shape that sits on the mirror line stays symmetric: move a point or bend a curve on one side and its partner on the other side does the same (cyan rings show the partners); points on the line stay on it', 'Lean (skew): drag the yellow diamonds next to the sides of the selection. Shift: steps of 15°, Alt: around the center point', 'Center point: drag the round cross in the selection to choose what turning (and Alt-resizing) goes around; it moves with the shapes. Double-click it to put it back in the middle'] },
   { v: '1.38.0', date: '2026-11-09', items: ['Snapping for every vector tool: rectangle, ellipse, polygon, star, line, pen, brush ends, spiral, moving, resizing, turning (sticks to 45°), points and the mirror handle. Sticks to centers, edges, points and outlines of shapes, the camera middle/edges/corners and the mirror line, with pink guide lines', 'Key ; (Ж) or the ⌖ button turns snapping on and off; Ctrl still places freely for a moment'] },
@@ -6523,6 +6524,7 @@ var VEC_TOOL = {};
 function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selection (Alt while moving: copy)
   const c = vcel(); const sel = new Set(vSelList()), b = vUnion([...sel]); const cels = vCelsAll().filter(o => o.c.strokes.some(st => sel.has(st))).map(o => ({ c: o.c, li: o.li, base: o.c.strokes })); const base = c ? c.strokes : [];
   if (!b) return null;
+  const mk = vMaskPartners(cels, sel);   // mask shapes over these shapes come along
   const T = mode === 'move' ? vSnapTargets(sel) : null;
   let last = e0, moved = false, copies = null;
   const H = vSelHandles(b), pv = vPivotOf([...sel], b), cx = pv[0], cy = pv[1]; let lastM = null;
@@ -6555,7 +6557,7 @@ function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selectio
         if (e.shiftKey) t = Math.round(t / (Math.PI / 12)) * (Math.PI / 12); else if (!e.ctrlKey && snapOn()) { const r = Math.round(t / (Math.PI / 4)) * (Math.PI / 4); if (Math.abs(t - r) < 0.06) t = r; }
         M = mRot(t, cx, cy);
       }
-      lastM = M; const nsel = new Set();
+      lastM = M; vMaskMove(mk, mode === 'move' && e.altKey ? null : M); const nsel = new Set();
       cels.forEach(x => { if (mode === 'move' && e.altKey) { const cp = x.base.filter(st => sel.has(st)).map(st => { const n = vClone(vApply(st, M), { id: vNewId() }); nsel.add(n); return n; }); x.c.strokes = x.base.concat(cp); } else x.c.strokes = x.base.map(st => { if (!sel.has(st)) return st; const n = vApply(st, M); nsel.add(n); return n; }); });
       vsel = nsel; vRefresh();
     },
@@ -6563,9 +6565,9 @@ function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selectio
       vguides = []; vmark = null;
       if (!moved) { const h = vTopAtE(e0); if (mode === 'move' && h && !e0.shiftKey) vsel = new Set([h.st]); render(); return; }
       vSkewInfo = null; if (lastM && !(mode === 'move' && last.altKey)) vPivotMap([...sel], lastM);
-      vCommitMulti(cels.map(x => ({ c: x.c, li: x.li, before: x.base, after: x.c.strokes }))); syncVecUI(); render();
+      vCommitMulti(cels.map(x => ({ c: x.c, li: x.li, before: x.base, after: x.c.strokes })).concat(mk.filter(x => x.c.strokes !== x.base).map(x => ({ c: x.c, li: x.li, before: x.base, after: x.c.strokes })))); syncVecUI(); render();
     },
-    cancel() { vSkewInfo = null; cels.forEach(x => { x.c.strokes = x.base; }); vsel = sel; vguides = []; vRefresh(); }
+    cancel() { vSkewInfo = null; vMaskMove(mk, null); cels.forEach(x => { x.c.strokes = x.base; }); vsel = sel; vguides = []; vRefresh(); }
   };
 }
 function vHandleAt(p) {
@@ -8400,6 +8402,104 @@ syncVecMore = function () {
   if (el && S.tool === 'vdirect' && n > 1) el.textContent = n + ' points picked — drag one to move them all, Delete removes them, Shift+click adds/removes';
 };
 window.__pts = { count: vPtCount, sel: () => [...vpsel].map(([st, s]) => [st.id, [...s]]), pivot: () => vpivot };
+/* ================= v41: masks belong to their layer — move together in the layer list, follow its moves, pick only on the mask layer ================= */
+const maskHostable = l => !!l && !isGroup(l) && !['mask', 'sound', 'fx'].includes(l.type);
+function maskHost(j) {   // the layer a mask belongs to (the first non-mask right below it, same folder level), or -1
+  const m = S.layers[j]; if (!m || m.type !== 'mask') return -1;
+  let k = j - 1; while (k >= 0 && S.layers[k].type === 'mask') k--;
+  return k >= 0 && maskHostable(S.layers[k]) && (S.layers[k].lv || 0) === (m.lv || 0) ? k : -1;
+}
+// in the layer tree a mask rides on its layer, so moving, dragging, folders keep them together
+const _layerTree19 = layerTree;
+layerTree = function () {
+  const fix = arr => {
+    const out = []; let host = null;
+    arr.forEach(n => {
+      if (n.kids.length) n.kids = fix(n.kids);
+      const l = S.layers[n.i];
+      if (l.type === 'mask' && host) { (host.masks || (host.masks = [])).push(n); return; }
+      out.push(n); host = maskHostable(l) ? n : null;
+    });
+    return out;
+  };
+  return fix(_layerTree19.apply(this, arguments));
+};
+flatTree = function (nodes, lv, out) {
+  for (const n of nodes) { if (isGroup(S.layers[n.i])) flatTree(n.kids, lv + 1, out); out.push({ i: n.i, lv }); if (n.masks) n.masks.forEach(m => out.push({ i: m.i, lv })); }
+  return out;
+};
+const _findNode19 = findNode;
+findNode = function (roots, i, up) {   // a mask is found as the layer it belongs to
+  for (let k = 0; k < roots.length; k++) {
+    const n = roots[k]; if (n.i === i || (n.masks && n.masks.some(m => m.i === i))) return { arr: roots, k, up };
+    const r = findNode(n.kids, i, { arr: roots, k }); if (r) return r;
+  }
+  return null;
+};
+// dragging a mask onto another layer puts it on that layer
+const _dropLayer19 = dropLayer;
+dropLayer = function (from, to, where) {
+  const l = S.layers[from]; if (!l || l.type !== 'mask') return _dropLayer19.apply(this, arguments);
+  const roots = layerTree(); let mnode = null;
+  const rm = arr => { for (let k = 0; k < arr.length; k++) { const n = arr[k]; if (n.i === from) { mnode = arr.splice(k, 1)[0]; return true; } if (n.masks) { const j = n.masks.findIndex(m => m.i === from); if (j >= 0) { mnode = n.masks.splice(j, 1)[0]; return true; } } if (rm(n.kids)) return true; } return false; };
+  rm(roots); if (!mnode) return;
+  const tgt = findNode(roots, to); if (!tgt) return;
+  const tn = tgt.arr[tgt.k], tl = S.layers[tn.i];
+  if (where === 'into' && isGroup(tl)) tn.kids.push(mnode);
+  else if (maskHostable(tl)) { (tn.masks || (tn.masks = [])).push(mnode); flash('Mask now belongs to “' + tl.name + '”'); }
+  else tgt.arr.splice(where === 'above' ? tgt.k + 1 : tgt.k, 0, mnode);
+  stopPlay(); layerOp(() => applyTree(roots));
+};
+// a mask moves with its layer (layer moves, spatial shift, motion paths)
+const _layerMat19 = layerMat;
+layerMat = function (l, fi) {
+  const m = _layerMat19.call(this, l, fi); if (m || !l || l.type !== 'mask') return m;
+  const h = maskHost(S.layers.indexOf(l)); return h >= 0 ? _layerMat19.call(this, S.layers[h], fi) : null;
+};
+// the layer list shows a mask tucked under its layer
+const _buildTimeline19 = buildTimeline;
+buildTimeline = function () {
+  const r = _buildTimeline19.apply(this, arguments);
+  tg.querySelectorAll('.ln.t-mask[data-l]').forEach(el => {
+    const j = +el.dataset.l, h = maskHost(j); if (h < 0) { el.title = 'This mask belongs to no layer — drag it onto a layer'; return; }
+    el.classList.add('mchild'); el.style.paddingLeft = (16 + (S.layers[j].lv || 0) * 10) + 'px';
+    const s = document.createElement('span'); s.className = 'mlink'; s.textContent = '└'; el.prepend(s);
+    el.title = 'Mask of “' + S.layers[h].name + '” — moves with it. Drag it onto another layer to give it to that one';
+  });
+  tg.querySelectorAll('.ln[data-l]').forEach(el => { const i = +el.dataset.l; if (S.layers[i + 1] && S.layers[i + 1].type === 'mask' && maskHost(i + 1) === i) el.classList.add('mhost'); });
+  return r;
+};
+
+/* ---------- vector: mask shapes are picked only on the mask layer, and follow the shapes they cover ---------- */
+const _vCelsAll19 = vCelsAll;
+vCelsAll = function (all) {
+  const L = _vCelsAll19.call(this, all); if (all) return L;
+  const cur = S.layers[S.layer];
+  return cur && cur.type === 'mask' ? L.filter(o => o.li === S.layer) : L.filter(o => S.layers[o.li].type !== 'mask');
+};
+const boxHit = (a, b) => a && b && a.x0 <= b.x1 && a.x1 >= b.x0 && a.y0 <= b.y1 && a.y1 >= b.y0;
+function vMaskPartners(hosts, sel) {   // mask shapes that cover the shapes being moved
+  const f = curFrame(), out = []; if (!f) return out;
+  hosts.forEach(x => {
+    const l = S.layers[x.li]; if (!l || l.type === 'mask') return;
+    const sb = vUnion(x.c.strokes.filter(st => sel.has(st) && st.shape)); if (!sb) return;
+    for (let j = x.li + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) {
+      const mc = f.cels[j]; if (!mc || !mc.strokes || !mc.strokes.length || S.layers[j].locked || out.some(o => o.c === mc)) continue;
+      const pick = new Set(mc.strokes.filter(st => st.shape && boxHit(vBounds(st), sb)));
+      if (pick.size) out.push({ c: mc, li: j, base: mc.strokes, pick });
+    }
+  });
+  return out;
+}
+function vMaskMove(mk, M) { mk.forEach(x => { x.c.strokes = M ? x.base.map(st => x.pick.has(st) ? vApply(st, M) : st) : x.base; x.c.dirty = true; }); }
+vNudge = function (dx, dy) {
+  const sel = new Set(vSelList()); if (!sel.size) return false;
+  const M = mTrans(dx, dy), hosts = vCelsAll().filter(o => o.c.strokes.some(st => sel.has(st))), mk = vMaskPartners(hosts, sel), nsel = new Set();
+  const list = hosts.map(o => ({ c: o.c, li: o.li, before: o.c.strokes, after: o.c.strokes.map(st => { if (!sel.has(st)) return st; const n = st.shape ? vApply(st, M) : st; nsel.add(n); return n; }) }))
+    .concat(mk.map(x => ({ c: x.c, li: x.li, before: x.base, after: x.base.map(st => x.pick.has(st) ? vApply(st, M) : st) })));
+  vsel = nsel; return vCommitMulti(list);
+};
+window.__mask = { host: maskHost, tree: () => JSON.stringify(layerTree()), addMask: addMaskLayer, addLayer, drop: (a, b, w) => dropLayer(a, b, w), move: d => moveLayer(d) };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {

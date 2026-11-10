@@ -1,6 +1,16 @@
 {
- "version": "1.40.0",
+ "version": "1.41.0",
  "changelog": [
+  {
+   "v": "1.41.0",
+   "date": "2026-11-10",
+   "items": [
+    "Masks belong to their layer: in the layer list a mask is tucked under its layer (└) and moves with it — up/down buttons, dragging, into folders. Drag a mask onto another layer to give it to that one",
+    "Vector masks: mask shapes are picked only when the mask layer is selected — clicking on other layers no longer grabs them",
+    "Move, resize, turn or nudge a shape and the mask shapes over it come along; the selection stays just the shape",
+    "A mask also follows its layer’s own moves and motion paths"
+   ]
+  },
   {
    "v": "1.40.0",
    "date": "2026-11-10",
