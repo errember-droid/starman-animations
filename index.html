@@ -5774,9 +5774,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.38.0';
+const APP_VERSION = '1.39.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.39.0', date: '2026-11-10', items: ['Points (A): pick many at once — Shift+click or drag a box around them; drag one and they all move, Delete removes them', 'With the mirror on, a shape that sits on the mirror line stays symmetric: move a point or bend a curve on one side and its partner on the other side does the same (cyan rings show the partners); points on the line stay on it', 'Lean (skew): drag the yellow diamonds next to the sides of the selection. Shift: steps of 15°, Alt: around the center point', 'Center point: drag the round cross in the selection to choose what turning (and Alt-resizing) goes around; it moves with the shapes. Double-click it to put it back in the middle'] },
   { v: '1.38.0', date: '2026-11-09', items: ['Snapping for every vector tool: rectangle, ellipse, polygon, star, line, pen, brush ends, spiral, moving, resizing, turning (sticks to 45°), points and the mirror handle. Sticks to centers, edges, points and outlines of shapes, the camera middle/edges/corners and the mirror line, with pink guide lines', 'Key ; (Ж) or the ⌖ button turns snapping on and off; Ctrl still places freely for a moment'] },
   { v: '1.37.0', date: '2026-11-09', items: ['Vector mirror ⇋ (Shift+M): left ↔ right, top ↕ bottom, 4 ways or around like a kaleidoscope (2–24 copies). New shapes get copies that follow the original when you move, reshape or recolor it. Drag the cyan handle to move the mirror — the copies move with it. “Unlink copies” makes them normal shapes'] },
   { v: '1.36.1', date: '2026-11-09', items: ['Video export: new quality “Best (for posting)” — 20 Mbit/s, so social networks have a clean picture to start from'] },
@@ -6523,7 +6524,7 @@ function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selectio
   if (!b) return null;
   const T = mode === 'move' ? vSnapTargets(sel) : null;
   let last = e0, moved = false, copies = null;
-  const H = vSelHandles(b), cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  const H = vSelHandles(b), pv = vPivotOf([...sel], b), cx = pv[0], cy = pv[1]; let lastM = null;
   return {
     move(e) {
       last = e; const p = mode === 'scale' && !e.ctrlKey ? vSnapPt(pos(e), sel) : pos(e); let M;
@@ -6541,26 +6542,35 @@ function vDragTransform(p0, e0, mode, h) {   // move / scale / turn the selectio
         else if (e.shiftKey) { const s = Math.max(Math.abs(sx), Math.abs(sy)); sx = Math.sign(sx || 1) * s; sy = Math.sign(sy || 1) * s; }
         if (Math.abs(sx) < 1e-3) sx = 1e-3; if (Math.abs(sy) < 1e-3) sy = 1e-3;
         M = mScale(sx, sy, ax, ay);
+      } else if (mode === 'skew') {   // lean: the top/bottom handles slide sideways, the side handles slide up/down
+        const horiz = h === 1 || h === 5, opp = H[(h + 4) % 8], hp = H[h];
+        let k = horiz ? (Math.abs(hp[1] - (e.altKey ? cy : opp[1])) > 1e-6 ? (p.x - p0.x) / (hp[1] - (e.altKey ? cy : opp[1])) : 0) : (Math.abs(hp[0] - (e.altKey ? cx : opp[0])) > 1e-6 ? (p.y - p0.y) / (hp[0] - (e.altKey ? cx : opp[0])) : 0);
+        k = clamp(k, -20, 20); const st15 = Math.PI / 12, ang = Math.atan(k);
+        if (e.shiftKey) k = Math.tan(Math.round(ang / st15) * st15); else if (!e.ctrlKey && snapOn() && Math.abs(ang) < 0.03) k = 0;
+        vSkewInfo = Math.round(Math.atan(k) * 180 / Math.PI) + '°';
+        if (horiz) { const ay = e.altKey ? cy : opp[1]; M = { a: 1, b: 0, c: k, d: 1, e: -k * ay, f: 0 }; } else { const ax = e.altKey ? cx : opp[0]; M = { a: 1, b: k, c: 0, d: 1, e: 0, f: -k * ax }; }
       } else {
         let t = Math.atan2(p.y - cy, p.x - cx) - Math.atan2(p0.y - cy, p0.x - cx);
         if (e.shiftKey) t = Math.round(t / (Math.PI / 12)) * (Math.PI / 12); else if (!e.ctrlKey && snapOn()) { const r = Math.round(t / (Math.PI / 4)) * (Math.PI / 4); if (Math.abs(t - r) < 0.06) t = r; }
         M = mRot(t, cx, cy);
       }
-      const nsel = new Set();
+      lastM = M; const nsel = new Set();
       cels.forEach(x => { if (mode === 'move' && e.altKey) { const cp = x.base.filter(st => sel.has(st)).map(st => { const n = vClone(vApply(st, M), { id: vNewId() }); nsel.add(n); return n; }); x.c.strokes = x.base.concat(cp); } else x.c.strokes = x.base.map(st => { if (!sel.has(st)) return st; const n = vApply(st, M); nsel.add(n); return n; }); });
       vsel = nsel; vRefresh();
     },
     up() {
       vguides = []; vmark = null;
       if (!moved) { const h = vTopAtE(e0); if (mode === 'move' && h && !e0.shiftKey) vsel = new Set([h.st]); render(); return; }
+      vSkewInfo = null; if (lastM && !(mode === 'move' && last.altKey)) vPivotMap([...sel], lastM);
       vCommitMulti(cels.map(x => ({ c: x.c, li: x.li, before: x.base, after: x.c.strokes }))); syncVecUI(); render();
     },
-    cancel() { cels.forEach(x => { x.c.strokes = x.base; }); vsel = sel; vguides = []; vRefresh(); }
+    cancel() { vSkewInfo = null; cels.forEach(x => { x.c.strokes = x.base; }); vsel = sel; vguides = []; vRefresh(); }
   };
 }
 function vHandleAt(p) {
   const sel = vSelList(); if (!sel.length) return null; const b = vUnion(sel), t = vtol() * 1.2, H = vSelHandles(b);
   for (let i = 0; i < 8; i++) if (Math.abs(p.x - H[i][0]) <= t && Math.abs(p.y - H[i][1]) <= t) return { mode: 'scale', h: i };
+  for (const [i, q] of vSkewHandles(b)) if (Math.hypot(p.x - q[0], p.y - q[1]) <= t * 1.1) return { mode: 'skew', h: i };
   for (const i of [0, 2, 4, 6]) { const d = Math.hypot(p.x - H[i][0], p.y - H[i][1]); const out = p.x < b.x0 || p.x > b.x1 || p.y < b.y0 || p.y > b.y1; if (out && d <= t * 3.5) return { mode: 'rot', h: i }; }
   return null;
 }
@@ -6579,6 +6589,7 @@ function vMarquee(p0, e0, onDone) {
   };
 }
 VEC_TOOL.vselect = (p, e) => {
+  if (vPivotNear(p)) return vActive = vPivotDrag(p, e);
   const hd = vHandleAt(p); if (hd) return vActive = vDragTransform(p, e, hd.mode, hd.h);
   const hh = vTopAtE(e), hit = hh && hh.st;
   if (hit) {
@@ -6698,8 +6709,8 @@ view.addEventListener('pointermove', e => {
   if (vpen) { vpen.hover = p; const N = vpen.nodes; vpen.closeHint = N.length > 1 && Math.hypot(p.x - N[0][0][0], p.y - N[0][0][1]) <= vtol() * 1.2; render(); }
   let cur = '';
   if (S.tool === 'vselect' || S.tool === 'vdirect') {
-    const h = S.tool === 'vselect' ? vHandleAt(p) : null;
-    if (h) cur = h.mode === 'rot' ? 'alias' : ['nwse-resize', 'ns-resize', 'nesw-resize', 'ew-resize'][h.h % 4];
+    const h = S.tool === 'vselect' ? (vPivotNear(p) ? { mode: 'pivot', h: 0 } : vHandleAt(p)) : null;
+    if (h) cur = h.mode === 'rot' ? 'alias' : h.mode === 'skew' ? (h.h === 1 || h.h === 5 ? 'col-resize' : 'row-resize') : h.mode === 'pivot' ? 'crosshair' : ['nwse-resize', 'ns-resize', 'nesw-resize', 'ew-resize'][h.h % 4];
     else if (S.tool === 'vdirect' && vNodeAt(p)) cur = 'pointer';
     const hh = h ? null : vTopAtE(e), hv = hh && hh.st; if (hv !== vhover) { vhover = hv; render(); }
     if (!cur) cur = hv ? 'move' : 'default';
@@ -7942,7 +7953,7 @@ function vMirBuild(src, m, id) {
 function vMirrorCopies(list) {
   const specs = vMirSpecs(); if (!specs.length) return [];
   const a = vMirAxis(), out = [];
-  list.forEach(st => { if (!st || !st.shape || st.mir) return; specs.forEach((sp, k) => out.push(vMirBuild(st, Object.assign({ src: st.id, k, ax: a[0], ay: a[1] }, sp)))); });
+  list.forEach(st => { if (!st || !st.shape || st.mir) return; const b0 = vBounds(st); specs.forEach((sp, k) => { const c = vMirBuild(st, Object.assign({ src: st.id, k, ax: a[0], ay: a[1] }, sp)), b1 = vBounds(c); if (Math.abs(b1.x0 - b0.x0) + Math.abs(b1.x1 - b0.x1) + Math.abs(b1.y0 - b0.y0) + Math.abs(b1.y1 - b0.y1) < 1) return; out.push(c); }); });
   return out;
 }
 function vMirrorSync(arr, force) {   // copies follow their original: rebuilt when it changed, dropped when it is gone
@@ -7988,7 +7999,7 @@ function drawMirror() {
 const _drawVecOverlayMore16 = drawVecOverlayMore;
 drawVecOverlayMore = function () { _drawVecOverlayMore16.apply(this, arguments); drawMirror(); };
 function mirNear(e) {
-  if (!mirOn()) return false; const a = vMirAxis(), p = w2s(a[0], a[1]), r = view.getBoundingClientRect(), sx = view.width / r.width, sy = view.height / r.height;
+  if (!mirOn() || !(S.tool === 'vselect' || S.tool === 'vdirect')) return false; const a = vMirAxis(), p = w2s(a[0], a[1]), r = view.getBoundingClientRect(), sx = view.width / r.width, sy = view.height / r.height;
   return Math.hypot((e.clientX - r.left) * sx - p[0], (e.clientY - r.top) * sy - p[1]) < 12 * dpr * Math.max(1, (e.pointerType === 'touch' ? 2 : 1));
 }
 function mirMoveAxis(from, to) {   // move the mirror; copies made with the old line follow it, on every frame (one undo step)
@@ -8032,7 +8043,7 @@ let mirBtn = null;
   f.innerHTML = '<legend>Mirror ⇋</legend><div class="arow">Mirror <select id="vMirMode"><option value="off">Off</option><option value="x">Left ↔ right</option><option value="y">Top ↕ bottom</option><option value="xy">4 ways</option><option value="radial">Around (kaleidoscope)</option></select></div>' +
     '<div class="arow" id="vMirNRow">Copies <input class="num" type="number" id="vMirN" min="2" max="24" step="1" style="width:56px"></div>' +
     '<div class="arow vbtns"><button type="button" class="pb" id="vMirC" title="Put the mirror line in the middle of the camera">Center on camera</button><button type="button" class="pb" id="vMirD" title="The copies of the selected shapes (or all) stop following">Unlink copies</button></div>' +
-    '<p class="ainfo">Shapes you draw now get copies on the other side of the cyan line. Move, reshape or recolor the original — the copies follow. Drag the round handle to move the mirror (it sticks to the camera middle, edges and shape points; Ctrl: freely); copies already made move with it. Shift+M turns left ↔ right on and off.</p>';
+    '<p class="ainfo">Shapes you draw now get copies on the other side of the cyan line. Move, reshape or recolor the original — the copies follow. Drag the round handle with V or A to move the mirror (it sticks to the camera middle, edges and shape points; Ctrl: freely); copies already made move with it. Shift+M turns left ↔ right on and off.</p>';
   fs.insertBefore(f, $('#vSelInfo'));
   const q = s => f.querySelector(s);
   q('#vMirMode').addEventListener('change', e => { vMirSet(e.target.value); e.target.blur(); });
@@ -8042,7 +8053,7 @@ let mirBtn = null;
   const tools = document.querySelector('#app > .tools'), first = tools && tools.querySelector('[data-tool="rect"]');
   if (tools) {
     mirBtn = document.createElement('button'); mirBtn.className = 'tb vt vmir'; mirBtn.id = 'vMirBtn'; mirBtn.textContent = '⇋';
-    mirBtn.dataset.tip = 'Mirror (Shift+M)|New shapes get mirrored copies that follow the original. Drag the cyan handle on the canvas to move the mirror. Right-click: more ways';
+    mirBtn.dataset.tip = 'Mirror (Shift+M)|New shapes get mirrored copies that follow the original. Drag the cyan handle (with V or A) to move the mirror. Right-click: more ways';
     mirBtn.title = 'Mirror (Shift+M)';
     mirBtn.onclick = () => vMirSet(VSH.mir.mode === 'off' ? (VSH.mir.last || 'x') : 'off');
     mirBtn.oncontextmenu = ev => { ev.preventDefault(); const panel = $('#vMirSet'); if (panel) { try { panelShow(PANELS[0], true); } catch (er) {} panel.scrollIntoView({ block: 'nearest' }); } };
@@ -8062,7 +8073,7 @@ window.addEventListener('keydown', e => {
   if (MODE !== 'vector' || !S.inEditor || document.querySelector('dialog[open]') || e.ctrlKey || e.metaKey || !e.shiftKey || e.altKey || e.code !== 'KeyM') return;
   const t = e.target; if (t.closest && t.closest('input:not([type=range]):not([type=checkbox]),textarea,select')) return;
   e.preventDefault(); e.stopImmediatePropagation();
-  vMirSet(VSH.mir.mode === 'off' ? (VSH.mir.last || 'x') : 'off'); flash(VSH.mir.mode === 'off' ? 'Mirror off' : 'Mirror on — drag the cyan handle to move it');
+  vMirSet(VSH.mir.mode === 'off' ? (VSH.mir.last || 'x') : 'off'); flash(VSH.mir.mode === 'off' ? 'Mirror off' : 'Mirror on — drag the cyan handle with V or A to move it');
 }, true);
 syncMirUI();
 window.__mir = { axis: vMirAxis, w2s, set: vMirSet, detach: () => { vsel = new Set(); vMirDetach(); }, VSH };
@@ -8154,6 +8165,215 @@ const _syncVecMore17 = syncVecMore;
 syncVecMore = function () { _syncVecMore17.apply(this, arguments); const c = $('#vSnC'); if (c) c.checked = VSH.snapCam !== false; const p = $('#vSnP'); if (p) p.checked = !!VSH.snapPts; setSnapAll(VSH.snapAll, true); };
 setSnapAll(VSH.snapAll, true);
 window.__snap = { set: setSnapAll, get: () => VSH.snapAll, pt: (x, y) => vSnapPt({ x, y }) };
+/* ================= v39: many points at once, symmetric editing in the mirror, lean (skew), center point ================= */
+var vSkewInfo = null;
+
+/* ---------- center point (pivot): turning, Alt-resizing and Alt-leaning go around it ---------- */
+let vpivot = null;   // { key, x, y } — for the selection with these shapes
+const pivKey = list => list.map(s => s.id || '?').sort().join('|');
+function vPivotOf(list, b) {
+  if (vpivot && list.length && vpivot.key === pivKey(list)) return [vpivot.x, vpivot.y];
+  b = b || vUnion(list); return b ? [(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2] : [0, 0];
+}
+function vPivotMap(list, M) { if (vpivot && vpivot.key === pivKey(list)) { const q = mapPt(M, vpivot.x, vpivot.y); vpivot.x = q[0]; vpivot.y = q[1]; } }
+function vPivotNear(p) {
+  if (S.tool !== 'vselect') return false; const sel = vSelList().filter(s => s.shape); if (!sel.length) return false;
+  const c = vPivotOf(sel); return Math.hypot(p.x - c[0], p.y - c[1]) <= vtol() * 0.9;
+}
+let pivLastDown = 0;
+function vPivotDrag(p0, e0) {
+  const sel = vSelList().filter(s => s.shape), key = pivKey(sel), b = vUnion(sel), start = vPivotOf(sel, b);
+  const now = performance.now(), dbl = now - pivLastDown < 350; pivLastDown = now;
+  if (dbl) { vpivot = null; flash('Center point back in the middle'); render(); return null; }
+  let moved = false;
+  return {
+    move(e) {
+      const p = pos(e); if (!moved && Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 3) return; moved = true;
+      let x = start[0] + p.x - p0.x, y = start[1] + p.y - p0.y;
+      if (!e.ctrlKey) { const s = new Set(); const q = vPivSnap({ x, y }, b, s); x = q.x; y = q.y; }
+      vpivot = { key, x, y }; render();
+    },
+    up() { vmark = null; vguides = []; render(); },
+    cancel() { vpivot = start && vpivot && vpivot.key === key ? Object.assign(vpivot, { x: start[0], y: start[1] }) : vpivot; render(); }
+  };
+}
+function vPivSnap(p, b, skip) {   // the corners and middles of the selection box count too
+  if (snapOn() && b) { const t = vtol() * 1.3; for (const q of vSelHandles(b).concat([[(b.x0 + b.x1) / 2, (b.y0 + b.y1) / 2]])) if (Math.hypot(q[0] - p.x, q[1] - p.y) < t) { vmark = { x: q[0], y: q[1] }; return { x: q[0], y: q[1] }; } }
+  return vSnapPt(p, skip);
+}
+function vSkewHandles(b) {
+  const o = vtol() * 3, cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+  return [[1, [cx, b.y0 - o]], [3, [b.x1 + o, cy]], [5, [cx, b.y1 + o]], [7, [b.x0 - o, cy]]];
+}
+
+/* ---------- many points: Shift+click, or drag a box with A ---------- */
+let vpsel = new Map();   // shape -> Set of point numbers
+function vPtSelected(st, i) { const s = vpsel.get(st); return !!(s && s.has(i)); }
+function vPtCount() { let n = 0; vpsel.forEach(s => { n += s.size; }); return n; }
+function vPtClean() { const keep = new Set(vSelList()); [...vpsel.keys()].forEach(st => { if (!keep.has(st) || !vpsel.get(st).size) vpsel.delete(st); }); }
+function vPtRemap(oldSt, newSt) { if (oldSt === newSt) return; const s = vpsel.get(oldSt); if (s) { vpsel.delete(oldSt); vpsel.set(newSt, s); } }
+
+/* ---------- symmetry inside one shape when the mirror is on ---------- */
+function vMirLin() {   // the mirror's turns/flips (linear part) and its center
+  const m = VSH.mir; if (!m || m.mode === 'off') return null;
+  const a = vMirAxis(), L = [];
+  vMirSpecs().forEach(sp => { const M = vMirMat(Object.assign({ ax: a[0], ay: a[1] }, sp)); L.push(M); });
+  return { a, L };
+}
+const linOf = (M, dx, dy) => [M.a * dx + M.c * dy, M.b * dx + M.d * dy];
+function vSymPartners(path, i, sym) {   // points of the same shape that sit where the mirror puts point i
+  if (!sym) return [];
+  const N = vNodes(path), A = N[i][0], t = Math.max(vtol() * 0.8, 0.6), out = [];
+  sym.L.forEach(M => {
+    const q = mapPt(M, A[0], A[1]); let best = -1, bd = t;
+    N.forEach((n, j) => { const d = Math.hypot(n[0][0] - q[0], n[0][1] - q[1]); if (d < bd) { bd = d; best = j; } });
+    if (best >= 0) out.push({ j: best, M, self: best === i, flip: M.a * M.d - M.b * M.c < 0 });
+  });
+  return out;
+}
+
+/* ---------- the direct-selection tool (A), new version ---------- */
+const _vdirect0 = VEC_TOOL.vdirect;
+VEC_TOOL.vdirect = (p0, e0) => {
+  const hitN = vNodeAt(p0);
+  if (!hitN || e0.altKey) {
+    if (!hitN) {   // empty place or a shape: the old behavior, but a box picks points
+      const hh = vTopAtE(e0);
+      if (!hh) { const keep = e0.shiftKey ? new Map([...vpsel].map(([k, v]) => [k, new Set(v)])) : new Map(); vpsel = new Map(); const r = _vdirect0(p0, e0); if (vmarq) { const m0 = vmarq; return vActive = { move: ev => r.move(ev), cancel: () => r.cancel(), up: () => { const m = Object.assign({}, vmarq || m0); r.up(); vBoxPoints(m, keep); } }; } return r; }
+      vpsel = new Map(); return _vdirect0(p0, e0);
+    }
+    return _vdirect0(p0, e0);
+  }
+  const ow = vOwner(hitN.st); if (ow) vGoLayer(ow.li);
+  if (hitN.k) {   // a curve handle: one at a time, the mirror partner bends too
+    vpsel = new Map([[hitN.st, new Set([hitN.i])]]);
+    return vActive = vNodeDrag(p0, e0, hitN);
+  }
+  // a point
+  let set = vpsel.get(hitN.st);
+  if (e0.shiftKey) {
+    if (!set) vpsel.set(hitN.st, set = new Set());
+    if (set.has(hitN.i)) { set.delete(hitN.i); vnode = null; render(); syncVecUI(); return null; }
+    set.add(hitN.i);
+  } else if (!set || !set.has(hitN.i)) { vpsel = new Map([[hitN.st, new Set([hitN.i])]]); }
+  vsel.add(hitN.st); vnode = { st: hitN.st, i: hitN.i };
+  return vActive = vNodeDrag(p0, e0, hitN);
+};
+function vBoxPoints(m, keep) {   // after a box with A: the points inside it are picked
+  const x0 = Math.min(m.x0, m.x1), x1 = Math.max(m.x0, m.x1), y0 = Math.min(m.y0, m.y1), y1 = Math.max(m.y0, m.y1);
+  if (x1 - x0 < vtol() / 2 && y1 - y0 < vtol() / 2) { vpsel = keep; render(); return; }
+  const out = keep, shapes = new Set(keep.keys());
+  vCelsAll().forEach(o => o.c.strokes.forEach(st => {
+    if (!st.shape || st.mir) return; const N = vNodes(vToPath(st)); let s = null;
+    N.forEach((n, i) => { if (n[0][0] >= x0 && n[0][0] <= x1 && n[0][1] >= y0 && n[0][1] <= y1) { if (!s) s = out.get(st) || new Set(); s.add(i); } });
+    if (s) { out.set(st, s); shapes.add(st); }
+  }));
+  if (!shapes.size) return;   // no points inside: whole shapes stay picked (old way)
+  vpsel = out; vsel = new Set(shapes); vnode = null;
+  if (vPtCount() === 1) { const [st, s] = [...vpsel][0]; vnode = { st, i: [...s][0] }; }
+  syncVecUI(); render();
+}
+function vNodeDrag(p0, e0, hitN) {
+  const sym = vMirLin(), moving = [];   // [{ st, c, path0, idx:Set }]
+  const shapes = hitN.k ? [hitN.st] : [...vpsel.keys()];
+  shapes.forEach(st => { const o = vOwner(st); if (!o || !st.shape) return; moving.push({ st, c: o.c, li: o.li, path0: vToPath(st), idx: hitN.k ? new Set([hitN.i]) : new Set(vpsel.get(st)) }); });
+  if (!moving.length) return null;
+  const cels = [...new Set(moving.map(m => m.c))].map(c => ({ c, li: moving.find(m => m.c === c).li, base: c.strokes }));
+  const grab = moving.find(m => m.st === hitN.st), A0 = grab.path0.pts[hitN.i * 3 + (hitN.k || 0)];
+  let moved = false;
+  return {
+    move(e) {
+      const p = pos(e); if (!moved && Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 3) return; moved = true;
+      let dx = p.x - p0.x, dy = p.y - p0.y;
+      if (e.shiftKey && !hitN.k && vPtCount() > 1) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0; }
+      if (!hitN.k && !e.ctrlKey) { const skip = new Set(moving.map(m => m.st)); const q = vSnapPt({ x: A0[0] + dx, y: A0[1] + dy }, skip); dx = q.x - A0[0]; dy = q.y - A0[1]; }
+      const repl = new Map();
+      moving.forEach(m => {
+        const pts = m.path0.pts.map(q => q.slice()), N0 = vNodes(m.path0), done = new Set();
+        const shift = (j, ddx, ddy) => { for (let k = 0; k < 3; k++) { pts[j * 3 + k][0] = m.path0.pts[j * 3 + k][0] + ddx; pts[j * 3 + k][1] = m.path0.pts[j * 3 + k][1] + ddy; } };
+        if (hitN.k) {   // a handle
+          const i3 = hitN.i * 3, h = pts[i3 + hitN.k], o = pts[i3 + (hitN.k === 1 ? 2 : 1)], A = pts[i3]; h[0] += dx; h[1] += dy;
+          if (!e.altKey) { const L = Math.hypot(o[0] - A[0], o[1] - A[1]), a = Math.atan2(h[1] - A[1], h[0] - A[0]) + Math.PI; if (L > 0.01) { o[0] = A[0] + Math.cos(a) * L; o[1] = A[1] + Math.sin(a) * L; } }
+          vSymPartners(m.path0, hitN.i, sym).forEach(pp => {
+            if (pp.self) return; const j3 = pp.j * 3, M = pp.M;
+            const set = (dst, src) => { const q = mapPt(M, pts[src][0], pts[src][1]); pts[dst][0] = q[0]; pts[dst][1] = q[1]; };
+            if (pp.flip) { set(j3 + 1, i3 + 2); set(j3 + 2, i3 + 1); } else { set(j3 + 1, i3 + 1); set(j3 + 2, i3 + 2); }
+          });
+        } else {
+          m.idx.forEach(i => {
+            let ddx = dx, ddy = dy;
+            const parts = vSymPartners(m.path0, i, sym);
+            const self = parts.filter(pp => pp.self);
+            if (self.length) {   // a point on the mirror line stays on it
+              if (VSH.mir.mode === 'radial') { ddx = 0; ddy = 0; }
+              else self.forEach(pp => { const l = linOf(pp.M, ddx, ddy); ddx = (ddx + l[0]) / 2; ddy = (ddy + l[1]) / 2; });
+            }
+            shift(i, ddx, ddy); done.add(i);
+            parts.forEach(pp => { if (pp.self || m.idx.has(pp.j) || done.has(pp.j)) return; const l = linOf(pp.M, ddx, ddy); shift(pp.j, l[0], l[1]); done.add(pp.j); });
+          });
+        }
+        const n = vClone(m.path0, { pts }); repl.set(m.st, n);
+      });
+      cels.forEach(x => { x.c.strokes = x.base.map(s => repl.get(s) || s); });
+      const np = new Map(), cur2 = new Map();
+      moving.forEach(m => { const c0 = m.cur || m.st; cur2.set(c0, repl.get(m.st)); m.cur = repl.get(m.st); });
+      vpsel.forEach((s, st) => np.set(cur2.get(st) || st, s)); vpsel = np;
+      vsel = new Set([...vsel].map(s => cur2.get(s) || s));
+      const g = repl.get(hitN.st); if (g) vnode = { st: g, i: hitN.i };
+      vRefresh();
+    },
+    up() {
+      vmark = null; vguides = [];
+      if (moved) { const list = cels.map(x => { const aft = x.c.strokes; x.c.strokes = x.base; return { c: x.c, li: x.li, before: x.base, after: aft }; }); vCommitMulti(list); }
+      syncVecUI(); render();
+    },
+    cancel() { cels.forEach(x => { x.c.strokes = x.base; }); vRefresh(); }
+  };
+}
+// delete several points at once
+const _vDeletePoint0 = vDeletePoint;
+vDeletePoint = function () {
+  vPtClean(); if (vPtCount() <= 1) return _vDeletePoint0();
+  const list = [];
+  vpsel.forEach((s, st) => {
+    const o = vOwner(st); if (!o || !st.shape) return; if (st.shape === 'compound') { flash('Take the combined shape apart first to remove points'); return; }
+    const path = vToPath(st), N = vNodes(path); if (N.length - s.size < 2) return;
+    const pts = []; N.forEach((n, i) => { if (!s.has(i)) pts.push(...n); });
+    let x = list.find(l => l.c === o.c); if (!x) list.push(x = { c: o.c, li: o.li, before: o.c.strokes, after: o.c.strokes });
+    const n = vClone(path, { pts }); x.after = x.after.map(q => q === st ? n : q);
+  });
+  if (!list.length) { flash('A shape needs at least 2 points'); return true; }
+  vpsel = new Map(); vnode = null; vsel = new Set(); vCommitMulti(list); syncVecUI(true); return true;
+};
+
+/* ---------- drawing: picked points, lean handles, center point ---------- */
+const _drawVecOverlayMore18 = drawVecOverlayMore;
+drawVecOverlayMore = function (sq, dot, ln) {
+  _drawVecOverlayMore18.apply(this, arguments);
+  if (MODE !== 'vector') return;
+  const sel = vSelList().filter(s => s.shape);
+  if (S.tool === 'vdirect' && vpsel.size) {
+    vpsel.forEach((set, st) => { if (!sel.includes(st)) return; const N = vNodes(vToPath(st)); set.forEach(i => { if (N[i]) sq(N[i][0][0], N[i][0][1], VA, 7); }); });
+    const sym = vMirLin();
+    if (sym) vpsel.forEach((set, st) => { if (!sel.includes(st)) return; const path = vToPath(st), N = vNodes(path); set.forEach(i => vSymPartners(path, i, sym).forEach(pp => { if (!pp.self && N[pp.j]) { const q = w2s(N[pp.j][0][0], N[pp.j][0][1]); vctx.beginPath(); vctx.arc(q[0], q[1], 6 * dpr, 0, Math.PI * 2); vctx.strokeStyle = '#40e0ff'; vctx.lineWidth = 1.5 * dpr; vctx.stroke(); } })); });
+  }
+  if (S.tool === 'vselect' && sel.length) {
+    const b = vUnion(sel); if (!b) return;
+    vSkewHandles(b).forEach(([h, q]) => { const s = w2s(q[0], q[1]), r = 4.5 * dpr; vctx.beginPath(); vctx.moveTo(s[0], s[1] - r); vctx.lineTo(s[0] + r, s[1]); vctx.lineTo(s[0], s[1] + r); vctx.lineTo(s[0] - r, s[1]); vctx.closePath(); vctx.fillStyle = '#ffce57'; vctx.fill(); vctx.strokeStyle = '#16162b'; vctx.lineWidth = dpr; vctx.stroke(); });
+    const c = vPivotOf(sel, b), s = w2s(c[0], c[1]), r = 6 * dpr;
+    vctx.beginPath(); vctx.arc(s[0], s[1], r, 0, Math.PI * 2); vctx.fillStyle = 'rgba(255,255,255,.85)'; vctx.fill(); vctx.strokeStyle = VA; vctx.lineWidth = 1.5 * dpr; vctx.stroke();
+    vctx.beginPath(); vctx.moveTo(s[0] - r * 1.7, s[1]); vctx.lineTo(s[0] + r * 1.7, s[1]); vctx.moveTo(s[0], s[1] - r * 1.7); vctx.lineTo(s[0], s[1] + r * 1.7); vctx.stroke();
+    if (vSkewInfo) { vctx.font = (11 * dpr) + 'px sans-serif'; vctx.fillStyle = '#16162b'; const q = w2s(b.x1, b.y0); vctx.fillText('lean ' + vSkewInfo, q[0] + 8 * dpr, q[1] - 6 * dpr); }
+  }
+};
+// the selection info line says how many points are picked
+const _syncVecMore18 = syncVecMore;
+syncVecMore = function () {
+  _syncVecMore18.apply(this, arguments); vPtClean();
+  const el = $('#vSelInfo'), n = vPtCount();
+  if (el && S.tool === 'vdirect' && n > 1) el.textContent = n + ' points picked — drag one to move them all, Delete removes them, Shift+click adds/removes';
+};
+window.__pts = { count: vPtCount, sel: () => [...vpsel].map(([st, s]) => [st.id, [...s]]), pivot: () => vpivot };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {

@@ -1,6 +1,16 @@
 {
- "version": "1.38.0",
+ "version": "1.39.0",
  "changelog": [
+  {
+   "v": "1.39.0",
+   "date": "2026-11-10",
+   "items": [
+    "Points (A): pick many at once — Shift+click or drag a box around them; drag one and they all move, Delete removes them",
+    "With the mirror on, a shape that sits on the mirror line stays symmetric: move a point or bend a curve on one side and its partner on the other side does the same (cyan rings show the partners); points on the line stay on it",
+    "Lean (skew): drag the yellow diamonds next to the sides of the selection. Shift: steps of 15°, Alt: around the center point",
+    "Center point: drag the round cross in the selection to choose what turning (and Alt-resizing) goes around; it moves with the shapes. Double-click it to put it back in the middle"
+   ]
+  },
   {
    "v": "1.38.0",
    "date": "2026-11-09",
