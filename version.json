@@ -1,6 +1,13 @@
 {
- "version": "1.41.0",
+ "version": "1.41.1",
  "changelog": [
+  {
+   "v": "1.41.1",
+   "date": "2026-11-10",
+   "items": [
+    "Ctrl+Shift+D now makes a linked mirror copy: turn, move, resize or reshape the original and the copy mirrors it. Clicking the copy picks the original. “Separate copy” in Shape → Mirror still makes an independent one"
+   ]
+  },
   {
    "v": "1.41.0",
    "date": "2026-11-10",

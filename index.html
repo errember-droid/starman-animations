@@ -5774,9 +5774,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.41.0';
+const APP_VERSION = '1.41.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.41.1', date: '2026-11-10', items: ['Ctrl+Shift+D now makes a linked mirror copy: turn, move, resize or reshape the original and the copy mirrors it. Clicking the copy picks the original. “Separate copy” in Shape → Mirror still makes an independent one'] },
   { v: '1.41.0', date: '2026-11-10', items: ['Masks belong to their layer: in the layer list a mask is tucked under its layer (└) and moves with it — up/down buttons, dragging, into folders. Drag a mask onto another layer to give it to that one', 'Vector masks: mask shapes are picked only when the mask layer is selected — clicking on other layers no longer grabs them', 'Move, resize, turn or nudge a shape and the mask shapes over it come along; the selection stays just the shape', 'A mask also follows its layer’s own moves and motion paths'] },
   { v: '1.40.0', date: '2026-11-10', items: ['Duplicate mirrored (Ctrl+Shift+D, or the button in Shape → Mirror): copies the picked shapes to the other side of the mirror line, already flipped (4 ways / around make all the copies). Works even with the mirror off — then it flips left ↔ right', '“Live copies” makes mirror copies of shapes you already drew that keep following them'] },
   { v: '1.39.0', date: '2026-11-10', items: ['Points (A): pick many at once — Shift+click or drag a box around them; drag one and they all move, Delete removes them', 'With the mirror on, a shape that sits on the mirror line stays symmetric: move a point or bend a curve on one side and its partner on the other side does the same (cyan rings show the partners); points on the line stay on it', 'Lean (skew): drag the yellow diamonds next to the sides of the selection. Shift: steps of 15°, Alt: around the center point', 'Center point: drag the round cross in the selection to choose what turning (and Alt-resizing) goes around; it moves with the shapes. Double-click it to put it back in the middle'] },
@@ -6814,7 +6815,7 @@ window.addEventListener('keydown', e => {
     if (c === 'KeyX' && vsel.size) { done(); vCopy(true); return; }
     if (c === 'KeyV' && !e.shiftKey && vclip) { done(); vPaste(false); return; }
     if (c === 'KeyF' && vclip) { done(); vPaste(true); return; }
-    if (c === 'KeyD' && vsel.size) { done(); if (e.shiftKey) vDupMirror(false); else vDuplicate(); return; }
+    if (c === 'KeyD' && vsel.size) { done(); if (e.shiftKey) vDupMirror(true); else vDuplicate(); return; }
     if (c === 'BracketRight' && vsel.size) { done(); vArrange(e.shiftKey ? 'front' : 'fwd'); return; }
     if (c === 'BracketLeft' && vsel.size) { done(); vArrange(e.shiftKey ? 'back' : 'bwd'); return; }
     return;
@@ -8096,12 +8097,12 @@ function vDupMirror(live) {
   } finally { VSH.mir.mode = was; }
   if (!n) { flash('These shapes are already symmetric on the mirror line'); return; }
   vCommitMulti(list); if (!live) vsel = nsel; syncVecUI(); render();
-  flash((live ? 'Live mirror copies made — they follow the original' : 'Mirrored copy made') + (off ? ' (mirror was off: flipped left ↔ right on the mirror line)' : ''));
+  flash((live ? 'Mirrored copy made — turn, move or reshape the original and it mirrors it' : 'Separate mirrored copy made') + (off ? ' (mirror was off: flipped left ↔ right on the mirror line)' : ''));
 }
 (() => {
   const d = $('#vMirD'); if (!d) return;
-  const a = document.createElement('button'); a.type = 'button'; a.className = 'pb'; a.id = 'vMirDup'; a.textContent = 'Duplicate mirrored'; a.title = 'Copy the picked shapes to the other side of the mirror (Ctrl+Shift+D)'; a.onclick = () => vDupMirror(false);
-  const b = document.createElement('button'); b.type = 'button'; b.className = 'pb'; b.id = 'vMirLive'; b.textContent = 'Live copies'; b.title = 'Mirror copies of the picked shapes that keep following them'; b.onclick = () => vDupMirror(true);
+  const a = document.createElement('button'); a.type = 'button'; a.className = 'pb'; a.id = 'vMirDup'; a.textContent = 'Duplicate mirrored'; a.title = 'Mirrored copies of the picked shapes on the other side of the mirror; they repeat every turn, move and point change of the original (Ctrl+Shift+D)'; a.onclick = () => vDupMirror(true);
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pb'; b.id = 'vMirLive'; b.textContent = 'Separate copy'; b.title = 'A mirrored copy that does not follow the original — a normal shape'; b.onclick = () => vDupMirror(false);
   const row = document.createElement('div'); row.className = 'arow vbtns'; row.append(a, b); d.parentNode.after(row);
 })();
 window.__mir.dup = vDupMirror;
