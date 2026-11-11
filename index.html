@@ -5783,9 +5783,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.48.1';
+const APP_VERSION = '1.48.2';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.48.2', date: '2026-11-11', items: ['Fix: linked layers ⛓ now always turn, resize and move together — also when a shape was already picked before, when you grab the box handles right away, and when a linked mask is in the group', 'Grabbing a shape by its very middle moves it again (before it grabbed the center point). To move the center point the first time hold Alt and drag the cross; after that it can be dragged normally'] },
   { v: '1.48.1', date: '2026-11-11', items: ['Fix: a mask now turns, resizes and moves with its layer even when the mask layer is locked or painted with the brush (not only shapes)', 'Brush lines on vector layers can be moved, turned and resized like shapes'] },
   { v: '1.48.0', date: '2026-11-11', items: ['Link layers (masks too): right-click a layer → Link with layers… and tick the others. Linked layers get a colored ⛓. Clicking a shape on any of them picks everything on the linked layers — move, resize, turn and lean them together. Ctrl+click picks just one shape'] },
   { v: '1.47.1', date: '2026-11-11', items: ['Slow start / Slow end are much stronger now and go up to 300% — 100% is a clear, strong slow-down, 300% almost stops at the key'] },
@@ -8227,8 +8228,15 @@ function vPivotOf(list, b) {
 function vPivotMap(list, M) { if (vpivot && vpivot.key === pivKey(list)) { const q = mapPt(M, vpivot.x, vpivot.y); vpivot.x = q[0]; vpivot.y = q[1]; } }
 function vPivotNear(p) {
   if (S.tool !== 'vselect') return false; const sel = vSelList().filter(s => s.shape); if (!sel.length) return false;
+  const custom = vpivot && vpivot.key === pivKey(sel);   // the middle of a shape is for moving it: a pivot still in the middle is grabbed with Alt
+  if (!custom && !altHeld) return false;
   const c = vPivotOf(sel); return Math.hypot(p.x - c[0], p.y - c[1]) <= vtol() * 0.9;
 }
+let altHeld = false;
+window.addEventListener('keydown', e => { if (e.key === 'Alt') altHeld = true; }, true);
+window.addEventListener('keyup', e => { if (e.key === 'Alt') altHeld = false; }, true);
+window.addEventListener('blur', () => { altHeld = false; });
+window.addEventListener('pointerdown', e => { altHeld = e.altKey; }, true);
 let pivLastDown = 0;
 function vPivotDrag(p0, e0) {
   const sel = vSelList().filter(s => s.shape), key = pivKey(sel), b = vUnion(sel), start = vPivotOf(sel, b);
@@ -8583,9 +8591,11 @@ buildTimeline = function () {
 const _vCelsAll19 = vCelsAll;
 vCelsAll = function (all) {
   const L = _vCelsAll19.call(this, all); if (all) return L;
-  const cur = S.layers[S.layer], grp = cur && cur.link;   // masks in the same link group count as part of the object
-  if (cur && cur.type === 'mask' && !grp) return L.filter(o => o.li === S.layer);
-  return L.filter(o => S.layers[o.li].type !== 'mask' || o.li === S.layer || (grp && S.layers[o.li].link === grp));
+  const cur = S.layers[S.layer], grps = new Set(); if (cur && cur.link) grps.add(cur.link);
+  if (vsel.size) { const f = curFrame(); if (f) S.layers.forEach((l, li) => { const c = f.cels[li]; if (l.link && c && c.strokes && c.strokes.some(st => vsel.has(st))) grps.add(l.link); }); }
+  if (cur && cur.type === 'mask' && !grps.size) return L.filter(o => o.li === S.layer);
+  // masks count only on their own layer — or as part of a linked group that is current or picked
+  return L.filter(o => S.layers[o.li].type !== 'mask' || o.li === S.layer || grps.has(S.layers[o.li].link));
 };
 const boxHit = (a, b) => a && b && a.x0 <= b.x1 && a.x1 >= b.x0 && a.y0 <= b.y1 && a.y1 >= b.y0;
 function vMaskPartners(hosts, sel) {   // mask shapes that cover the shapes being moved
@@ -8632,17 +8642,34 @@ function layerLinkItem(li) {
   if (me.link) sub.push({ sep: true }, { label: 'Unlink this layer', action: () => layerOp(() => { const g = me.link; delete me.link; const rest = S.layers.filter(x => x.link === g); if (rest.length === 1) delete rest[0].link; }) });
   return { label: 'Link with layers…' + (me.link ? ' ⛓' : ''), sub };
 }
+function vLinkGroupShapes(g) {   // everything on the current frame of the layers in link group g (visible, unlocked)
+  const f = curFrame(), out = []; if (!f) return out;
+  S.layers.forEach((l, li) => { if (l.link !== g || !l.visible || l.locked || !isDraw(l)) return; const c = f.cels[li]; if (c && c.strokes) c.strokes.forEach(st => { if (!st.mir) out.push(st); }); });
+  return out;
+}
+function vExpandLinks(extraLi) {   // pick the whole linked group of anything picked
+  const f = curFrame(); if (!f) return; const grps = new Set();
+  if (extraLi != null && S.layers[extraLi] && S.layers[extraLi].link) grps.add(S.layers[extraLi].link);
+  S.layers.forEach((l, li) => { const c = f.cels[li]; if (l.link && c && c.strokes && c.strokes.some(st => vsel.has(st))) grps.add(l.link); });
+  if (!grps.size) return; const n = new Set(vsel); grps.forEach(g => vLinkGroupShapes(g).forEach(st => n.add(st))); vsel = n;
+}
+var vSingle = false;   // Ctrl+click picked one shape of a linked group on purpose
 const _vselect19 = VEC_TOOL.vselect;
 VEC_TOOL.vselect = (p, e) => {
-  if (!e.shiftKey && !e.ctrlKey && !vPivotNear(p) && !vHandleAt(p)) {
+  if (!vPivotNear(p) && !vHandleAt(p)) {
     const hh = vTopAtE(e), l = hh && S.layers[hh.li];
-    if (hh && l && l.link && !vsel.has(hh.st)) {
-      const g = l.link, all = vCelsAll().filter(o => S.layers[o.li].link === g).flatMap(o => o.c.strokes.filter(st => st.shape && !st.mir));
-      vsel = new Set(all.length ? all : [hh.st]); if (!vsel.has(hh.st)) vsel.add(hh.st);
-    }
+    if (e.ctrlKey && hh) { vSingle = true; vsel = new Set([hh.st]); }
+    else if (!e.shiftKey) { vSingle = false; if (hh && l && l.link) { if (!vsel.has(hh.st)) vsel = new Set([hh.st]); vExpandLinks(hh.li); } }
   }
   return _vselect19(p, e);
 };
+// whatever is picked: the rest of its linked group is picked too (unless Ctrl+click chose one)
+const _vSelList19 = vSelList;
+vSelList = function () {
+  if (!vSingle && vsel.size && !vExpanding && S.tool === 'vselect') { vExpanding = true; try { vExpandLinks(); } finally { vExpanding = false; } }
+  return _vSelList19.apply(this, arguments);
+};
+var vExpanding = false;
 const _buildTimeline19b = buildTimeline;
 buildTimeline = function () {
   const r = _buildTimeline19b.apply(this, arguments);

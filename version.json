@@ -1,6 +1,14 @@
 {
- "version": "1.48.1",
+ "version": "1.48.2",
  "changelog": [
+  {
+   "v": "1.48.2",
+   "date": "2026-11-11",
+   "items": [
+    "Fix: linked layers ⛓ now always turn, resize and move together — also when a shape was already picked before, when you grab the box handles right away, and when a linked mask is in the group",
+    "Grabbing a shape by its very middle moves it again (before it grabbed the center point). To move the center point the first time hold Alt and drag the cross; after that it can be dragged normally"
+   ]
+  },
   {
    "v": "1.48.1",
    "date": "2026-11-11",
