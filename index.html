@@ -5777,9 +5777,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.44.0';
+const APP_VERSION = '1.44.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.44.1', date: '2026-11-11', items: ['Combined shapes (Combine): double-click the outline with A to add a point, Delete removes points — no need to take them apart first (works with the mirror too)'] },
   { v: '1.44.0', date: '2026-11-10', items: ['FNF export (sprite sheet / FNF character), vector: Smoothness 2×–4× adds in-between pictures made from your shape keys ◆, and the fps in the character file goes up to match — smooth in the game, no jerky steps', 'FNF character: “Same size in game” — a bigger export Size makes the sprite sharper (the character scale is set to match), so it stays crisp when the camera zooms in'] },
   { v: '1.43.0', date: '2026-11-10', items: ['Palette from a picture (Palette ⋯ → Palette from a picture / this frame): open a picture, take this frame or a copied picture, choose how many colors (4–256) — it picks the main colors smartly and sorts them into ramps. Use as palette or add to yours', 'Each project now keeps its own palette: opening a project brings its palette back. Old projects keep the current palette until you change it'] },
   { v: '1.42.1', date: '2026-11-10', items: ['Mirror: a point on the mirror line keeps its curve handles straight across the line — it cannot turn and both handles stretch the same. Alt+drag a handle for a symmetric sharp corner'] },
@@ -8415,7 +8416,7 @@ syncVecMore = function () {
   const el = $('#vSelInfo'), n = vPtCount();
   if (el && S.tool === 'vdirect' && n > 1) el.textContent = n + ' points picked — drag one to move them all, Delete removes them, Shift+click adds/removes';
 };
-window.__pts = { count: vPtCount, sel: () => [...vpsel].map(([st, s]) => [st.id, [...s]]), pivot: () => vpivot };
+window.__pts = { combine: (op) => vCombine(op), count: vPtCount, sel: () => [...vpsel].map(([st, s]) => [st.id, [...s]]), pivot: () => vpivot };
 
 /* ---------- mirror inside one shape: new points and curve handles on one side appear on the other too ---------- */
 function vSymApply(st, idxs) {   // copy the curve handles of these points to their mirror partners in the same shape
@@ -8435,34 +8436,65 @@ function vInsertAt(st, p, t) {   // split the outline of a path at the place nea
   const N = vNodes(st), segs = N.length - 1 + (st.cl ? 1 : 0); let best = null;
   const bz = (a, b, u) => { const v = 1 - u; return [v * v * v * a[0][0] + 3 * v * v * u * a[2][0] + 3 * v * u * u * b[1][0] + u * u * u * b[0][0], v * v * v * a[0][1] + 3 * v * v * u * a[2][1] + 3 * v * u * u * b[1][1] + u * u * u * b[0][1]]; };
   for (let i = 0; i < segs; i++) { const a = N[i], b = N[(i + 1) % N.length]; for (let k = 1; k < 80; k++) { const u = k / 80, q = bz(a, b, u), d = Math.hypot(q[0] - p.x, q[1] - p.y); if (d < t && (!best || d < best.d)) best = { i, u, d }; } }
-  if (!best) return null;
+  if (!best) return null; const bestD = best.d;
   { const a = N[best.i], b = N[(best.i + 1) % N.length]; let lo = Math.max(0.001, best.u - 1 / 80), hi = Math.min(0.999, best.u + 1 / 80); const f = u => { const q = bz(a, b, u); return Math.hypot(q[0] - p.x, q[1] - p.y); }; for (let k = 0; k < 40; k++) { const m1 = lo + (hi - lo) / 3, m2 = hi - (hi - lo) / 3; if (f(m1) < f(m2)) hi = m2; else lo = m1; } best.u = (lo + hi) / 2; }
   const a = N[best.i], b = N[(best.i + 1) % N.length], u = best.u, L = (P, Q) => [P[0] + (Q[0] - P[0]) * u, P[1] + (Q[1] - P[1]) * u];
   const p01 = L(a[0], a[2]), p12 = L(a[2], b[1]), p23 = L(b[1], b[0]), p012 = L(p01, p12), p123 = L(p12, p23), m = L(p012, p123), w = a[0][2];
   const pts = st.pts.map(q => q.slice()), ia = best.i * 3, ib = ((best.i + 1) % N.length) * 3;
   pts[ia + 2] = [p01[0], p01[1], w]; pts[ib + 1] = [p23[0], p23[1], w];
   pts.splice(ia + 3, 0, [m[0], m[1], w], [p012[0], p012[1], w], [p123[0], p123[1], w]);
-  return { st: vClone(st, { pts }), i: best.i + 1, at: m };
+  return { st: vClone(st, { pts }), i: best.i + 1, at: m, d: bestD };
 }
 view.addEventListener('dblclick', e => {
-  if (MODE !== 'vector' || S.tool !== 'vdirect' || !vMirLin()) return;   // without the mirror the old way does it
-  const p = pos(e), t = vtol() * 1.5, sym = vMirLin();
+  if (MODE !== 'vector' || S.tool !== 'vdirect') return;
+  const p = pos(e), t = vtol() * 1.5, sym = vMirLin() || { L: [] };
   for (const st0 of vSelList()) {
-    if (!st0.shape || st0.shape === 'compound' || st0.mir) continue;
+    if (!st0.shape || st0.mir) continue;
     const o = vOwner(st0); if (!o) continue;
-    const r = vInsertAt(vToPath(st0), p, t); if (!r) continue;
+    const r = vInsertAny(vToPath(st0), p, t); if (!r) continue;
     e.stopImmediatePropagation(); e.preventDefault();
     let cur = r.st, added = 1; const at = r.at;
     sym.L.forEach(M => {
       const q = mapPt(M, at[0], at[1]); if (Math.hypot(q[0] - at[0], q[1] - at[1]) < t) return;   // the new point is on the mirror line
       if (vNodes(cur).some(n => Math.hypot(n[0][0] - q[0], n[0][1] - q[1]) < 0.5)) return;
-      const r2 = vInsertAt(cur, { x: q[0], y: q[1] }, Math.max(t, vtol() * 3)); if (r2) { cur = r2.st; added++; }
+      const r2 = vInsertAny(cur, { x: q[0], y: q[1] }, Math.max(t, vtol() * 3)); if (r2) { cur = r2.st; added++; }
     });
     const i = vNodes(cur).findIndex(n => Math.hypot(n[0][0] - at[0], n[0][1] - at[1]) < 1e-6);
     const base = o.c.strokes; vsel = new Set([cur]); vnode = { st: cur, i }; vpsel = new Map([[cur, new Set([i])]]);
     vPush(o.c, base, base.map(x => x === st0 ? cur : x)); flash(added > 1 ? 'Point added on both sides' : 'Point added'); return;
   }
 }, true);
+
+/* ---------- combined shapes (Combine): add and remove points in their pieces ---------- */
+function vJoinParts(st, parts) { return vClone(st, { pts: parts.flatMap(q => q.pts), ns: parts.map(q => q.pts.length / 3), cls: parts.map(q => q.cl !== false) }); }
+function vInsertAny(st, p, t) {   // a path, or the nearest piece of a combined shape
+  if (st.shape !== 'compound') return vInsertAt(st, p, t);
+  const parts = vParts(st); let best = null, off = 0;
+  parts.forEach((q, k) => { const r = vInsertAt(q, p, t); if (r && (!best || r.d < best.r.d)) best = { r, k, off }; off += q.pts.length / 3; });
+  if (!best) return null;
+  const np = parts.slice(); np[best.k] = { shape: 'path', pts: best.r.st.pts, cl: parts[best.k].cl };
+  return { st: vJoinParts(st, np), i: best.off + best.r.i, at: best.r.at, d: best.r.d };
+}
+function vDropNodes(st, set) {   // remove points; a combined shape loses a piece that gets too small → new shape or null
+  if (st.shape !== 'compound') { const path = vToPath(st), N = vNodes(path); if (N.length - set.size < 2) return null; const pts = []; N.forEach((n, i) => { if (!set.has(i)) pts.push(...n); }); return vClone(path, { pts }); }
+  const parts = vParts(st), np = []; let off = 0;
+  parts.forEach(q => { const n = q.pts.length / 3, pts = []; for (let i = 0; i < n; i++) if (!set.has(off + i)) pts.push(q.pts[i * 3], q.pts[i * 3 + 1], q.pts[i * 3 + 2]); off += n; if (pts.length / 3 >= (q.cl !== false ? 3 : 2)) np.push({ shape: 'path', pts, cl: q.cl }); });
+  if (!np.length) return null;
+  return vJoinParts(st, np);
+}
+vDeletePoint = function () {
+  vPtClean(); let sets = vpsel;
+  if (vPtCount() <= 1) { if (!vnode || !vnode.st || !vnode.st.shape) return _vDeletePoint0(); sets = new Map([[vnode.st, new Set([vnode.i])]]); }
+  const list = []; let refused = false;
+  sets.forEach((s, st) => {
+    const o = vOwner(st); if (!o || !st.shape) return;
+    const n = vDropNodes(st, s); if (!n) { refused = true; return; }
+    let x = list.find(l => l.c === o.c); if (!x) list.push(x = { c: o.c, li: o.li, before: o.c.strokes, after: o.c.strokes });
+    x.after = x.after.map(q => q === st ? n : q);
+  });
+  if (!list.length) { flash(refused ? 'A shape needs at least 2 points' : 'Nothing to remove'); return true; }
+  vpsel = new Map(); vnode = null; vsel = new Set(list.flatMap(x => x.after.filter(q => !x.before.includes(q)))); vCommitMulti(list); syncVecUI(true); return true;
+};
 /* ================= v41: masks belong to their layer — move together in the layer list, follow its moves, pick only on the mask layer ================= */
 const maskHostable = l => !!l && !isGroup(l) && !['mask', 'sound', 'fx'].includes(l.type);
 function maskHost(j) {   // the layer a mask belongs to (the first non-mask right below it, same folder level), or -1

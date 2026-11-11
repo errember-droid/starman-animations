@@ -1,6 +1,13 @@
 {
- "version": "1.44.0",
+ "version": "1.44.1",
  "changelog": [
+  {
+   "v": "1.44.1",
+   "date": "2026-11-11",
+   "items": [
+    "Combined shapes (Combine): double-click the outline with A to add a point, Delete removes points — no need to take them apart first (works with the mirror too)"
+   ]
+  },
   {
    "v": "1.44.0",
    "date": "2026-11-10",
