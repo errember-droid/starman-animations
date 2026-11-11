@@ -1,6 +1,14 @@
 {
- "version": "1.48.0",
+ "version": "1.48.1",
  "changelog": [
+  {
+   "v": "1.48.1",
+   "date": "2026-11-11",
+   "items": [
+    "Fix: a mask now turns, resizes and moves with its layer even when the mask layer is locked or painted with the brush (not only shapes)",
+    "Brush lines on vector layers can be moved, turned and resized like shapes"
+   ]
+  },
   {
    "v": "1.48.0",
    "date": "2026-11-11",

@@ -5783,9 +5783,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.48.0';
+const APP_VERSION = '1.48.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.48.1', date: '2026-11-11', items: ['Fix: a mask now turns, resizes and moves with its layer even when the mask layer is locked or painted with the brush (not only shapes)', 'Brush lines on vector layers can be moved, turned and resized like shapes'] },
   { v: '1.48.0', date: '2026-11-11', items: ['Link layers (masks too): right-click a layer → Link with layers… and tick the others. Linked layers get a colored ⛓. Clicking a shape on any of them picks everything on the linked layers — move, resize, turn and lean them together. Ctrl+click picks just one shape'] },
   { v: '1.47.1', date: '2026-11-11', items: ['Slow start / Slow end are much stronger now and go up to 300% — 100% is a clear, strong slow-down, 300% almost stops at the key'] },
   { v: '1.47.0', date: '2026-11-11', items: ['Shape keys ◆: “Slow start” and “Slow end” sliders (0–100%) for the motion to the next key, with a little curve picture. Shape window → Shape animation, or right-click a key → Motion to the next key → Slow start / end strength…. “Use on all keys of the layer” copies it to every key. Smooth export for FNF uses it too'] },
@@ -6400,6 +6401,7 @@ function vToPath(st) {
 }
 function vApply(st, M) {
   const det = M.a * M.d - M.b * M.c, k = VSH.keepLw ? 1 : (Math.sqrt(Math.abs(det)) || 1);
+  if (!st.shape) return Object.assign({}, st, { box: undefined, pts: st.pts.map(q => { const a = mapPt(M, q[0], q[1]); return [a[0], a[1], q[2] * k]; }) });   // a brush line
   if (st.shape !== 'path' && st.shape !== 'compound') {
     const lw = st.pts[0][2] * k, r = vBoxRaw(st);
     if (!st.rot && Math.abs(M.b) < 1e-9 && Math.abs(M.c) < 1e-9) { const a = mapPt(M, r.x0, r.y0), b = mapPt(M, r.x1, r.y1); return vClone(st, { pts: [[Math.min(a[0], b[0]), Math.min(a[1], b[1]), lw], [Math.max(a[0], b[0]), Math.max(a[1], b[1]), lw]] }); }
@@ -6619,7 +6621,6 @@ VEC_TOOL.vselect = (p, e) => {
     if (!e.shiftKey && hh.li !== S.layer) vGoLayer(hh.li);
     if (e.shiftKey) { if (vsel.has(hit)) vsel.delete(hit); else vsel.add(hit); syncVecUI(); render(); if (!vsel.has(hit)) return null; }
     else if (!vsel.has(hit)) { vsel = new Set([hit]); syncVecUI(); }
-    if (!hit.shape) { render(); return null; }   // an old brush line: can be selected and deleted, not moved
     return vActive = vDragTransform(p, e, 'move');
   }
   return vActive = vMarquee(p, e);
@@ -6754,7 +6755,7 @@ function vDeletePoint() {
   const pts = path.pts.slice(); pts.splice(vnode.i * 3, 3); const n = vClone(path, { pts }), base = c.strokes;
   vsel = new Set([n]); vnode = null; vPush(c, base, base.map(x => x === st ? n : x)); return true;
 }
-function vNudge(dx, dy) { return vEditSel(st => st.shape ? vApply(st, mTrans(dx, dy)) : st); }
+function vNudge(dx, dy) { return vEditSel(st => vApply(st, mTrans(dx, dy))); }
 function vArrange(how) {
   if (!vSelList().length) return; const sel = vsel, list = [];
   for (const o of vCelsAll()) {
@@ -8591,12 +8592,12 @@ function vMaskPartners(hosts, sel) {   // mask shapes that cover the shapes bein
   const f = curFrame(), out = []; if (!f) return out;
   hosts.forEach(x => {
     const l = S.layers[x.li]; if (!l || l.type === 'mask') return;
-    const sb = vUnion(x.c.strokes.filter(st => sel.has(st) && st.shape)); if (!sb) return;
+    const sb = vUnion(x.c.strokes.filter(st => sel.has(st))); if (!sb) return;
     const js = []; for (let j = x.li + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) if (!maskLinked(S.layers[j]) || S.layers[j].mt === l.id) js.push(j);
     S.layers.forEach((m, j) => { if (m.type === 'mask' && m.mt === l.id && maskLinked(m) && !js.includes(j)) js.push(j); });
     for (const j of js) {
-      const mc = f.cels[j]; if (!mc || !mc.strokes || !mc.strokes.length || S.layers[j].locked || out.some(o => o.c === mc) || hosts.some(h => h.c === mc)) continue;
-      const pick = new Set(mc.strokes.filter(st => st.shape && !sel.has(st) && boxHit(vBounds(st), sb)));
+      const mc = f.cels[j]; if (!mc || !mc.strokes || !mc.strokes.length || out.some(o => o.c === mc) || hosts.some(h => h.c === mc)) continue;
+      const pick = new Set(mc.strokes.filter(st => !st.mir && !sel.has(st) && boxHit(vBounds(st), sb)));   // shapes and brush lines
       if (pick.size) out.push({ c: mc, li: j, base: mc.strokes, pick });
     }
   });
@@ -8606,7 +8607,7 @@ function vMaskMove(mk, M) { mk.forEach(x => { x.c.strokes = M ? x.base.map(st =>
 vNudge = function (dx, dy) {
   const sel = new Set(vSelList()); if (!sel.size) return false;
   const M = mTrans(dx, dy), hosts = vCelsAll().filter(o => o.c.strokes.some(st => sel.has(st))), mk = vMaskPartners(hosts, sel), nsel = new Set();
-  const list = hosts.map(o => ({ c: o.c, li: o.li, before: o.c.strokes, after: o.c.strokes.map(st => { if (!sel.has(st)) return st; const n = st.shape ? vApply(st, M) : st; nsel.add(n); return n; }) }))
+  const list = hosts.map(o => ({ c: o.c, li: o.li, before: o.c.strokes, after: o.c.strokes.map(st => { if (!sel.has(st)) return st; const n = vApply(st, M); nsel.add(n); return n; }) }))
     .concat(mk.map(x => ({ c: x.c, li: x.li, before: x.base, after: x.base.map(st => x.pick.has(st) ? vApply(st, M) : st) })));
   vsel = nsel; return vCommitMulti(list);
 };
