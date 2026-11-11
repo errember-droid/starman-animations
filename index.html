@@ -5777,9 +5777,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.44.1';
+const APP_VERSION = '1.45.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.45.0', date: '2026-11-11', items: ['Points (A): when 2 or more points are picked, a box appears around them — drag its squares to resize (Shift: evenly, Alt: from the middle), just outside the corners to turn (Shift: 15° steps), the yellow diamonds to lean. Only the picked points change; with the mirror on, their partners do the mirrored change'] },
   { v: '1.44.1', date: '2026-11-11', items: ['Combined shapes (Combine): double-click the outline with A to add a point, Delete removes points — no need to take them apart first (works with the mirror too)'] },
   { v: '1.44.0', date: '2026-11-10', items: ['FNF export (sprite sheet / FNF character), vector: Smoothness 2×–4× adds in-between pictures made from your shape keys ◆, and the fps in the character file goes up to match — smooth in the game, no jerky steps', 'FNF character: “Same size in game” — a bigger export Size makes the sprite sharper (the character scale is set to match), so it stays crisp when the camera zooms in'] },
   { v: '1.43.0', date: '2026-11-10', items: ['Palette from a picture (Palette ⋯ → Palette from a picture / this frame): open a picture, take this frame or a copied picture, choose how many colors (4–256) — it picks the main colors smartly and sorts them into ramps. Use as palette or add to yours', 'Each project now keeps its own palette: opening a project brings its palette back. Old projects keep the current palette until you change it'] },
@@ -8745,6 +8746,104 @@ buildTagSheet = function (sc, name, tagsIn) {
   return { out, xml: xml + '</TextureAtlas>\n', n, sc, N, cols, rows };
 };
 window.__smooth = { plan: (N) => { const p = smoothPlan(S.ftags.map(t => ({ name: t.name, frames: tagFrames(t) })), N); return { pics: p.pics.length, lists: p.lists.map(l => l.list.length) }; } };
+/* ================= v45: transform picked points (A) — a box around them to resize, turn and lean ================= */
+function vPtTargets() {   // [{ st, idx:Set }] for picked points on picked shapes
+  vPtClean(); const sel = new Set(vSelList()), out = [];
+  vpsel.forEach((s, st) => { if (sel.has(st) && st.shape && s.size) out.push({ st, idx: s }); });
+  return out;
+}
+function vPtBox() {
+  if (S.tool !== 'vdirect' || MODE !== 'vector') return null;
+  const T = vPtTargets(); let n = 0, x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  T.forEach(({ st, idx }) => { const N = vNodes(vToPath(st)); idx.forEach(i => { const a = N[i] && N[i][0]; if (!a) return; n++; x0 = Math.min(x0, a[0]); y0 = Math.min(y0, a[1]); x1 = Math.max(x1, a[0]); y1 = Math.max(y1, a[1]); }); });
+  if (n < 2) return null;
+  const pad = vtol() * 1.6; return { x0: x0 - pad, y0: y0 - pad, x1: x1 + pad, y1: y1 + pad, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, T };
+}
+function vPtHandleAt(p) {
+  const b = vPtBox(); if (!b) return null; const t = vtol(), H = vSelHandles(b);
+  for (let i = 0; i < 8; i++) if (Math.abs(p.x - H[i][0]) <= t && Math.abs(p.y - H[i][1]) <= t) return { mode: 'scale', h: i, b };
+  for (const [i, q] of vSkewHandles(b)) if (Math.hypot(p.x - q[0], p.y - q[1]) <= t * 1.1) return { mode: 'skew', h: i, b };
+  for (let i = 0; i < 8; i += 2) { const d = Math.hypot(p.x - H[i][0], p.y - H[i][1]); if (d > t && d < t * 3.2) return { mode: 'rot', h: i, b }; }
+  return null;
+}
+function vPtTransform(p0, e0, hd) {
+  const b = hd.b, H = vSelHandles(b), cx = b.cx, cy = b.cy, h = hd.h, mode = hd.mode, sym = vMirLin();
+  const moving = hd.b.T.map(({ st, idx }) => { const o = vOwner(st); return o ? { st, c: o.c, li: o.li, path0: vToPath(st), idx } : null; }).filter(Boolean);
+  if (!moving.length) return null;
+  const cels = [...new Set(moving.map(m => m.c))].map(c => ({ c, li: moving.find(m => m.c === c).li, base: c.strokes }));
+  const a0 = Math.atan2(p0.y - cy, p0.x - cx); let moved = false;
+  return {
+    move(e) {
+      const p = mode === 'scale' && !e.ctrlKey ? vSnapPt(pos(e), new Set(moving.map(m => m.st))) : pos(e);
+      if (!moved && Math.hypot(p.x - p0.x, p.y - p0.y) < vtol() / 3) return; moved = true;
+      let M;
+      if (mode === 'scale') {
+        const corner = h % 2 === 0, opp = H[(h + 4) % 8], ax = e.altKey ? cx : opp[0], ay = e.altKey ? cy : opp[1], hp = H[h];
+        let sx = Math.abs(hp[0] - ax) > 1e-6 ? (p.x - ax) / (hp[0] - ax) : 1, sy = Math.abs(hp[1] - ay) > 1e-6 ? (p.y - ay) / (hp[1] - ay) : 1;
+        if (!corner) { if (h === 1 || h === 5) sx = e.shiftKey ? sy : 1; else sy = e.shiftKey ? sx : 1; }
+        else if (e.shiftKey) { const s = Math.max(Math.abs(sx), Math.abs(sy)); sx = Math.sign(sx || 1) * s; sy = Math.sign(sy || 1) * s; }
+        M = mScale(sx, sy, ax, ay);
+      } else if (mode === 'skew') {
+        const horiz = h === 1 || h === 5, opp = H[(h + 4) % 8], hp = H[h], an = horiz ? (e.altKey ? cy : opp[1]) : (e.altKey ? cx : opp[0]);
+        let k = horiz ? (Math.abs(hp[1] - an) > 1e-6 ? (p.x - p0.x) / (hp[1] - an) : 0) : (Math.abs(hp[0] - an) > 1e-6 ? (p.y - p0.y) / (hp[0] - an) : 0);
+        k = clamp(k, -20, 20); if (e.shiftKey) { const st15 = Math.PI / 12; k = Math.tan(Math.round(Math.atan(k) / st15) * st15); }
+        vSkewInfo = Math.round(Math.atan(k) * 180 / Math.PI) + '°';
+        M = horiz ? { a: 1, b: 0, c: k, d: 1, e: -k * an, f: 0 } : { a: 1, b: k, c: 0, d: 1, e: 0, f: -k * an };
+      } else {
+        let t = Math.atan2(p.y - cy, p.x - cx) - a0;
+        if (e.shiftKey) t = Math.round(t / (Math.PI / 12)) * (Math.PI / 12); else if (!e.ctrlKey && snapOn()) { const r = Math.round(t / (Math.PI / 4)) * (Math.PI / 4); if (Math.abs(t - r) < 0.06) t = r; }
+        vSkewInfo = Math.round(t * 180 / Math.PI) + '°';
+        M = mRot(t, cx, cy);
+      }
+      const repl = new Map();
+      moving.forEach(m => {
+        const pts = m.path0.pts.map(q => q.slice()), done = new Set();
+        const put = (i, f) => { for (let k = 0; k < 3; k++) { const q = m.path0.pts[i * 3 + k], r = f(q[0], q[1]); pts[i * 3 + k][0] = r[0]; pts[i * 3 + k][1] = r[1]; } };
+        m.idx.forEach(i => { put(i, (x, y) => mapPt(M, x, y)); done.add(i); });
+        if (sym) m.idx.forEach(i => vSymPartners(m.path0, i, sym).forEach(pp => {   // the partner on the other side gets the mirrored change
+          if (pp.self || m.idx.has(pp.j) || done.has(pp.j)) return; done.add(pp.j);
+          put(pp.j, (x, y) => { const a = mapPt(pp.M, x, y), b2 = mapPt(M, a[0], a[1]); return mapPt(pp.M, b2[0], b2[1]); });
+        }));
+        repl.set(m.st, vClone(m.path0, { pts }));
+      });
+      cels.forEach(x => { x.c.strokes = x.base.map(s => repl.get(s) || s); });
+      const cur2 = new Map(); moving.forEach(m => { cur2.set(m.cur || m.st, repl.get(m.st)); m.cur = repl.get(m.st); });
+      const np = new Map(); vpsel.forEach((s, st) => np.set(cur2.get(st) || st, s)); vpsel = np;
+      vsel = new Set([...vsel].map(s => cur2.get(s) || s)); if (vnode && cur2.get(vnode.st)) vnode = { st: cur2.get(vnode.st), i: vnode.i };
+      vRefresh();
+    },
+    up() {
+      vSkewInfo = null; vmark = null; vguides = [];
+      if (moved) vCommitMulti(cels.map(x => { const aft = x.c.strokes; x.c.strokes = x.base; return { c: x.c, li: x.li, before: x.base, after: aft }; }));
+      syncVecUI(); render();
+    },
+    cancel() { vSkewInfo = null; cels.forEach(x => { x.c.strokes = x.base; }); vRefresh(); }
+  };
+}
+const _vdirect22 = VEC_TOOL.vdirect;
+VEC_TOOL.vdirect = (p0, e0) => {
+  if (!vNodeAt(p0)) { const hd = vPtHandleAt(p0); if (hd) return vActive = vPtTransform(p0, e0, hd); }
+  return _vdirect22(p0, e0);
+};
+// the box, its handles and the cursor
+const _drawVecOverlayMore22 = drawVecOverlayMore;
+drawVecOverlayMore = function (sq, dot, ln) {
+  _drawVecOverlayMore22.apply(this, arguments);
+  const b = vPtBox(); if (!b) return;
+  const H = vSelHandles(b), s0 = w2s(b.x0, b.y0), s1 = w2s(b.x1, b.y0), s2 = w2s(b.x1, b.y1), s3 = w2s(b.x0, b.y1);
+  vctx.save(); vctx.setLineDash([4 * dpr, 3 * dpr]); vctx.strokeStyle = VA; vctx.lineWidth = dpr; vctx.beginPath(); vctx.moveTo(s0[0], s0[1]); vctx.lineTo(s1[0], s1[1]); vctx.lineTo(s2[0], s2[1]); vctx.lineTo(s3[0], s3[1]); vctx.closePath(); vctx.stroke(); vctx.restore();
+  H.forEach(q => { const s = w2s(q[0], q[1]), r = 3.5 * dpr; vctx.fillStyle = '#fff'; vctx.fillRect(s[0] - r, s[1] - r, r * 2, r * 2); vctx.strokeStyle = VA; vctx.lineWidth = dpr; vctx.strokeRect(s[0] - r, s[1] - r, r * 2, r * 2); });
+  vSkewHandles(b).forEach(([h, q]) => { const s = w2s(q[0], q[1]), r = 4 * dpr; vctx.beginPath(); vctx.moveTo(s[0], s[1] - r); vctx.lineTo(s[0] + r, s[1]); vctx.lineTo(s[0], s[1] + r); vctx.lineTo(s[0] - r, s[1]); vctx.closePath(); vctx.fillStyle = '#ffce57'; vctx.fill(); vctx.strokeStyle = '#16162b'; vctx.lineWidth = dpr; vctx.stroke(); });
+  if (vSkewInfo) { vctx.font = (11 * dpr) + 'px sans-serif'; vctx.fillStyle = '#16162b'; const q = w2s(b.x1, b.y0); vctx.fillText(vSkewInfo, q[0] + 8 * dpr, q[1] - 6 * dpr); }
+};
+view.addEventListener('pointermove', e => {
+  if (MODE !== 'vector' || S.tool !== 'vdirect' || e.buttons || vActive) return;
+  const p = pos(e); let cur = '';
+  if (!vNodeAt(p)) { const hd = vPtHandleAt(p); if (hd) cur = hd.mode === 'rot' ? 'alias' : hd.mode === 'skew' ? (hd.h === 1 || hd.h === 5 ? 'col-resize' : 'row-resize') : ['nwse-resize', 'ns-resize', 'nesw-resize', 'ew-resize'][hd.h % 4]; }
+  if (cur) view.style.cursor = cur; else if (view.__ptCur) view.style.cursor = '';
+  view.__ptCur = !!cur;
+});
+window.__ptx = { box: () => { const b = vPtBox(); return b && [b.x0, b.y0, b.x1, b.y1].map(Math.round); } };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {

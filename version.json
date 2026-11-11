@@ -1,6 +1,13 @@
 {
- "version": "1.44.1",
+ "version": "1.45.0",
  "changelog": [
+  {
+   "v": "1.45.0",
+   "date": "2026-11-11",
+   "items": [
+    "Points (A): when 2 or more points are picked, a box appears around them — drag its squares to resize (Shift: evenly, Alt: from the middle), just outside the corners to turn (Shift: 15° steps), the yellow diamonds to lean. Only the picked points change; with the mirror on, their partners do the mirrored change"
+   ]
+  },
   {
    "v": "1.44.1",
    "date": "2026-11-11",
