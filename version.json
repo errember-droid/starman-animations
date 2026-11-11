@@ -1,6 +1,13 @@
 {
- "version": "1.45.0",
+ "version": "1.46.0",
  "changelog": [
+  {
+   "v": "1.46.0",
+   "date": "2026-11-11",
+   "items": [
+    "Link a mask to any layer, however far: right-click the mask layer → Mask for layer… → pick the layer. The mask can stay at the top while the layer stays behind other things. The mask shows 🔗 and the layer’s name; it follows that layer’s moves, and its shapes move with the shapes they cover"
+   ]
+  },
   {
    "v": "1.45.0",
    "date": "2026-11-11",

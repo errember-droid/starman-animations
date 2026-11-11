@@ -439,7 +439,7 @@ kbd{padding:2px 7px;text-shadow:none}
 .tgrid .span.t-bg{background:linear-gradient(90deg,var(--bgc,#fff) 0 14px,#d2d2de 14px)}
 .tgrid .span.t-bg .spanlbl{padding-left:16px}
 .dcin{display:block}.dcin input{box-sizing:border-box;max-width:100%}
-.tagrow{position:relative;min-width:0}.tagbar{position:absolute;height:14px;border:1px solid rgba(0,0,0,.45);box-sizing:border-box;color:#10102a;font-size:10px;line-height:12px;overflow:hidden;white-space:nowrap;cursor:pointer;padding:0 4px;border-radius:2px}.tagbar.on{outline:2px solid #fff;outline-offset:-1px}.tagbar span{pointer-events:none}.ln.t-tags{opacity:.75}.foldbtn{display:inline-block;width:12px;cursor:pointer}.ln.t-group{font-weight:600}.ln.mchild{opacity:.92;font-style:italic}.ln .mlink{display:inline-block;width:10px;margin-left:-11px;color:#6d6a8a;font-style:normal}.ln.mhost{box-shadow:inset 0 -2px 0 rgba(255,42,85,.35)}.tgrid .span.t-group{background:repeating-linear-gradient(90deg,#d9d3b8 0 8px,#cfc8a9 8px 16px)}.ftcol{width:22px;height:22px;padding:0;border:0;background:none;flex:none}
+.tagrow{position:relative;min-width:0}.tagbar{position:absolute;height:14px;border:1px solid rgba(0,0,0,.45);box-sizing:border-box;color:#10102a;font-size:10px;line-height:12px;overflow:hidden;white-space:nowrap;cursor:pointer;padding:0 4px;border-radius:2px}.tagbar.on{outline:2px solid #fff;outline-offset:-1px}.tagbar span{pointer-events:none}.ln.t-tags{opacity:.75}.foldbtn{display:inline-block;width:12px;cursor:pointer}.ln.t-group{font-weight:600}.ln .mto{margin-left:6px;font-size:.85em;opacity:.75;font-style:normal;white-space:nowrap}.ln.mlinked{font-style:italic}.ln.mchild{opacity:.92;font-style:italic}.ln .mlink{display:inline-block;width:10px;margin-left:-11px;color:#6d6a8a;font-style:normal}.ln.mhost{box-shadow:inset 0 -2px 0 rgba(255,42,85,.35)}.tgrid .span.t-group{background:repeating-linear-gradient(90deg,#d9d3b8 0 8px,#cfc8a9 8px 16px)}.ftcol{width:22px;height:22px;padding:0;border:0;background:none;flex:none}
 .ftags input[type=color],#ftColor{width:26px;height:24px;padding:0;border:0;background:none;flex:none}#ftFrom,#ftTo{width:46px}
 .ftags{display:flex;flex-direction:column;gap:3px;margin-bottom:6px}.ftrow{display:flex;gap:3px}.ftrow .pb:first-child{flex:1;text-align:left}.ftrow .pb.on{outline:2px solid #ffce57}
 .tgrid .span.t-img{background:repeating-linear-gradient(45deg,#d6e6dc 0 6px,#c8dccf 6px 12px)}
@@ -1371,7 +1371,10 @@ function drawLayers(ctx, f, o) {
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.5; ctx.drawImage(g.canvas, 0, 0); ctx.restore();
       return;
     }
-    const masks = []; if (!editMask) for (let j = i + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) if (S.layers[j].visible && f.cels[j]) masks.push(j);
+    const masks = []; if (!editMask) {   // the masks right above it, plus masks linked to it from anywhere
+      for (let j = i + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) { const mj = S.layers[j]; if (maskLinked(mj) && mj.mt !== l.id) continue; if (mj.visible && f.cels[j]) masks.push(j); }
+      if (l.id) S.layers.forEach((mj, j) => { if (mj.type === 'mask' && mj.mt === l.id && mj.visible && f.cels[j] && !masks.includes(j)) masks.push(j); });
+    }
     const blend = l.blend && l.blend !== 'source-over' ? l.blend : null;
     if (!blend && !masks.length) {
       if (moved) { ctx.save(); ctx.transform(M.a, M.b, M.c, M.d, M.e, M.f); drawOneLayer(ctx, l, i, f, o2, la); ctx.restore(); } else drawOneLayer(ctx, l, i, f, o2, la);
@@ -3830,6 +3833,7 @@ function layerMenu(li, x, y) {
       { label: 'Opacity', sub: [1, 0.75, 0.5, 0.25].map(o => ({ label: Math.round(o * 100) + '%', check: Math.abs(op - o) < 0.01, action: () => setLayerOpacity(li, o) })) }];
     special.push({ label: 'Blend mode', sub: BLENDS.map(([k, n]) => ({ label: n, check: (l.blend || 'source-over') === k, action: () => setBlend(li, k) })) });
     if (isDraw(l) || l.type === 'img') special.push({ label: 'Spatial object…', action: () => openSpatial(li) });
+    if (l.type === 'mask') special.push(maskLinkItem(li));
     if (l.type === 'mask') special.push({ label: l.invert === false ? 'Painted area: reveals (switch to hides)' : 'Painted area: hides (switch to reveals)', action: () => layerOp(() => { l.invert = l.invert === false; }) });
     if (l.type === 'bg') special.push({ label: 'Use current color', action: () => layerOp(() => { l.color = S.color; }) });
     if (l.type === 'img') special.push({ label: 'Position & size…', action: () => openImageBox(li) }, { label: 'Fit to camera', action: () => layerOp(() => fitRef(l)) }, { label: 'Replace image…', action: () => addRefLayer(l) });
@@ -3947,7 +3951,7 @@ function projectData() {
       if (l.blend && l.blend !== 'source-over') o.blend = l.blend;
       if (l.px != null && l.px !== 1) o.px = l.px;
       if (l.py != null && l.py !== 1) o.py = l.py;
-      if (l.type === 'mask') o.invert = l.invert !== false;
+      if (l.type === 'mask') { o.invert = l.invert !== false; if (maskLinked(l)) o.mt = S.layers.findIndex(x => x.id === l.mt); }
       if (l.type === 'bg') o.color = l.color;
       if (isImg(l)) Object.assign(o, { data: l.data, x: l.x, y: l.y, iw: l.w, ih: l.h });
       if (l.type === 'sound') Object.assign(o, { data: l.data, offset: l.offset || 0, volume: l.volume == null ? 1 : l.volume });
@@ -3981,7 +3985,7 @@ function loadProject(pp) {
       if (l.pv && isFinite(l.pv.x) && isFinite(l.pv.y)) L_.pv = { x: +l.pv.x, y: +l.pv.y };
       if (isFinite(l.px)) L_.px = clamp(+l.px, -10, 10);
       if (isFinite(l.py)) L_.py = clamp(+l.py, -10, 10);
-      if (type === 'mask') L_.invert = l.invert !== false;
+      if (type === 'mask') { L_.invert = l.invert !== false; if (Number.isInteger(l.mt)) L_._mtIdx = l.mt; }
       if (type === 'ref' || type === 'img') Object.assign(L_, { data: l.data, x: l.x || 0, y: l.y || 0, w: l.iw || W, h: l.ih || H });
       if (type === 'sound') Object.assign(L_, { data: l.data, offset: l.offset || 0, volume: l.volume == null ? 1 : l.volume });
       if (type === 'sprite') Object.assign(L_, { src: typeof l.src === 'string' ? l.src : '', x: +l.x || 0, y: +l.y || 0, w: +l.iw || 64, h: +l.ih || 64, bake: cleanBake(l.bake), pics: [] });
@@ -3989,6 +3993,7 @@ function loadProject(pp) {
       return L_;
     })
     : [newLayer('Layer 1')];
+  S.layers.forEach(l => { if (l._mtIdx != null) { const t = S.layers[l._mtIdx]; if (t && t !== l) l.mt = t.id; delete l._mtIdx; } });   // masks linked to a far layer
   const celsOf = fr => Array.isArray(fr.cels) ? fr.cels : [fr];   // older files: one layer
   S.fps = d.fps || 12;
   const extras = S.layers.map(l => l.type === 'sound' ? decodeSound(l) : isImg(l) ? loadRefImage(l) : isSprite(l) ? loadSpritePics(l) : null).filter(Boolean);
@@ -5777,9 +5782,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.45.0';
+const APP_VERSION = '1.46.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.46.0', date: '2026-11-11', items: ['Link a mask to any layer, however far: right-click the mask layer → Mask for layer… → pick the layer. The mask can stay at the top while the layer stays behind other things. The mask shows 🔗 and the layer’s name; it follows that layer’s moves, and its shapes move with the shapes they cover'] },
   { v: '1.45.0', date: '2026-11-11', items: ['Points (A): when 2 or more points are picked, a box appears around them — drag its squares to resize (Shift: evenly, Alt: from the middle), just outside the corners to turn (Shift: 15° steps), the yellow diamonds to lean. Only the picked points change; with the mirror on, their partners do the mirrored change'] },
   { v: '1.44.1', date: '2026-11-11', items: ['Combined shapes (Combine): double-click the outline with A to add a point, Delete removes points — no need to take them apart first (works with the mirror too)'] },
   { v: '1.44.0', date: '2026-11-10', items: ['FNF export (sprite sheet / FNF character), vector: Smoothness 2×–4× adds in-between pictures made from your shape keys ◆, and the fps in the character file goes up to match — smooth in the game, no jerky steps', 'FNF character: “Same size in game” — a bigger export Size makes the sprite sharper (the character scale is set to match), so it stays crisp when the camera zooms in'] },
@@ -8498,8 +8504,10 @@ vDeletePoint = function () {
 };
 /* ================= v41: masks belong to their layer — move together in the layer list, follow its moves, pick only on the mask layer ================= */
 const maskHostable = l => !!l && !isGroup(l) && !['mask', 'sound', 'fx'].includes(l.type);
-function maskHost(j) {   // the layer a mask belongs to (the first non-mask right below it, same folder level), or -1
+function maskLinked(m) { return !!(m && m.type === 'mask' && m.mt && S.layers.some(x => x.id === m.mt && x !== m && maskHostable(x))); }
+function maskHost(j) {   // the layer a mask belongs to (linked from afar, or the first non-mask right below it, same folder level), or -1
   const m = S.layers[j]; if (!m || m.type !== 'mask') return -1;
+  if (maskLinked(m)) return S.layers.findIndex(x => x.id === m.mt);
   let k = j - 1; while (k >= 0 && S.layers[k].type === 'mask') k--;
   return k >= 0 && maskHostable(S.layers[k]) && (S.layers[k].lv || 0) === (m.lv || 0) ? k : -1;
 }
@@ -8511,7 +8519,7 @@ layerTree = function () {
     arr.forEach(n => {
       if (n.kids.length) n.kids = fix(n.kids);
       const l = S.layers[n.i];
-      if (l.type === 'mask' && host) { (host.masks || (host.masks = [])).push(n); return; }
+      if (l.type === 'mask' && host && !maskLinked(l)) { (host.masks || (host.masks = [])).push(n); return; }
       out.push(n); host = maskHostable(l) ? n : null;
     });
     return out;
@@ -8555,12 +8563,14 @@ const _buildTimeline19 = buildTimeline;
 buildTimeline = function () {
   const r = _buildTimeline19.apply(this, arguments);
   tg.querySelectorAll('.ln.t-mask[data-l]').forEach(el => {
-    const j = +el.dataset.l, h = maskHost(j); if (h < 0) { el.title = 'This mask belongs to no layer — drag it onto a layer'; return; }
+    const j = +el.dataset.l, h = maskHost(j);
+    if (h >= 0 && maskLinked(S.layers[j])) { el.classList.add('mlinked'); const s = document.createElement('span'); s.className = 'mto'; s.textContent = '🔗 ' + S.layers[h].name; el.appendChild(s); el.title = 'Mask linked to “' + S.layers[h].name + '” — right-click → Mask for layer to change'; return; }
+    if (h < 0) { el.title = 'This mask belongs to no layer — drag it onto a layer'; return; }
     el.classList.add('mchild'); el.style.paddingLeft = (16 + (S.layers[j].lv || 0) * 10) + 'px';
     const s = document.createElement('span'); s.className = 'mlink'; s.textContent = '└'; el.prepend(s);
     el.title = 'Mask of “' + S.layers[h].name + '” — moves with it. Drag it onto another layer to give it to that one';
   });
-  tg.querySelectorAll('.ln[data-l]').forEach(el => { const i = +el.dataset.l; if (S.layers[i + 1] && S.layers[i + 1].type === 'mask' && maskHost(i + 1) === i) el.classList.add('mhost'); });
+  tg.querySelectorAll('.ln[data-l]').forEach(el => { const i = +el.dataset.l, l = S.layers[i]; if ((S.layers[i + 1] && S.layers[i + 1].type === 'mask' && maskHost(i + 1) === i) || (l && S.layers.some(m => m.type === 'mask' && m.mt === l.id && maskLinked(m)))) el.classList.add('mhost'); });
   return r;
 };
 
@@ -8577,7 +8587,9 @@ function vMaskPartners(hosts, sel) {   // mask shapes that cover the shapes bein
   hosts.forEach(x => {
     const l = S.layers[x.li]; if (!l || l.type === 'mask') return;
     const sb = vUnion(x.c.strokes.filter(st => sel.has(st) && st.shape)); if (!sb) return;
-    for (let j = x.li + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) {
+    const js = []; for (let j = x.li + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) if (!maskLinked(S.layers[j]) || S.layers[j].mt === l.id) js.push(j);
+    S.layers.forEach((m, j) => { if (m.type === 'mask' && m.mt === l.id && maskLinked(m) && !js.includes(j)) js.push(j); });
+    for (const j of js) {
       const mc = f.cels[j]; if (!mc || !mc.strokes || !mc.strokes.length || S.layers[j].locked || out.some(o => o.c === mc)) continue;
       const pick = new Set(mc.strokes.filter(st => st.shape && boxHit(vBounds(st), sb)));
       if (pick.size) out.push({ c: mc, li: j, base: mc.strokes, pick });
@@ -8594,6 +8606,15 @@ vNudge = function (dx, dy) {
   vsel = nsel; return vCommitMulti(list);
 };
 window.__mask = { host: maskHost, tree: () => JSON.stringify(layerTree()), addMask: addMaskLayer, addLayer, drop: (a, b, w) => dropLayer(a, b, w), move: d => moveLayer(d) };
+
+// right-click a mask → "Mask for layer": link it to any layer, however far away
+function maskLinkItem(li) {
+  const m = S.layers[li], linked = maskLinked(m), below = (() => { let k = li - 1; while (k >= 0 && S.layers[k].type === 'mask') k--; return k >= 0 && maskHostable(S.layers[k]) ? S.layers[k] : null; })();
+  const sub = [{ label: 'The layer right below' + (below ? ' (' + below.name + ')' : ''), check: !linked, action: () => layerOp(() => { delete m.mt; }) }];
+  S.layers.forEach((l, i) => { if (i === li || !maskHostable(l)) return; sub.push({ label: (i > li ? '↑ ' : '↓ ') + l.name, check: linked && m.mt === l.id, action: () => layerOp(() => { m.mt = l.id; }) }); });
+  return { label: 'Mask for layer…', sub };
+}
+window.__mask.link = (mi, ti) => layerOp(() => { const m = S.layers[mi]; if (ti == null) delete m.mt; else m.mt = S.layers[ti].id; });
 /* ================= v43: palette from a picture or the frame (smart color picking), palette saved in each project ================= */
 function quantizeColors(data, n) {   // median cut on a 5-bit color histogram → n colors, sorted in nice ramps
   const hist = new Map(), exact = new Map();
