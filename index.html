@@ -580,7 +580,7 @@ body.mobile .tip{display:none!important}
 #vecShapeSet{display:none}body[data-mode=vector] #vecShapeSet{display:block}
 body[data-mode=vector] #pageBrush>*:not(#vecShapeSet){display:none!important}
 body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-tool=ellipse]):not([data-tool=line]):not([data-tool=picker]):not(.vt){display:none!important}
-#app>.tools .vt.mon{color:#40e0ff!important;background:rgba(64,224,255,.18);outline:1px dashed #40e0ff;outline-offset:-3px}.snbox.off{opacity:.45;pointer-events:none}#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
+#app>.tools .vt.mon{color:#40e0ff!important;background:rgba(64,224,255,.18);outline:1px dashed #40e0ff;outline-offset:-3px}.ezbox canvas{display:block;margin:4px auto;border:1px solid #0006;image-rendering:auto}.snbox.off{opacity:.45;pointer-events:none}#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
 .vfs{display:flex;gap:8px;align-items:center;margin:4px 0 8px}.vsw{position:relative;width:34px;height:34px;padding:0;border:1px solid #16162b;background:#fff;cursor:pointer}.vsw i{position:absolute;inset:3px;display:block}
 .vsw.stroke i{background:transparent!important;border:7px solid #000;inset:3px}.vsw.on{outline:2px solid var(--accent);outline-offset:1px}.vfsr{display:flex;flex-direction:column;gap:2px}.vfsr .pb{padding:1px 6px}
 #vecShapeSet input[type=color]{width:34px;height:22px;padding:0;border:1px solid #555;background:none;margin-left:4px}#vecShapeSet select{margin:0 4px}
@@ -5782,9 +5782,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.46.0';
+const APP_VERSION = '1.47.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.47.0', date: '2026-11-11', items: ['Shape keys ◆: “Slow start” and “Slow end” sliders (0–100%) for the motion to the next key, with a little curve picture. Shape window → Shape animation, or right-click a key → Motion to the next key → Slow start / end strength…. “Use on all keys of the layer” copies it to every key. Smooth export for FNF uses it too'] },
   { v: '1.46.0', date: '2026-11-11', items: ['Link a mask to any layer, however far: right-click the mask layer → Mask for layer… → pick the layer. The mask can stay at the top while the layer stays behind other things. The mask shows 🔗 and the layer’s name; it follows that layer’s moves, and its shapes move with the shapes they cover'] },
   { v: '1.45.0', date: '2026-11-11', items: ['Points (A): when 2 or more points are picked, a box appears around them — drag its squares to resize (Shift: evenly, Alt: from the middle), just outside the corners to turn (Shift: 15° steps), the yellow diamonds to lean. Only the picked points change; with the mirror on, their partners do the mirrored change'] },
   { v: '1.44.1', date: '2026-11-11', items: ['Combined shapes (Combine): double-click the outline with A to add a point, Delete removes points — no need to take them apart first (works with the mirror too)'] },
@@ -7366,7 +7367,7 @@ function vRetween(li) {
   const F = S.frames, keys = []; F.forEach((f, fi) => { const c = f.cels[li]; if (c && c.vkey) keys.push(fi); });
   let any = false;
   for (let k = 0; k < keys.length - 1; k++) {
-    const a = keys[k], b = keys[k + 1]; if (b - a < 2) continue; const A = F[a].cels[li], B = F[b].cels[li], ez = EASE[A.vez] || EASE.linear;
+    const a = keys[k], b = keys[k + 1]; if (b - a < 2) continue; const A = F[a].cels[li], B = F[b].cels[li], ez = easeFn(A.vez);
     for (let fi = a + 1; fi < b; fi++) {
       const old = F[fi].cels[li], c = { strokes: vTweenList(A.strokes, B.strokes, ez((fi - a) / (b - a))), dirty: true, vgen: true }; if (old && old.op != null) c.op = old.op;
       F[fi].cels[li] = c; any = true;
@@ -7388,7 +7389,7 @@ function vLayerSnap(li) { return S.frames.map(f => { const c = f.cels[li]; retur
 function vLayerRestore(sn, li) { sn.forEach(x => { x.f.cels[li] = x.c; if (x.c) { x.c.strokes = x.strokes; x.c.vkey = x.vkey; x.c.vgen = x.vgen; x.c.vez = x.vez; x.c.dirty = true; } }); }
 function vKeyOp(li, fn, msg) {
   const before = vLayerSnap(li); fn(); vRetween(li); const after = vLayerSnap(li);
-  const put = dir => { vLayerRestore(dir ? after : before, li); invComp(); onionValid = false; buildTimeline(); render(); renderPreview(); };
+  const put = dir => { vLayerRestore(dir ? after : before, li); invComp(); onionValid = false; buildTimeline(); render(); renderPreview(); try { syncEase(); } catch (e) {} };
   put(1); pushX(put); if (msg) flash(msg);
 }
 function withIds(c) { if (c.strokes.some(st => st.shape && !st.id)) c.strokes = c.strokes.map(st => st.shape && !st.id ? vClone(st, { id: vNewId() }) : st); }
@@ -8728,7 +8729,7 @@ function tweenFrameAt(fi, u, next) {   // next: the frame index that plays after
     if (!isDraw(l)) return; const K = vKeysOf(li); if (K.length < 2) return;
     let a = -1, b = -1; for (let k = 0; k < K.length - 1; k++) if (K[k] <= fi && fi < K[k + 1]) { a = K[k]; b = K[k + 1]; break; }
     if (a < 0) return; const A = F[a].cels[li], B = F[b].cels[li]; if (!A || !B || !A.strokes || !B.strokes) return;
-    const ez = EASE[A.vez] || EASE.linear; if (A.vez === 'hold' || sameKeys(A, B)) return;
+    const ez = easeFn(A.vez); if (A.vez === 'hold' || sameKeys(A, B)) return;
     const old = f.cels[li], c = { strokes: vTweenList(A.strokes, B.strokes, ez((fi + u - a) / (b - a))), dirty: true }; if (old && old.op != null) c.op = old.op;
     cels[li] = c; moving = true;
   });
@@ -8865,6 +8866,65 @@ view.addEventListener('pointermove', e => {
   view.__ptCur = !!cur;
 });
 window.__ptx = { box: () => { const b = vPtBox(); return b && [b.x0, b.y0, b.x1, b.y1].map(Math.round); } };
+/* ================= v47: slow start / slow end strength for shape keys ◆ ================= */
+const EASE_PRESET = { linear: [0, 0], in: [0.6, 0], out: [0, 0.6], inout: [0.6, 0.6] };
+const easeMemo = new Map();
+function easeAB(v) { if (typeof v === 'string' && v.startsWith('c:')) { const [a, b] = v.slice(2).split(',').map(Number); return [clamp(a || 0, 0, 1), clamp(b || 0, 0, 1)]; } return EASE_PRESET[v || 'linear'] || null; }
+function easeFn(v) {   // a preset, or 'c:<slow start>,<slow end>' — a smooth curve (like cubic-bezier(a, 0, 1 - b, 1))
+  if (!v || v === 'linear') return EASE.linear; if (EASE[v]) return EASE[v];
+  let f = easeMemo.get(v); if (f) return f;
+  const [a, b] = easeAB(v) || [0, 0], x1 = a, x2 = 1 - b, bx = t => 3 * (1 - t) * (1 - t) * t * x1 + 3 * (1 - t) * t * t * x2 + t * t * t, by = t => 3 * (1 - t) * t * t + t * t * t;
+  f = u => { if (u <= 0) return 0; if (u >= 1) return 1; let lo = 0, hi = 1; for (let k = 0; k < 30; k++) { const m = (lo + hi) / 2; if (bx(m) < u) lo = m; else hi = m; } return by((lo + hi) / 2); };
+  easeMemo.set(v, f); return f;
+}
+const easeStr = (a, b) => (a < 0.005 && b < 0.005) ? 'linear' : 'c:' + (+a.toFixed(2)) + ',' + (+b.toFixed(2));
+function drawEaseCurve(cv, v) {
+  const g = cv.getContext('2d'), w = cv.width, h = cv.height, p = 6, f = easeFn(v);
+  g.clearRect(0, 0, w, h); g.fillStyle = '#16162b'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = '#3a3a5c'; g.lineWidth = 1; g.beginPath(); g.moveTo(p, h - p); g.lineTo(w - p, p); g.stroke();
+  g.strokeStyle = '#ffce57'; g.lineWidth = 2; g.beginPath();
+  for (let i = 0; i <= 60; i++) { const u = i / 60, y = v === 'hold' ? (u < 1 ? 0 : 1) : f(u), X = p + u * (w - 2 * p), Y = h - p - y * (h - 2 * p); i ? g.lineTo(X, Y) : g.moveTo(X, Y); }
+  g.stroke(); g.fillStyle = '#8f8db0'; g.font = '9px sans-serif'; g.fillText('start', p, h - 1); g.fillText('end', w - p - 16, 9);
+}
+(() => {
+  const sel = $('#vKeyEz'); if (!sel) return;
+  if (![...sel.options].some(o => o.value === 'custom')) { const o = document.createElement('option'); o.value = 'custom'; o.textContent = 'Custom (sliders)'; sel.appendChild(o); }
+  const box = document.createElement('div'); box.id = 'vEzBox'; box.className = 'ezbox';
+  const rng = (id, label) => '<div class="bopt"><label for="' + id + '">' + label + '</label><output id="' + id + 'Out"></output><input type="range" id="' + id + '" min="0" max="100" step="1"></div>';
+  box.innerHTML = '<canvas id="vEzCv" width="132" height="70" title="How the motion goes from this key to the next"></canvas>' + rng('vEzIn', 'Slow start') + rng('vEzOut', 'Slow end') +
+    '<div class="arow vbtns"><button type="button" class="pb" id="vEzAll" title="Use this motion for every key on this layer">Use on all keys of the layer</button></div>';
+  sel.closest('.arow').after(box);
+  const q = s => box.querySelector(s); let orig;
+  const keyCel = () => { const c = S.frames[S.cur] && S.frames[S.cur].cels[S.layer]; return c && c.vkey ? c : null; };
+  const live = () => { const c = keyCel(); if (!c) return; if (orig === undefined) orig = c.vez; c.vez = easeStr(+q('#vEzIn').value / 100, +q('#vEzOut').value / 100); if (c.vez === 'linear') c.vez = undefined; vRetween(S.layer); invComp(); onionValid = false; render(); syncEase(); };
+  const commit = () => { const c = keyCel(); if (!c) return; const nv = c.vez || 'linear'; c.vez = orig; orig = undefined; vSetEase(S.cur, S.layer, nv); syncEase(); };
+  ['#vEzIn', '#vEzOut'].forEach(id => { q(id).addEventListener('input', live); q(id).addEventListener('change', commit); });
+  sel.addEventListener('change', () => { if (sel.value === 'custom') { const c = keyCel(), ab = easeAB(c && c.vez) || [0.5, 0.5]; vSetEase(S.cur, S.layer, easeStr(ab[0] || 0.5, ab[1] || 0.5)); } setTimeout(syncEase, 0); });
+  q('#vEzAll').onclick = () => { const c = keyCel(); if (!c) return; const v = c.vez, li = S.layer; vKeyOp(li, () => { S.frames.forEach(f => { const x = f.cels[li]; if (x && x.vkey) x.vez = v; }); }, 'Every key on this layer moves like this now'); syncEase(); };
+})();
+function syncEase() {
+  const box = $('#vEzBox'); if (!box) return; const c = S.frames[S.cur] && S.frames[S.cur].cels[S.layer], key = !!(c && c.vkey);
+  box.hidden = !key; if (!key) return;
+  const v = c.vez || 'linear', ab = easeAB(v), sel = $('#vKeyEz');
+  if (sel) sel.value = typeof v === 'string' && v.startsWith('c:') ? 'custom' : v;
+  const setR = (id, val) => { const el = $(id); if (document.activeElement !== el) el.value = Math.round(val * 100); $(id + 'Out').textContent = Math.round(val * 100) + '%'; };
+  const hold = v === 'hold'; $('#vEzIn').disabled = $('#vEzOut').disabled = hold;
+  setR('#vEzIn', ab ? ab[0] : 0); setR('#vEzOut', ab ? ab[1] : 0);
+  drawEaseCurve($('#vEzCv'), v);
+}
+const _syncVecMore23 = syncVecMore;
+syncVecMore = function () { _syncVecMore23.apply(this, arguments); syncEase(); };
+// the cel menu: the same, plus "Custom…" opens the Shape window there
+const _vKeyItems23 = vKeyItems;
+vKeyItems = function (fi, li) {
+  const items = _vKeyItems23.apply(this, arguments), c = S.frames[fi] && S.frames[fi].cels[li], it = items.find(x => x.label === 'Motion to the next key');
+  if (it && it.sub) {
+    const cust = c && typeof c.vez === 'string' && c.vez.startsWith('c:');
+    it.sub.push({ sep: true }, { label: (cust ? '✓ ' : '') + 'Slow start / end strength…', action: () => { S.cur = fi; S.layer = li; if (!cust) vSetEase(fi, li, easeStr(0.5, 0.5)); try { panelShow(PANELS[0], true); } catch (e) {} buildTimeline(); syncVecUI(true); setTimeout(() => { const b = $('#vEzBox'); if (b) b.scrollIntoView({ block: 'nearest' }); }, 50); } });
+  }
+  return items;
+};
+window.__ease = { fn: easeFn, str: easeStr };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {

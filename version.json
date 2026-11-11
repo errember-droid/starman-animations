@@ -1,6 +1,13 @@
 {
- "version": "1.46.0",
+ "version": "1.47.0",
  "changelog": [
+  {
+   "v": "1.47.0",
+   "date": "2026-11-11",
+   "items": [
+    "Shape keys ◆: “Slow start” and “Slow end” sliders (0–100%) for the motion to the next key, with a little curve picture. Shape window → Shape animation, or right-click a key → Motion to the next key → Slow start / end strength…. “Use on all keys of the layer” copies it to every key. Smooth export for FNF uses it too"
+   ]
+  },
   {
    "v": "1.46.0",
    "date": "2026-11-11",
