@@ -1,6 +1,13 @@
 {
- "version": "1.47.1",
+ "version": "1.48.0",
  "changelog": [
+  {
+   "v": "1.48.0",
+   "date": "2026-11-11",
+   "items": [
+    "Link layers (masks too): right-click a layer → Link with layers… and tick the others. Linked layers get a colored ⛓. Clicking a shape on any of them picks everything on the linked layers — move, resize, turn and lean them together. Ctrl+click picks just one shape"
+   ]
+  },
   {
    "v": "1.47.1",
    "date": "2026-11-11",
