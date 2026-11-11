@@ -1,6 +1,13 @@
 {
- "version": "1.48.2",
+ "version": "1.48.3",
  "changelog": [
+  {
+   "v": "1.48.3",
+   "date": "2026-11-12",
+   "items": [
+    "A locked mask (🔒) stays where it is: moving, turning or resizing its layer — or a linked group — no longer moves it. Unlock it to make it follow again"
+   ]
+  },
   {
    "v": "1.48.2",
    "date": "2026-11-11",

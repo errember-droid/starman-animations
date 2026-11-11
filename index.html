@@ -5783,9 +5783,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.48.2';
+const APP_VERSION = '1.48.3';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.48.3', date: '2026-11-12', items: ['A locked mask (🔒) stays where it is: moving, turning or resizing its layer — or a linked group — no longer moves it. Unlock it to make it follow again'] },
   { v: '1.48.2', date: '2026-11-11', items: ['Fix: linked layers ⛓ now always turn, resize and move together — also when a shape was already picked before, when you grab the box handles right away, and when a linked mask is in the group', 'Grabbing a shape by its very middle moves it again (before it grabbed the center point). To move the center point the first time hold Alt and drag the cross; after that it can be dragged normally'] },
   { v: '1.48.1', date: '2026-11-11', items: ['Fix: a mask now turns, resizes and moves with its layer even when the mask layer is locked or painted with the brush (not only shapes)', 'Brush lines on vector layers can be moved, turned and resized like shapes'] },
   { v: '1.48.0', date: '2026-11-11', items: ['Link layers (masks too): right-click a layer → Link with layers… and tick the others. Linked layers get a colored ⛓. Clicking a shape on any of them picks everything on the linked layers — move, resize, turn and lean them together. Ctrl+click picks just one shape'] },
@@ -8568,7 +8569,7 @@ dropLayer = function (from, to, where) {
 // a mask moves with its layer (layer moves, spatial shift, motion paths)
 const _layerMat19 = layerMat;
 layerMat = function (l, fi) {
-  const m = _layerMat19.call(this, l, fi); if (m || !l || l.type !== 'mask') return m;
+  const m = _layerMat19.call(this, l, fi); if (m || !l || l.type !== 'mask' || l.locked) return m;   // a locked mask does not follow its layer's moves
   const h = maskHost(S.layers.indexOf(l)); return h >= 0 ? _layerMat19.call(this, S.layers[h], fi) : null;
 };
 // the layer list shows a mask tucked under its layer
@@ -8606,7 +8607,8 @@ function vMaskPartners(hosts, sel) {   // mask shapes that cover the shapes bein
     const js = []; for (let j = x.li + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) if (!maskLinked(S.layers[j]) || S.layers[j].mt === l.id) js.push(j);
     S.layers.forEach((m, j) => { if (m.type === 'mask' && m.mt === l.id && maskLinked(m) && !js.includes(j)) js.push(j); });
     for (const j of js) {
-      const mc = f.cels[j]; if (!mc || !mc.strokes || !mc.strokes.length || out.some(o => o.c === mc) || hosts.some(h => h.c === mc)) continue;
+      const mc = f.cels[j]; if (!mc || !mc.strokes || !mc.strokes.length || S.layers[j].locked ||   // a locked mask stays where it is
+        out.some(o => o.c === mc) || hosts.some(h => h.c === mc)) continue;
       const pick = new Set(mc.strokes.filter(st => !st.mir && !sel.has(st) && boxHit(vBounds(st), sb)));   // shapes and brush lines
       if (pick.size) out.push({ c: mc, li: j, base: mc.strokes, pick });
     }
