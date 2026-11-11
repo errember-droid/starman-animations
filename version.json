@@ -1,6 +1,13 @@
 {
- "version": "1.47.0",
+ "version": "1.47.1",
  "changelog": [
+  {
+   "v": "1.47.1",
+   "date": "2026-11-11",
+   "items": [
+    "Slow start / Slow end are much stronger now and go up to 300% — 100% is a clear, strong slow-down, 300% almost stops at the key"
+   ]
+  },
   {
    "v": "1.47.0",
    "date": "2026-11-11",
