@@ -580,7 +580,10 @@ body.mobile .tip{display:none!important}
 #vecShapeSet{display:none}body[data-mode=vector] #vecShapeSet{display:block}
 body[data-mode=vector] #pageBrush>*:not(#vecShapeSet){display:none!important}
 body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-tool=ellipse]):not([data-tool=line]):not([data-tool=picker]):not(.vt){display:none!important}
-#app>.tools .vt.mon{color:#40e0ff!important;background:rgba(64,224,255,.18);outline:1px dashed #40e0ff;outline-offset:-3px}.ezbox canvas{display:block;margin:4px auto;border:1px solid #0006;image-rendering:auto}.vidwin .dlg{min-width:min(560px,94vw)}.vidwin .vidbox{background:#000;display:flex;justify-content:center;align-items:center;max-height:62vh;border:1px solid #0006}.vidwin video,.vidwin .vidbox img{max-width:100%;max-height:62vh;display:block}.snbox.off{opacity:.45;pointer-events:none}#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
+#app>.tools .vt.mon{color:#40e0ff!important;background:rgba(64,224,255,.18);outline:1px dashed #40e0ff;outline-offset:-3px}.ezbox canvas{display:block;margin:4px auto;border:1px solid #0006;image-rendering:auto}.vidwin .dlg{min-width:min(560px,94vw)}.vidwin .vidbox{background:#000;display:flex;justify-content:center;align-items:center;max-height:62vh;border:1px solid #0006}.vidwin video,.vidwin .vidbox img{max-width:100%;max-height:62vh;display:block}.txted{position:fixed;z-index:1060;width:270px;background:var(--panel,#2a2a48);border:2px solid #16162b;box-shadow:4px 4px 0 #0006;padding:6px}.txted textarea{width:100%;box-sizing:border-box;min-height:52px;resize:vertical;font:15px var(--font-ui);background:#fff;color:#16162b;border:1px solid #16162b;padding:4px}.txted-b{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px;font-size:11px;opacity:.85}
+#vTxS{width:100%;box-sizing:border-box;min-height:44px;resize:vertical;font:14px var(--font-ui);margin-bottom:4px}.tfont{width:100%;text-align:left;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tbtns .pb.on{outline:2px solid #ffce57;outline-offset:-2px}
+.fontpick{position:fixed;z-index:1070;width:320px;max-height:420px;display:flex;flex-direction:column;background:var(--panel,#2a2a48);border:2px solid #16162b;box-shadow:4px 4px 0 #0006;padding:6px;gap:6px}.fontpick input{font:14px var(--font-ui);padding:4px}.fp-list{overflow:auto;flex:1}.fp-list button{display:block;width:100%;text-align:left;background:none;border:0;color:inherit;font-size:19px;padding:5px 6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fp-list button:hover{background:#ffffff1a}.fp-list small{font:11px var(--font-ui);opacity:.7}.fp-h{font-size:11px;opacity:.7;margin:6px 4px 2px;text-transform:uppercase;letter-spacing:.05em}.fprev{font-size:30px;line-height:1.3;background:#fff;color:#16162b;padding:10px;border:1px solid #0006}
+.snbox.off{opacity:.45;pointer-events:none}#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
 .vfs{display:flex;gap:8px;align-items:center;margin:4px 0 8px}.vsw{position:relative;width:34px;height:34px;padding:0;border:1px solid #16162b;background:#fff;cursor:pointer}.vsw i{position:absolute;inset:3px;display:block}
 .vsw.stroke i{background:transparent!important;border:7px solid #000;inset:3px}.vsw.on{outline:2px solid var(--accent);outline-offset:1px}.vfsr{display:flex;flex-direction:column;gap:2px}.vfsr .pb{padding:1px 6px}
 #vecShapeSet input[type=color]{width:34px;height:22px;padding:0;border:1px solid #555;background:none;margin-left:4px}#vecShapeSet select{margin:0 4px}
@@ -960,7 +963,7 @@ body.filedrag #stage,body.filedrag #icons{outline:3px dashed var(--accent);outli
   <div class="sm-sep desk-only" hidden></div>
   <button class="sm-item desk-only" role="menuitem" id="smExit" hidden><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAq0lEQVR4XmNgGOmAET0ATEzC/1MSKGfOrMQwEx9gosQyagAWXIacjllJkvmmS8JJUg8DAx4Cow6gWwiAche2HEY3B+ACdHcAekjQ3QHoAGc5QBDkQ/P9RNTyAldJulHkG4qR/tASdwiHAJrPYQDdp4TAEA4BHMD/DRdWGVwhM/xCAFd7AJbqYQCmbviFACGAHkIjJwTQfT5oWkQ46wJy23ikggFPA6NgFIwCAKq9J5BoDWwmAAAAAElFTkSuQmCC" alt=""><span>Exit</span></button>
 </div>
-<input type="file" id="importInput" accept=".sdt,.sdv,.sdp,.sda,.lbx,.ase,.aseprite,.sdz,.xml,.png,.gif,.jpg,.jpeg,.webp,.bmp,.mp4,.m4v,.webm,video/mp4,video/webm" multiple hidden>
+<input type="file" id="importInput" accept=".sdt,.sdv,.sdp,.sda,.lbx,.ase,.aseprite,.sdz,.xml,.png,.gif,.jpg,.jpeg,.webp,.bmp,.mp4,.m4v,.webm,video/mp4,video/webm,.ttf,.otf,.woff,.woff2" multiple hidden>
 <div id="menuLayer"></div>
 <div class="toast box" id="toast" role="status" hidden></div>
 <img id="icoT" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA1klEQVR4XmNgGGDAiG6/iUn4f2q46cyZlRhmEwVADqAUgMwg1iMsuFz18eNvohyMC8TEhIKk/hMKCSaKbCEAQI4gFBI0dQAIEHIEzR1AyBF0cQA+R+BMhJSCJUtWYzUClCaQEyZNHLBnz2Kslt+48YQhJ6cSRQ6vA3R0LCkNCDC4cuU4TnPolgZwgVEHjIbAaAiMhsBoCOCtC/CV4dQCAx4FWEPgY7cPtTyIAjTAPB4UsQEPgVEHYE0DC1ZtpUkagIBwwk0yiyn3aOaAJcS0CdEbjsMaAAA4Z3XVpnZzIwAAAABJRU5ErkJggg==" alt="" hidden><img id="icoV" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA1klEQVR4XmNgGGDAiG6/iUn4f2q46cyZlRhmEwVADqAUgMwg1iMsuFz18eNvohyMC8TEhIKk/hMKCSaKbCEAQI4gFBI0dQAIEHIEzR1AyBF0cQA+R+BMhJSCJUtWYzUClCaQEyZNHLBnz2Kslt+48YQhJ6cSRQ6vA3R0LCkNCDC4cuU4TnPolgZwgVEHjIbAaAiMhsBoCOCtC/CV4dQCAx4FWEPAYO5DankQDTAxsGKIDDAY8CgYcAdgTQNPVy2iWcQooJmM1QFbmmJo5gCi2oToioY1AADcE3U5t9KyDQAAAABJRU5ErkJggg==" alt="" hidden><img id="icoP" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA0klEQVR4XmNgGGDAiG6/iUn4f2q46cyZlRhmEwVADqAUgMwg1iMsuFz18eNvohyMC8TEhIKk/hMKCSaKbCEAQI4gFBI0dQAIEHIEzR1AyBF0cQA+R+BMhJSCJUtWYzUClCaQEyZNHLBnz2Kslt+48YQhJ6cSRQ6vA3R0LCkNCDC4cuU4TnPolgZwgVEHjIbAaAiMhsBoCOCtC/CV4dQCAx4FWEPAYX02tTxIEAx4CIw6AGsauLrmBMG4IxcoMKgSbpJtyVtDrvkEAVFtQnRFwxoAADVXdVeWmn+zAAAAAElFTkSuQmCC" alt="" hidden>
@@ -1121,7 +1124,7 @@ document.querySelectorAll('[data-icon]').forEach(el => { const k = el.dataset.ic
 const view = $('#view');
 let vctx = view.getContext('2d');
 let dpr = window.devicePixelRatio || 1;
-const VTOOLS = ['liquify', 'scissors', 'bucket', 'vgrad', 'spiral', 'vbrush', 'vselect', 'vdirect', 'pen', 'rect', 'ellipse', 'poly', 'star', 'line', 'picker'], VTOOLS_ONLY = ['liquify', 'scissors', 'bucket', 'vgrad', 'spiral', 'vbrush', 'vselect', 'vdirect', 'pen', 'poly', 'star'];   // vector art tools
+const VTOOLS = ['vtext', 'liquify', 'scissors', 'bucket', 'vgrad', 'spiral', 'vbrush', 'vselect', 'vdirect', 'pen', 'rect', 'ellipse', 'poly', 'star', 'line', 'picker'], VTOOLS_ONLY = ['vtext', 'liquify', 'scissors', 'bucket', 'vgrad', 'spiral', 'vbrush', 'vselect', 'vdirect', 'pen', 'poly', 'star'];   // vector art tools
 
 /* ---------- sparse tiled surface: the canvas is endless, memory is spent only where you draw ---------- */
 const TS = 256;
@@ -3940,7 +3943,7 @@ tg.addEventListener('contextmenu', e => {
 });
 
 /* ---------- saving & loading (format 5: endless canvas in tiles, layer types, camera size) ---------- */
-function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg', 'ns', 'cls', 'op', 'fx', 'sal', 'a0', 'a1', 'dl', 'id', 'mir', 'tp', 'vw'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
+function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg', 'ns', 'cls', 'op', 'fx', 'sal', 'a0', 'a1', 'dl', 'id', 'mir', 'tp', 'vw', 'tx', 'tm'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
 function deStroke(o) { const p = []; for (let i = 0; i + 2 < o.p.length; i += 3) p.push([o.p[i], o.p[i + 1], o.p[i + 2]]); const st = { color: o.c, opacity: o.o == null ? 1 : o.o, pts: p }; if (o.k === 'square') st.cap = 'square'; if (o.sh) { st.shape = o.sh; st.fc = o.fc || null; st.ol = !!o.ol; st.rr = o.rr || 0; if (o.x) Object.assign(st, o.x); } return st; }
 function serSurf(s) {
   const out = [];
@@ -5794,9 +5797,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.53.0';
+const APP_VERSION = '1.54.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.54.0', date: '2026-11-12', items: ['Text (T) in vector animations: click to write, click a text to change it. Font, size, weight, italic, underline, align, letter spacing, line height, UPPER/lower/Title case, bend on an arc, outline behind the letters — plus fill, gradient, outline, shadow, glow and blur like other shapes. Resize, turn, lean, mirror and animate it with keys ◆', 'All fonts installed on your computer are in the font list (shown in their own look, with search)', 'Font sync: a font you use is copied into the desktop Fonts folder and syncs, so the text looks the same on your phone and other computers. You can also drop .ttf / .otf files into the Fonts folder'] },
   { v: '1.53.0', date: '2026-11-12', items: ['Vector brush (B): lines now fade to a thin point at the ends — “Thin start” and “Thin end” in the Vector brush settings (0 = blunt). Pick drawn lines and move the sliders to change them too', 'Pen pressure: with a drawing tablet the vector line gets thinner where you press lightly (can be turned off)', 'The line keeps its points: you can still bend and move them with A, and the thin ends follow'] },
   { v: '1.52.1', date: '2026-11-12', items: ['Add your own videos to the program desktop: drag .mp4 / .webm files from your computer onto the desktop (or into a folder window), or Start → Open a file…. They sync to your other devices like everything else'] },
   { v: '1.52.0', date: '2026-11-12', items: ['Finished videos on the desktop: in Export (MP4, WebM, GIF) choose Save to → The program desktop (or Both). The video appears on the desktop next to your animations and, with sync on, on your phone and other computers too', 'Double-click a video on the desktop to watch it; “Save to this device…” saves it as a normal file (on the phone too). On the computer the videos are real .mp4 files in Documents\\Starman Does Animations'] },
@@ -6030,7 +6034,7 @@ const syncOn = () => { const c = syncCfg(); return !!(c.token && c.owner && c.re
 const syncBaseKey = () => { const c = syncCfg(); return 'syncBase.' + c.owner + '/' + c.repo; };
 let syncState = 'off', syncMsg = '', syncBusy = null, syncAgain = false, syncTimer = 0;
 const SYNC_DIR = 'files/';
-const ANIM_RX = /\.(sdt|sdv|sdp|mp4|webm|gif)$/i, MEDIA_RX = /\.(mp4|webm|gif)$/i;   // videos sync as real files
+const ANIM_RX = /\.(sdt|sdv|sdp|mp4|webm|gif|ttf|otf|woff|woff2)$/i, MEDIA_RX = /\.(mp4|webm|gif|ttf|otf|woff|woff2)$/i;   // videos sync as real files
 const fileBytes = (p, text) => MEDIA_RX.test(p) ? b64ToBytes(text) : utf8.encode(text);
 const syncMax = () => (document.body.classList.contains('mobile') || isCap() ? 35e6 : 70e6);
 
@@ -6844,7 +6848,7 @@ function vApplyStyle(keys) {   // a style setting changed in the panel: the sele
 }
 
 /* ---------- keys (vector files only) ---------- */
-const VKEYS = { KeyB: 'vbrush', KeyV: 'vselect', KeyA: 'vdirect', KeyP: 'pen', KeyU: 'rect', KeyM: 'rect', KeyL: 'ellipse', KeyY: 'poly', KeyS: 'star', Backslash: 'line', KeyI: 'picker' };
+const VKEYS = { KeyT: 'vtext', KeyB: 'vbrush', KeyV: 'vselect', KeyA: 'vdirect', KeyP: 'pen', KeyU: 'rect', KeyM: 'rect', KeyL: 'ellipse', KeyY: 'poly', KeyS: 'star', Backslash: 'line', KeyI: 'picker' };
 window.addEventListener('keydown', e => {
   if (MODE !== 'vector' || !S.inEditor || document.querySelector('dialog[open]')) return;
   if (e.key === 'Escape' && document.querySelector('#menuLayer .ctx')) return;   // Escape closes an open menu first
@@ -9404,6 +9408,321 @@ function syncTp(fromSlider) {
 const _syncVecMore28 = syncVecMore;
 syncVecMore = function () { _syncVecMore28.apply(this, arguments); syncTp(); };
 window.__tp = { ribbon: st => !!vRibbon(st) };
+/* ================= v54: text — a text shape with lots of settings, fonts from the computer, fonts that sync ================= */
+const FONT_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA/ElEQVR42mNgGGDAiC5gYhL+nxoGnzmzkpEsjSYm4f8pBSYm4f+J9QgLLomPH39TFAIxMaEMDAwM/wmFBBMt4zcmJpRglDLROpERcgQTPVI6Pkcw0Su74XIEC60sXLJkNc5chpwwaeKAPXsWYxW/ceMJQ05O5cBEwYAmQqo6QEfHcuAcoKNjyXDlynGsjtDRsSTLcUykWs7AwIDVEVeuHMfpOLLqAlKDn9yoIckBsBBAtxA5dGgaAvgcRvMQQPY9MfzhWw6MOmDYOQB7Lthvy8BPA8vMGRgYGBikR6NgCKSB6XPO0dBKacIOMMq7QjPr56G1CbE6AL3hOKwBAPQ8kgh59/AMAAAAAElFTkSuQmCC';
+const BASIC_FONTS = ['Arial', 'Verdana', 'Tahoma', 'Trebuchet MS', 'Segoe UI', 'Georgia', 'Times New Roman', 'Courier New', 'Consolas', 'Impact', 'Comic Sans MS', 'Pixelify Sans', 'serif', 'sans-serif', 'monospace', 'cursive', 'fantasy'];
+VSH.tx = Object.assign({ s: 'Text', ff: 'Arial', fs: 64, fw: 700, it: false, ls: 0, lh: 1.15, ta: 'left', tt: 'none', ul: false, arc: 0, pob: true }, VSH.tx || {});
+const TXT_KEYS = ['s', 'ff', 'fs', 'fw', 'it', 'ls', 'lh', 'ta', 'tt', 'ul', 'arc', 'pob'];
+const ID_M = [1, 0, 0, 1, 0, 0];
+const tmApply = (m, x, y) => [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]];
+const tmMul = (M, m) => [M.a * m[0] + M.c * m[1], M.b * m[0] + M.d * m[1], M.a * m[2] + M.c * m[3], M.b * m[2] + M.d * m[3], M.a * m[4] + M.c * m[5] + M.e, M.b * m[4] + M.d * m[5] + M.f];
+const tmInv = m => { const det = m[0] * m[3] - m[1] * m[2] || 1; return [m[3] / det, -m[1] / det, -m[2] / det, m[0] / det, (m[2] * m[5] - m[3] * m[4]) / det, (m[1] * m[4] - m[0] * m[5]) / det]; };
+/* ---------- layout: lines, widths, letters on an arc ---------- */
+const tMeasure = document.createElement('canvas').getContext('2d');
+const layoutMemo = new WeakMap();
+const tFont = (t, fs) => (t.it ? 'italic ' : '') + (t.fw || 400) + ' ' + (fs || t.fs) + 'px "' + String(t.ff || 'Arial').replace(/"/g, '') + '", sans-serif';
+function tCase(s, tt) { return tt === 'upper' ? s.toUpperCase() : tt === 'lower' ? s.toLowerCase() : tt === 'title' ? s.replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase()) : s; }
+function textLayout(st) {
+  let L = layoutMemo.get(st); if (L && L.fontsVer === fontsVer) return L;
+  const t = st.tx, fs = Math.max(1, t.fs || 64), g = tMeasure; g.font = tFont(t, fs); try { g.letterSpacing = (t.ls || 0) * fs + 'px'; } catch (e) {}
+  const lines = tCase(String(t.s == null ? '' : t.s), t.tt).split('\n').map(s => ({ s, w: g.measureText(s).width }));
+  const lh = (t.lh || 1.15) * fs, W = Math.max(1, ...lines.map(l => l.w)), H = Math.max(lh, lines.length * lh);
+  const asc = fs * 0.8;
+  lines.forEach((l, i) => { l.x = t.ta === 'center' ? (W - l.w) / 2 : t.ta === 'right' ? W - l.w : 0; l.y = i * lh + (lh - fs) / 2 + asc; });
+  let box = { x0: 0, y0: 0, x1: W, y1: H };
+  const arc = clamp(t.arc || 0, -100, 100) / 100 * Math.PI;   // the whole width bends by up to half a circle
+  if (Math.abs(arc) > 1e-3) {
+    lines.forEach(l => {
+      const R = W / Math.abs(arc), cx = W / 2, up = arc > 0, cy = up ? l.y + R : l.y - R;
+      l.chars = []; let x = l.x;
+      for (const ch of l.s) { const cw = g.measureText(ch).width + (t.ls || 0) * fs; const mid = x + cw / 2 - cx, th = mid / R * (up ? 1 : -1);
+        const px = cx + R * Math.sin(th), py = up ? cy - R * Math.cos(th) : cy + R * Math.cos(th);
+        l.chars.push({ ch, px, py, rot: up ? th : -th, cw }); x += cw; }
+    });
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    lines.forEach(l => (l.chars || []).forEach(c => { const r = Math.max(c.cw, fs); x0 = Math.min(x0, c.px - r); x1 = Math.max(x1, c.px + r); y0 = Math.min(y0, c.py - r); y1 = Math.max(y1, c.py + r * 0.4); }));
+    if (isFinite(x0)) box = { x0, y0, x1, y1 };
+  }
+  L = { lines, W, H, box, fs, fontsVer }; layoutMemo.set(st, L); return L;
+}
+function textCorners(st) { const b = textLayout(st).box, m = st.tm || ID_M; return [[b.x0, b.y0], [b.x1, b.y0], [b.x1, b.y1], [b.x0, b.y1]].map(([x, y]) => tmApply(m, x, y)); }
+function textFix(st) {   // keep pts as the world box (for everything that just needs a size)
+  const C = textCorners(st), lw = st.pts && st.pts[0] ? st.pts[0][2] : VSH.lw;
+  st.pts = [[Math.min(...C.map(c => c[0])), Math.min(...C.map(c => c[1])), lw], [Math.max(...C.map(c => c[0])), Math.max(...C.map(c => c[1])), lw]];
+  return st;
+}
+function textShape(x, y, over) {
+  const t = Object.assign({}, VSH.tx, over || {}), st = Object.assign(vStyle(), { shape: 'text', tx: t, tm: [1, 0, 0, 1, x, y], pts: [[x, y, VSH.lw], [x + 1, y + 1, VSH.lw]] });
+  if (!st.fc && !st.ol) st.fc = VSH.fc || '#1c1c33';
+  st.sal = undefined; return textFix(st);
+}
+/* ---------- drawing the letters ---------- */
+function textPaint(ctx, st, how) {   // how: 'fill' | 'stroke'
+  const L = textLayout(st), t = st.tx, m = st.tm || ID_M;
+  ctx.save(); ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
+  ctx.font = tFont(t, L.fs); try { ctx.letterSpacing = (t.ls || 0) * L.fs + 'px'; } catch (e) {} ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  if (how === 'stroke') { ctx.lineWidth = (st.pts[0][2] || 1) * (t.pob !== false && st.fc ? 2 : 1) / Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2]) || 1); ctx.lineJoin = 'round'; ctx.strokeStyle = st.color; }
+  else ctx.fillStyle = st.fg ? vGradient(ctx, Object.assign({}, st, { shape: 'rect', pts: [[L.box.x0, L.box.y0, 0], [L.box.x1, L.box.y1, 0]], rot: 0 })) : st.fc;
+  for (const l of L.lines) {
+    if (l.chars) { for (const c of l.chars) { ctx.save(); ctx.translate(c.px, c.py); ctx.rotate(c.rot); try { ctx.letterSpacing = '0px'; } catch (e) {} const w = c.cw - (t.ls || 0) * L.fs; how === 'stroke' ? ctx.strokeText(c.ch, -w / 2, 0) : ctx.fillText(c.ch, -w / 2, 0); ctx.restore(); } }
+    else how === 'stroke' ? ctx.strokeText(l.s, l.x, l.y) : ctx.fillText(l.s, l.x, l.y);
+    if (t.ul && !l.chars && l.s) { const th = Math.max(1, L.fs * 0.06), y = l.y + L.fs * 0.12; if (how === 'stroke') ctx.strokeRect(l.x, y, l.w, th); else ctx.fillRect(l.x, y, l.w, th); }
+  }
+  ctx.restore();
+}
+const _vFillRegion29 = vFillRegion; vFillRegion = function (ctx, st) { if (st.shape !== 'text') return _vFillRegion29.apply(this, arguments); textPaint(ctx, st, 'fill'); };
+const _vStrokeAll29 = vStrokeAll; vStrokeAll = function (ctx, st) { if (st.shape !== 'text') return _vStrokeAll29.apply(this, arguments); if (st.ol && st.pts[0][2] > 0) textPaint(ctx, st, 'stroke'); };
+const _vFillStyle29 = vFillStyle; vFillStyle = function (ctx, st) { return st.shape === 'text' ? st.fc : _vFillStyle29.apply(this, arguments); };
+const _vDrawFull29 = vDrawFull;
+vDrawFull = function (ctx, st) {
+  if (st.shape !== 'text') return _vDrawFull29.apply(this, arguments);
+  const fx = st.fx || {}, T = ctx.getTransform(), k = Math.hypot(T.a, T.b) || 1;
+  ctx.save();
+  if (fx.blend && fx.blend !== 'normal') ctx.globalCompositeOperation = fx.blend;
+  if (fx.blur > 0) ctx.filter = 'blur(' + (fx.blur * k).toFixed(2) + 'px)';
+  const body = () => { if (st.ol && st.tx.pob !== false) vStrokeAll(ctx, st); if (st.fc) vFillRegion(ctx, st); else vStrokeAll(ctx, st); };
+  const sh = (c, o, b, x, y) => { ctx.save(); ctx.shadowColor = hexA(c, o); ctx.shadowBlur = b * k; ctx.shadowOffsetX = x * k; ctx.shadowOffsetY = y * k; body(); ctx.restore(); };
+  if (fx.glow && fx.glow.on) { sh(fx.glow.c, fx.glow.o, fx.glow.b, 0, 0); sh(fx.glow.c, fx.glow.o * 0.7, fx.glow.b * 0.5, 0, 0); }
+  if (fx.shadow && fx.shadow.on) sh(fx.shadow.c, fx.shadow.o, fx.shadow.b, fx.shadow.x, fx.shadow.y);
+  if (st.ol && st.tx.pob !== false) vStrokeAll(ctx, st);   // the outline behind the letters (looks best for text)
+  if (st.fc) vFillRegion(ctx, st);
+  if (st.ol && st.tx.pob === false) vStrokeAll(ctx, st);
+  ctx.restore();
+};
+/* ---------- shape plumbing: bounds, hit, transform, copies ---------- */
+const _vSamplePts29 = vSamplePts; vSamplePts = function (st) { return st.shape === 'text' ? textCorners(st) : _vSamplePts29.apply(this, arguments); };
+const _vTrace29 = vTrace; vTrace = function (g, st) { if (st.shape !== 'text') return _vTrace29.apply(this, arguments); const C = textCorners(st); g.moveTo(C[0][0], C[0][1]); for (let i = 1; i < 4; i++) g.lineTo(C[i][0], C[i][1]); g.closePath(); };
+const _vHit29 = vHit; vHit = function (st, x, y, tol) { if (st.shape !== 'text') return _vHit29.apply(this, arguments); const q = tmApply(tmInv(st.tm || ID_M), x, y), b = textLayout(st).box, s = Math.sqrt(Math.abs((st.tm || ID_M)[0] * (st.tm || ID_M)[3] - (st.tm || ID_M)[1] * (st.tm || ID_M)[2])) || 1, t = tol / s; return q[0] >= b.x0 - t && q[0] <= b.x1 + t && q[1] >= b.y0 - t && q[1] <= b.y1 + t; };
+const _vApply29 = vApply;
+vApply = function (st, M) {
+  if (!st || st.shape !== 'text') return _vApply29.apply(this, arguments);
+  const det = M.a * M.d - M.b * M.c, k = VSH.keepLw ? 1 : (Math.sqrt(Math.abs(det)) || 1);
+  return textFix(vClone(st, { tm: tmMul(M, st.tm || ID_M), pts: st.pts.map(q => [q[0], q[1], q[2] * k]) }));
+};
+const _vToPath29 = vToPath; vToPath = function (st) { if (st.shape !== 'text') return _vToPath29.apply(this, arguments); const C = textCorners(st), lw = st.pts[0][2]; return vClone(st, { shape: 'path', cl: true, tx: undefined, tm: undefined, pts: C.flatMap(c => [[c[0], c[1], lw], [c[0], c[1], lw], [c[0], c[1], lw]]) }); };
+// points (A) and combining are not for text
+const _vNodeAt29 = vNodeAt; vNodeAt = function (p) { const keep = vsel; vsel = new Set([...vsel].filter(s => s.shape !== 'text')); try { return _vNodeAt29.call(this, p); } finally { vsel = keep; } };
+const _vCombine29 = vCombine; vCombine = function (op) { if (vSelList().some(s => s.shape === 'text')) { flash('Text cannot be joined with shapes'); return; } return _vCombine29.apply(this, arguments); };
+
+/* ---------- the text tool (T): click to type ---------- */
+VEC_TOOL.vtext = (p, e) => {
+  const hit = vTopAtE(e);
+  if (hit && hit.st.shape === 'text') { const o = vOwner(hit.st); if (o && o.li !== S.layer) vGoLayer(o.li); vsel = new Set([hit.st]); syncVecUI(); textEdit(hit.st); return null; }
+  const c = vcel(); if (!c || !vlayerOk()) { flash('Pick a visible, unlocked drawing layer'); return null; }
+  const st = textShape(p.x, p.y - VSH.tx.fs * 0.1);
+  vAddShapes([st], true); const real = [...vsel][0];
+  vsel = new Set([real]); syncVecUI(); textEdit(real, true); return null;
+};
+let tEd = null;
+function textEdit(st, fresh) {   // a small floating editor under the text: type, Enter = new line, Esc / click away = done
+  textEditEnd();
+  const o = vOwner(st); if (!o) return;
+  const box = document.createElement('div'); box.className = 'txted';
+  box.innerHTML = '<textarea spellcheck="false" rows="2"></textarea><div class="txted-b"><span>Enter: new line · Esc: done</span><button type="button" class="pb">Done</button></div>';
+  const ta = box.querySelector('textarea'); ta.value = st.tx.s;
+  document.body.appendChild(box);
+  const place = () => { const C = textCorners(tEd ? tEd.cur : st), r = view.getBoundingClientRect(), sx = r.width / view.width, sy = r.height / view.height; let x = Infinity, y = -Infinity; C.forEach(c => { const q = w2s(c[0], c[1]); x = Math.min(x, r.left + q[0] * sx); y = Math.max(y, r.top + q[1] * sy); }); box.style.left = clamp(x, 6, innerWidth - 280) + 'px'; box.style.top = clamp(y + 8, 6, innerHeight - 110) + 'px'; };
+  tEd = { box, ta, c: o.c, li: o.li, before: o.c.strokes, cur: st, place };
+  place(); ta.focus(); if (fresh) ta.select(); else ta.setSelectionRange(ta.value.length, ta.value.length);
+  ta.addEventListener('input', () => {
+    if (!tEd) return; const n = textFix(vClone(tEd.cur, { tx: Object.assign({}, tEd.cur.tx, { s: ta.value }) }));
+    tEd.c.strokes = tEd.c.strokes.map(q => q === tEd.cur ? n : q); if (vsel.has(tEd.cur)) { vsel.delete(tEd.cur); vsel.add(n); } tEd.cur = n; vRefresh(); place(); syncTextUI();
+  });
+  ta.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Escape' || (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey))) { ev.preventDefault(); textEditEnd(); } });
+  box.querySelector('button').onclick = () => textEditEnd();
+  setTimeout(() => document.addEventListener('pointerdown', tEdAway, true), 0);
+}
+function tEdAway(e) { if (tEd && !tEd.box.contains(e.target) && !e.target.closest('#vecShapeSet, .pwin, #menuLayer')) textEditEnd(); }
+function textEditEnd() {
+  if (!tEd) return; const E = tEd; tEd = null; document.removeEventListener('pointerdown', tEdAway, true); E.box.remove();
+  if (!String(E.cur.tx.s).trim()) { const id = E.cur.id, after = E.before.filter(q => q.id !== id && !(q.mir && q.mir.src === id)); E.c.strokes = E.before; vCommitMulti([{ c: E.c, li: E.li, before: E.before, after }]); vsel = new Set(); syncVecUI(); return; }
+  if (E.c.strokes !== E.before) { const after = E.c.strokes; E.c.strokes = E.before; vCommitMulti([{ c: E.c, li: E.li, before: E.before, after }]); }
+  syncVecUI(true); render();
+}
+// double-click a text with V to type in it
+view.addEventListener('dblclick', e => {
+  if (MODE !== 'vector' || S.tool !== 'vselect') return;
+  const h = vTopAtE(e); if (h && h.st.shape === 'text') { e.stopImmediatePropagation(); vsel = new Set([h.st]); textEdit(h.st); }
+}, true);
+window.addEventListener('keydown', e => {   // Enter on a picked text: type in it
+  if (MODE !== 'vector' || !S.inEditor || tEd || e.key !== 'Enter' || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
+  const t = e.target; if (t.closest && t.closest('input,textarea,select,[contenteditable]')) return;
+  const sel = vSelList().filter(s => s.shape === 'text'); if (sel.length !== 1) return; e.preventDefault(); e.stopImmediatePropagation(); textEdit(sel[0]);
+}, true);
+
+/* ---------- fonts: basic, on this computer, synced ---------- */
+let fontsVer = 0;
+const fontLib = { local: new Map(), synced: new Map(), loaded: false, loading: null };   // family -> [{ style, file|fd, size }]
+const syncedFamilies = () => [...fontLib.synced.keys()];
+function fontNamesFromBytes(u8) {   // family / style from a .ttf/.otf name table
+  try {
+    const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength), tag = (o) => String.fromCharCode(u8[o], u8[o + 1], u8[o + 2], u8[o + 3]);
+    let off = 0; if (tag(0) === 'ttcf') off = dv.getUint32(12);
+    const n = dv.getUint16(off + 4); let no = -1;
+    for (let i = 0; i < n; i++) if (tag(off + 12 + i * 16) === 'name') no = dv.getUint32(off + 12 + i * 16 + 8);
+    if (no < 0) return null;
+    const count = dv.getUint16(no + 2), so = no + dv.getUint16(no + 4), got = {};
+    for (let i = 0; i < count; i++) {
+      const r = no + 6 + i * 12, pid = dv.getUint16(r), lid = dv.getUint16(r + 4), nid = dv.getUint16(r + 6), len = dv.getUint16(r + 8), o = so + dv.getUint16(r + 10);
+      if (![1, 2, 16, 17].includes(nid)) continue; let s = '';
+      if (pid === 3 || pid === 0) { for (let k = 0; k + 1 < len; k += 2) s += String.fromCharCode(dv.getUint16(o + k)); } else if (pid === 1) { for (let k = 0; k < len; k++) s += String.fromCharCode(u8[o + k]); } else continue;
+      const pri = pid === 3 && lid === 0x409 ? 3 : pid === 3 ? 2 : 1; if (!got[nid] || got[nid].p < pri) got[nid] = { s, p: pri };
+    }
+    const fam = (got[16] || got[1] || {}).s; return fam ? { family: fam.trim(), style: ((got[17] || got[2] || {}).s || 'Regular').trim() } : null;
+  } catch (e) { return null; }
+}
+const styleWeight = s => { s = String(s || '').toLowerCase(); return /thin|hairline/.test(s) ? 100 : /extra ?light|ultra ?light/.test(s) ? 200 : /light/.test(s) ? 300 : /medium/.test(s) ? 500 : /semi ?bold|demi/.test(s) ? 600 : /extra ?bold|ultra ?bold/.test(s) ? 800 : /black|heavy/.test(s) ? 900 : /bold/.test(s) ? 700 : 400; };
+const styleItalic = s => /italic|oblique/i.test(String(s || ''));
+const FONT_DIR = 'Fonts';
+async function loadSyncedFonts() {   // every font file in the desktop's Fonts folder becomes usable (phones, other computers)
+  let list = []; try { list = await store.list(FONT_DIR); } catch (e) { return; }
+  for (const it of list) {
+    if (it.kind !== 'file' || !/^(ttf|otf|woff2?)$/i.test(it.ext)) continue;
+    const key = it.path + '|' + it.mtime; if (loadSyncedFonts.done.has(key)) continue; loadSyncedFonts.done.add(key);
+    try {
+      const b64 = await store.read(it.path); if (!b64) continue;
+      const s = atob(b64), u8 = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u8[i] = s.charCodeAt(i);
+      const nm = fontNamesFromBytes(u8) || { family: it.name.replace(/\s*-\s*[^-]*$/, ''), style: (it.name.match(/-\s*([^-]+)$/) || [, 'Regular'])[1] };
+      const ff = new FontFace(nm.family, u8.buffer, { weight: String(styleWeight(nm.style)), style: styleItalic(nm.style) ? 'italic' : 'normal' });
+      await ff.load(); document.fonts.add(ff);
+      if (!fontLib.synced.has(nm.family)) fontLib.synced.set(nm.family, []); fontLib.synced.get(nm.family).push({ style: nm.style, path: it.path });
+    } catch (e) {}
+  }
+  fontsVer++; vRefreshAllText();
+}
+loadSyncedFonts.done = new Set();
+function vRefreshAllText() { S.frames.forEach(f => f.cels.forEach(c => { if (c && c.strokes && c.strokes.some(s => s.shape === 'text')) c.dirty = true; })); try { invComp(); vRefresh(); } catch (e) {} }
+async function loadLocalFonts(gesture) {   // fonts installed on this computer
+  if (fontLib.loaded) return; if (fontLib.loading) return fontLib.loading;
+  fontLib.loading = (async () => {
+    try {
+      if (desk && desk.fontsList) { (await desk.fontsList()).forEach(f => { if (!fontLib.local.has(f.family)) fontLib.local.set(f.family, []); fontLib.local.get(f.family).push(f); }); fontLib.loaded = true; }
+      else if (window.queryLocalFonts && gesture) { (await window.queryLocalFonts()).forEach(fd => { if (!fontLib.local.has(fd.family)) fontLib.local.set(fd.family, []); fontLib.local.get(fd.family).push({ style: fd.style, fd }); }); fontLib.loaded = true; }
+    } catch (e) {}
+    fontLib.loading = null;
+  })();
+  return fontLib.loading;
+}
+async function syncFontFamily(fam) {   // copy the font files of a family into the Fonts folder, so other devices get it
+  if (!fam || BASIC_FONTS.includes(fam) || fontLib.synced.has(fam)) return;
+  await loadLocalFonts(false); const files = (fontLib.local.get(fam) || []).filter(f => !f.ttc && !(f.size > 15e6));
+  if (!files.length) return;
+  const pick = files.slice().sort((a, b) => (styleWeight(a.style) === 400 && !styleItalic(a.style) ? -1 : 0) - (styleWeight(b.style) === 400 && !styleItalic(b.style) ? -1 : 0)).slice(0, 4);
+  let n = 0;
+  for (const f of pick) {
+    try {
+      let b64, ext = 'ttf';
+      if (f.file) { b64 = await desk.fontRead(f.file); ext = /\.otf$/i.test(f.file) ? 'otf' : 'ttf'; }
+      else if (f.fd) { const blob = await f.fd.blob(); b64 = await blobToB64(blob); const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer()); ext = String.fromCharCode(...head) === 'OTTO' ? 'otf' : 'ttf'; }
+      if (!b64) continue;
+      const p = await freeDeskPath(FONT_DIR, cleanName(fam + ' - ' + f.style) || 'Font', ext); await store.write(p, b64); n++;
+    } catch (e) {}
+  }
+  if (n) { fontLib.synced.set(fam, pick.map(f => ({ style: f.style }))); try { refreshAll(); } catch (e) {} try { if (typeof syncSoon === 'function') syncSoon(); } catch (e) {} toast('Font “' + fam + '” saved to the Fonts folder — it syncs to your other devices'); }
+}
+function openFontPreview(p) {
+  const d = document.createElement('dialog'); d.className = 'fdlg wnew';
+  d.innerHTML = '<form method="dialog" class="dlg"><h2></h2><p class="fprev">AaBbCc 0123 АаБбВв<br>The quick brown fox — Съешь же ещё этих булок</p><p class="ainfo">Synced font: texts that use it look the same on all your devices.</p><div class="dlgbtns"><button class="txtbtn primary">Close</button></div></form>';
+  d.querySelector('h2').textContent = baseName(p);
+  (async () => { try { const b64 = await store.read(p), s = atob(b64), u8 = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u8[i] = s.charCodeAt(i); const nm = fontNamesFromBytes(u8); const fam = (nm && nm.family || 'x') + ' preview'; const ff = new FontFace(fam, u8.buffer); await ff.load(); document.fonts.add(ff); const pv = d.querySelector('.fprev'); pv.style.fontFamily = '"' + fam + '"'; if (nm) d.querySelector('h2').textContent = nm.family + ' — ' + nm.style; } catch (e) {} })();
+  d.addEventListener('close', () => d.remove()); document.body.appendChild(d); d.showModal();
+}
+
+/* ---------- the Text settings (Shape window) ---------- */
+let tPend = {};   // text changes made while one live edit is open (they add up)
+(() => {
+  const fs = $('#vecShapeSet'); if (!fs) return;
+  const f = document.createElement('fieldset'); f.className = 'aset'; f.id = 'vTextSet';
+  const rng = (id, label, min, max, step) => '<div class="bopt"><label for="' + id + '">' + label + '</label><output id="' + id + 'Out"></output><input type="range" id="' + id + '" min="' + min + '" max="' + max + '" step="' + (step || 1) + '"></div>';
+  f.innerHTML = '<legend>Text (T)</legend>' +
+    '<textarea id="vTxS" rows="2" spellcheck="false" placeholder="Your text"></textarea>' +
+    '<div class="arow"><button type="button" class="pb tfont" id="vTxFF" title="Font"></button></div>' +
+    '<div class="arow">Size <input class="num" type="number" id="vTxFs" min="2" max="2000" style="width:64px"> Weight <select id="vTxFw">' + [[100, 'Thin'], [200, 'Extra light'], [300, 'Light'], [400, 'Regular'], [500, 'Medium'], [600, 'Semi bold'], [700, 'Bold'], [800, 'Extra bold'], [900, 'Black']].map(([v, n]) => '<option value="' + v + '">' + n + '</option>').join('') + '</select></div>' +
+    '<div class="arow vbtns tbtns"><button type="button" class="pb" data-ta="left" title="Align left">⫷</button><button type="button" class="pb" data-ta="center" title="Center">☰</button><button type="button" class="pb" data-ta="right" title="Align right">⫸</button><button type="button" class="pb" id="vTxIt" title="Italic"><i>I</i></button><button type="button" class="pb" id="vTxUl" title="Underline"><u>U</u></button></div>' +
+    '<div class="arow">Letters <select id="vTxTt"><option value="none">As typed</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="title">Title Case</option></select></div>' +
+    rng('vTxLs', 'Letter spacing', -20, 100) + rng('vTxLh', 'Line height', 60, 300) + rng('vTxArc', 'Bend (arc)', -100, 100) +
+    '<label class="toggle"><input type="checkbox" id="vTxPob"> Outline behind the letters</label>' +
+    '<p class="ainfo">T: click to write, click a text to change it (or double-click it with V, or Enter). Fill, outline, gradient, shadow and glow above work on text too. Resize / turn / lean it with V; the mirror and keys ◆ work too.</p>';
+  fs.insertBefore(f, fs.firstChild.nextSibling);
+  const q = s => f.querySelector(s);
+  const setT = (o, live) => {   // change the settings for new text + the picked texts
+    Object.assign(VSH.tx, o); vshSave();
+    const sel = vSelList().filter(s => s.shape === 'text');
+    if (sel.length) { if (tEd) { const n = textFix(vClone(tEd.cur, { tx: Object.assign({}, tEd.cur.tx, o) })); tEd.c.strokes = tEd.c.strokes.map(x => x === tEd.cur ? n : x); if (vsel.has(tEd.cur)) { vsel.delete(tEd.cur); vsel.add(n); } tEd.cur = n; vRefresh(); tEd.place(); }
+      else { if (!vlive) tPend = {}; Object.assign(tPend, o); const P = Object.assign({}, tPend); vLive(st => st.shape === 'text' ? textFix(vClone(st, { tx: Object.assign({}, st.tx, P) })) : st); } }
+    if (!live) syncTextUI(); else render();
+    if (o.ff) syncFontFamily(o.ff);
+  };
+  q('#vTxS').addEventListener('input', e => { const v = e.target.value; if (tEd) { tEd.ta.value = v; tEd.ta.dispatchEvent(new Event('input')); } else setT({ s: v }, true); });
+  q('#vTxS').addEventListener('keydown', e => e.stopPropagation());
+  q('#vTxFs').addEventListener('keydown', e => e.stopPropagation());
+  q('#vTxFs').addEventListener('change', e => setT({ fs: clamp(+e.target.value || 64, 2, 2000) }));
+  q('#vTxFw').addEventListener('change', e => { setT({ fw: +e.target.value }); e.target.blur(); });
+  q('#vTxTt').addEventListener('change', e => { setT({ tt: e.target.value }); e.target.blur(); });
+  f.querySelectorAll('[data-ta]').forEach(b => b.onclick = () => setT({ ta: b.dataset.ta }));
+  q('#vTxIt').onclick = () => setT({ it: !VSH.tx.it }); q('#vTxUl').onclick = () => setT({ ul: !VSH.tx.ul });
+  q('#vTxPob').addEventListener('change', e => setT({ pob: e.target.checked }));
+  q('#vTxLs').addEventListener('input', e => setT({ ls: +e.target.value / 100 }, true));
+  q('#vTxLh').addEventListener('input', e => setT({ lh: +e.target.value / 100 }, true));
+  q('#vTxArc').addEventListener('input', e => setT({ arc: +e.target.value }, true));
+  ['#vTxLs', '#vTxLh', '#vTxArc'].forEach(id => q(id).addEventListener('change', () => syncTextUI()));
+  q('#vTxFF').onclick = () => openFontPicker(q('#vTxFF'), fam => setT({ ff: fam }));
+  // the T tool button
+  const tools = document.querySelector('#app > .tools'), first = tools && tools.querySelector('[data-tool="rect"]');
+  if (tools) { const b = document.createElement('button'); b.className = 'tb vt'; b.dataset.tool = 'vtext'; b.dataset.tip = 'Text (T)|Click to write. Click a text to change it. Font, size, spacing, arc and more are in the Shape window'; b.title = 'Text (T)'; b.textContent = 'T'; b.style.fontWeight = '700'; b.onclick = () => { setTool('vtext'); syncVecUI(true); }; (first || tools.lastChild).before(b); }
+})();
+function syncTextUI() {
+  const f = $('#vTextSet'); if (!f) return;
+  const sel = vSelList().filter(s => s.shape === 'text'), on = S.tool === 'vtext' || sel.length > 0;
+  f.hidden = !on; if (!on) return;
+  if (sel.length === 1 && !tEd) Object.assign(VSH.tx, sel[0].tx);
+  if (tEd) Object.assign(VSH.tx, tEd.cur.tx);
+  const t = VSH.tx, q = s => f.querySelector(s);
+  if (document.activeElement !== q('#vTxS')) q('#vTxS').value = sel.length === 1 || tEd ? t.s : (sel.length ? '' : t.s);
+  q('#vTxS').placeholder = sel.length > 1 ? sel.length + ' texts picked' : 'Your text';
+  const fb = q('#vTxFF'); fb.textContent = t.ff; fb.style.fontFamily = '"' + t.ff + '"';
+  if (document.activeElement !== q('#vTxFs')) q('#vTxFs').value = Math.round(t.fs);
+  q('#vTxFw').value = String(t.fw || 400); q('#vTxTt').value = t.tt || 'none';
+  f.querySelectorAll('[data-ta]').forEach(b => b.classList.toggle('on', (t.ta || 'left') === b.dataset.ta));
+  q('#vTxIt').classList.toggle('on', !!t.it); q('#vTxUl').classList.toggle('on', !!t.ul); q('#vTxPob').checked = t.pob !== false;
+  const setR = (id, v, txt) => { const el = q(id); if (document.activeElement !== el) el.value = v; q(id + 'Out').textContent = txt; };
+  setR('#vTxLs', Math.round((t.ls || 0) * 100), Math.round((t.ls || 0) * 100) + '%'); setR('#vTxLh', Math.round((t.lh || 1.15) * 100), Math.round((t.lh || 1.15) * 100) + '%'); setR('#vTxArc', t.arc || 0, (t.arc || 0) + '%');
+}
+const _syncVecMore29 = syncVecMore;
+syncVecMore = function () { _syncVecMore29.apply(this, arguments); syncTextUI(); };
+// the font picker: search, every font shown in itself, synced first
+async function openFontPicker(anchor, pick) {
+  document.querySelectorAll('.fontpick').forEach(x => x.remove());
+  const box = document.createElement('div'); box.className = 'fontpick';
+  box.innerHTML = '<input type="search" placeholder="Search fonts…" spellcheck="false"><div class="fp-list"><p class="ainfo">Loading the fonts of this computer…</p></div>';
+  document.body.appendChild(box);
+  const r = anchor.getBoundingClientRect(); box.style.left = clamp(r.left, 6, innerWidth - 330) + 'px'; box.style.top = clamp(r.bottom + 4, 6, innerHeight - 420) + 'px';
+  const inp = box.querySelector('input'), lst = box.querySelector('.fp-list');
+  const away = e => { if (!box.contains(e.target) && e.target !== anchor) close(); };
+  const close = () => { box.remove(); document.removeEventListener('pointerdown', away, true); };
+  setTimeout(() => document.addEventListener('pointerdown', away, true), 0);
+  inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Escape') close(); if (e.key === 'Enter') { const b = lst.querySelector('button'); if (b) b.click(); } });
+  await loadLocalFonts(true);
+  const draw = () => {
+    const qv = inp.value.trim().toLowerCase(), m = s => !qv || s.toLowerCase().includes(qv);
+    const syn = syncedFamilies().filter(m).sort(), loc = [...fontLib.local.keys()].filter(f => !fontLib.synced.has(f)).filter(m).sort((a, b) => a.localeCompare(b)), bas = BASIC_FONTS.filter(f => !fontLib.local.has(f) && !fontLib.synced.has(f)).filter(m);
+    const sec = (title, list, mark) => list.length ? '<p class="fp-h">' + title + '</p>' + list.slice(0, 400).map(f => '<button type="button" data-f="' + f.replace(/"/g, '&quot;') + '" style="font-family:&quot;' + f.replace(/"/g, '') + '&quot;,sans-serif">' + f.replace(/</g, '&lt;') + (mark ? ' <small>' + mark + '</small>' : '') + '</button>').join('') : '';
+    lst.innerHTML = sec('Synced (on all your devices)', syn, '☁') + sec('On this computer', loc, '') + sec('Basic', bas, '') || '<p class="ainfo">No fonts found</p>';
+    if (!fontLib.local.size && !desk && !window.queryLocalFonts) lst.insertAdjacentHTML('beforeend', '<p class="ainfo">This device does not show its installed fonts — fonts you used on the computer come here through sync.</p>');
+  };
+  inp.addEventListener('input', draw); draw(); inp.focus();
+  lst.addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; pick(b.dataset.f); close(); });
+}
+// load synced fonts at start and after a sync
+setTimeout(loadSyncedFonts, 1500);
+const _refreshAll29 = refreshAll;
+refreshAll = function () { setTimeout(loadSyncedFonts, 50); return _refreshAll29.apply(this, arguments); };
+async function importFontFiles(files) {   // .ttf / .otf dropped in → the Fonts folder (synced) and usable right away
+  let n = 0;
+  for (const f of files) { try { const ext = (f.name.match(/\.(\w+)$/) || [, 'ttf'])[1].toLowerCase(); const p = await freeDeskPath(FONT_DIR, cleanName(f.name.replace(/\.[^.]+$/, '')) || 'Font', ext); await store.write(p, await blobToB64(f)); n++; } catch (e) {} }
+  if (n) { refreshAll(); try { if (typeof syncSoon === 'function') syncSoon(); } catch (e) {} toast(n === 1 ? 'Font added to the Fonts folder' : n + ' fonts added to the Fonts folder'); }
+}
+window.__txt = { shape: textShape, layout: st => { const L = textLayout(st); return { W: L.W, H: L.H, box: L.box, lines: L.lines.length }; }, corners: textCorners, fonts: () => ({ local: fontLib.local.size, synced: syncedFamilies() }), loadSynced: loadSyncedFonts, names: fontNamesFromBytes, syncFam: syncFontFamily, lib: fontLib };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
@@ -9734,7 +10053,7 @@ addEventListener('resize', () => setTimeout(placePanels, 50));
 new MutationObserver(() => placePanels()).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 /* ---------- paths & storage ---------- */
 const EXT = { trad: 'sdt', vector: 'sdv', pixel: 'sdp' }, EXT_MODE = { sdt: 'trad', sdv: 'vector', sdp: 'pixel' };
-const MEDIA_EXT = { mp4: 'video/mp4', webm: 'video/webm', gif: 'image/gif' };   // finished videos kept on the desktop
+const MEDIA_EXT = { mp4: 'video/mp4', webm: 'video/webm', gif: 'image/gif', ttf: 'font/ttf', otf: 'font/otf', woff: 'font/woff', woff2: 'font/woff2' };   // + fonts (synced for the text tool)   // finished videos kept on the desktop
 const TYPE_LABEL = { trad: 'Traditional animation', vector: 'Vector animation', pixel: 'Pixel art animation' };
 const baseName = p => p.slice(p.lastIndexOf('/') + 1);
 const dirName = p => { const i = p.lastIndexOf('/'); return i < 0 ? '' : p.slice(0, i); };
@@ -10024,7 +10343,7 @@ function remapPaths(from, to) {
 
 /* ---------- taskbar ---------- */
 const tasksEl = $('#tasks');
-const ICON = { sdt: $('#icoT').src, sdv: $('#icoV').src, sdp: $('#icoP').src, dir: $('#icoDir').src, bin: $('#icoBin').src, binFull: $('#icoBinFull').src, mp4: VID_ICON, webm: VID_ICON, gif: VID_ICON };
+const ICON = { sdt: $('#icoT').src, sdv: $('#icoV').src, sdp: $('#icoP').src, dir: $('#icoDir').src, bin: $('#icoBin').src, binFull: $('#icoBinFull').src, mp4: VID_ICON, webm: VID_ICON, gif: VID_ICON, ttf: FONT_ICON, otf: FONT_ICON, woff: FONT_ICON, woff2: FONT_ICON };
 function renderTaskbar() {
   tasksEl.textContent = '';
   for (const d of docs) {
@@ -10095,7 +10414,7 @@ function sortEntries(list, mode) {
 function entryInfo(e) {
   if (e.kind === 'bin') return 'Recycle Bin · ' + (trashCount ? trashCount + (trashCount === 1 ? ' item' : ' items') : 'empty');
   if (e.kind === 'dir') return e.name + ' · Folder';
-  return e.name + '.' + e.ext + ' · ' + (MEDIA_EXT[e.ext] ? (e.ext === 'gif' ? 'GIF picture' : 'Video') : TYPE_LABEL[EXT_MODE[e.ext]]) + (e.mtime ? ' · modified ' + new Date(e.mtime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+  return e.name + '.' + e.ext + ' · ' + (MEDIA_EXT[e.ext] ? (e.ext === 'gif' ? 'GIF picture' : /^font/.test(MEDIA_EXT[e.ext]) ? 'Font' : 'Video') : TYPE_LABEL[EXT_MODE[e.ext]]) + (e.mtime ? ' · modified ' + new Date(e.mtime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 }
 function makeIcon(e) {
   const b = document.createElement('button');
@@ -10250,6 +10569,7 @@ function emptyBin() {
 function openEntry(p, kind) {
   if (kind === 'bin') return openBin();
   if (kind === 'dir') return openFolderWin(p);
+  if (/^font/.test(MEDIA_EXT[splitFile(p).ext] || '')) return openFontPreview(p);
   if (MEDIA_EXT[splitFile(p).ext]) return openVideo(p);
   return openFile(p);
 }
@@ -10483,6 +10803,8 @@ async function xmlPairs(files) {
 const isProjFile = f => /\.(sdt|sdp|sdv|sda|lbx|ase|aseprite|json|sdz)$/i.test(f.name || '');
 async function importFiles(files, dir) {
     if (!files.length) return;
+    const fonts = files.filter(f => /\.(ttf|otf|woff2?)$/i.test(f.name || '')); files = files.filter(f => !/\.(ttf|otf|woff2?)$/i.test(f.name || ''));
+    if (fonts.length) { await importFontFiles(fonts); if (!files.length) return; }
     const vids = files.filter(isVideoFile); files = files.filter(f => !isVideoFile(f));   // videos are kept on the desktop as they are
     if (vids.length) { const done = await importVideos(vids, dir); if (!files.length) return done; }
     files = await Promise.all(files.map(f => sniffFile(f).catch(() => f)));

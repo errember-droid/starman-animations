@@ -66,7 +66,7 @@ const TRASH = () => path.join(ROOT(), '.trash');
 const TRASH_INDEX = () => path.join(TRASH(), 'index.json');
 const cleanName = n => String(n || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().replace(/^\.+/, '').replace(/[. ]+$/, '').slice(0, 60);
 const extOf = f => path.extname(f).slice(1).toLowerCase();
-const MEDIA = new Set(['mp4', 'webm', 'gif']);   // finished videos kept on the desktop (stored as real files)
+const MEDIA = new Set(['mp4', 'webm', 'gif', 'ttf', 'otf', 'woff', 'woff2']);   // + font files kept for sync   // finished videos kept on the desktop (stored as real files)
 const isMedia = f => MEDIA.has(extOf(f));
 const isAnim = f => EXTS.has(extOf(f)) || isMedia(f);
 
@@ -206,6 +206,56 @@ H('fs-import', async (e, dir) => {
   const to = freePath(abs(dir), cleanName(path.basename(src, path.extname(src))) || 'Animation', EXT[modeOf(text)]);
   atomicWrite(to, text);
   return relOf(to);
+});
+/* fonts installed on this computer (for the text tool) */
+const FONT_DIRS = () => [path.join(process.env.WINDIR || 'C:\\Windows', 'Fonts'), process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Microsoft', 'Windows', 'Fonts') : null, process.platform === 'darwin' ? '/Library/Fonts' : null, process.platform === 'darwin' ? path.join(app.getPath('home'), 'Library', 'Fonts') : null, process.platform === 'linux' ? '/usr/share/fonts' : null, process.platform === 'linux' ? path.join(app.getPath('home'), '.local', 'share', 'fonts') : null].filter(Boolean);
+function fontNamesOf(file) {   // family / style from the font's name table (reads only the bytes it needs)
+  const fd = fs.openSync(file, 'r');
+  try {
+    const rd = (pos, len) => { const b = Buffer.alloc(len); fs.readSync(fd, b, 0, len, pos); return b; };
+    let off = 0, h = rd(0, 12);
+    if (h.toString('latin1', 0, 4) === 'ttcf') { off = rd(12, 4).readUInt32BE(0); h = rd(off, 12); }
+    const n = h.readUInt16BE(4); if (n > 200) return null;
+    const dir = rd(off + 12, n * 16); let no = -1, nl = 0;
+    for (let i = 0; i < n; i++) if (dir.toString('latin1', i * 16, i * 16 + 4) === 'name') { no = dir.readUInt32BE(i * 16 + 8); nl = dir.readUInt32BE(i * 16 + 12); }
+    if (no < 0 || nl > 2e6) return null;
+    const t = rd(no, nl), count = t.readUInt16BE(2), so = t.readUInt16BE(4), got = {};
+    for (let i = 0; i < count; i++) {
+      const r = 6 + i * 12; if (r + 12 > t.length) break;
+      const pid = t.readUInt16BE(r), lid = t.readUInt16BE(r + 4), nid = t.readUInt16BE(r + 6), len = t.readUInt16BE(r + 8), o = so + t.readUInt16BE(r + 10);
+      if (![1, 2, 16, 17].includes(nid) || o + len > t.length) continue;
+      let s = ''; if (pid === 3 || pid === 0) { for (let k = 0; k + 1 < len; k += 2) s += String.fromCharCode(t.readUInt16BE(o + k)); } else if (pid === 1) s = t.toString('latin1', o, o + len); else continue;
+      const pri = pid === 3 && lid === 0x409 ? 3 : pid === 3 ? 2 : 1; if (!got[nid] || got[nid].p < pri) got[nid] = { s, p: pri };
+    }
+    const fam = (got[16] || got[1] || {}).s; if (!fam) return null;
+    return { family: fam.trim(), style: ((got[17] || got[2] || {}).s || 'Regular').trim() };
+  } finally { fs.closeSync(fd); }
+}
+let fontCache = null;
+H('fonts-list', () => {
+  const cf = path.join(app.getPath('userData'), 'fonts-cache.json');
+  if (!fontCache) { try { fontCache = JSON.parse(fs.readFileSync(cf, 'utf8')); } catch (e) { fontCache = {}; } }
+  const out = [], seen = {}; let changed = false;
+  const walk = (d, depth) => { let list = []; try { list = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { return; }
+    for (const ent of list) { const p = path.join(d, ent.name);
+      if (ent.isDirectory()) { if (depth < 3) walk(p, depth + 1); continue; }
+      if (!/\.(ttf|otf|ttc)$/i.test(ent.name)) continue;
+      let st; try { st = fs.statSync(p); } catch (e) { continue; }
+      const key = p + '|' + st.mtimeMs + '|' + st.size; seen[key] = 1;
+      let info = fontCache[key];
+      if (info === undefined) { try { info = fontNamesOf(p); } catch (e) { info = null; } fontCache[key] = info; changed = true; }
+      if (info) out.push({ family: info.family, style: info.style, file: p, size: st.size, ttc: /\.ttc$/i.test(p) });
+    } };
+  FONT_DIRS().forEach(d => walk(d, 0));
+  for (const k of Object.keys(fontCache)) if (!seen[k]) { delete fontCache[k]; changed = true; }
+  if (changed) { try { fs.writeFileSync(cf, JSON.stringify(fontCache)); } catch (e) {} }
+  return out;
+});
+H('font-read', (e, file) => {
+  const p = path.resolve(String(file || ''));
+  if (!FONT_DIRS().some(d => p.toLowerCase().startsWith(path.resolve(d).toLowerCase() + path.sep))) throw new Error('not a font folder');
+  if (!/\.(ttf|otf)$/i.test(p)) throw new Error('not a font');
+  return fs.readFileSync(p).toString('base64');
 });
 /* autosave copies for crash recovery */
 const SNAP = () => path.join(ROOT(), '.autosave');

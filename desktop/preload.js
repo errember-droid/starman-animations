@@ -35,5 +35,8 @@ contextBridge.exposeInMainWorld('desktop', {
   takeOpenFiles: () => call('take-open-files'),
   onOpenFiles: cb => { ipcRenderer.on('open-files', () => cb()); },
   appVersion: 3,
-  appVersion4: true   // main.js that stores videos
+  appVersion4: true,   // main.js that stores videos
+  fontsList: () => call('fonts-list'),
+  fontRead: f => call('font-read', f),
+  appVersion5: true
 });

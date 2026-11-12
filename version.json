@@ -1,6 +1,15 @@
 {
- "version": "1.53.0",
+ "version": "1.54.0",
  "changelog": [
+  {
+   "v": "1.54.0",
+   "date": "2026-11-12",
+   "items": [
+    "Text (T) in vector animations: click to write, click a text to change it. Font, size, weight, italic, underline, align, letter spacing, line height, UPPER/lower/Title case, bend on an arc, outline behind the letters — plus fill, gradient, outline, shadow, glow and blur like other shapes. Resize, turn, lean, mirror and animate it with keys ◆",
+    "All fonts installed on your computer are in the font list (shown in their own look, with search)",
+    "Font sync: a font you use is copied into the desktop Fonts folder and syncs, so the text looks the same on your phone and other computers. You can also drop .ttf / .otf files into the Fonts folder"
+   ]
+  },
   {
    "v": "1.53.0",
    "date": "2026-11-12",
