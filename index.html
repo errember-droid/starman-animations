@@ -3940,7 +3940,7 @@ tg.addEventListener('contextmenu', e => {
 });
 
 /* ---------- saving & loading (format 5: endless canvas in tiles, layer types, camera size) ---------- */
-function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg', 'ns', 'cls', 'op', 'fx', 'sal', 'a0', 'a1', 'dl', 'id', 'mir'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
+function serStroke(st) { const o = { c: st.color, o: st.opacity, p: st.pts.flat() }; if (st.cap) o.k = st.cap; if (st.shape) { o.sh = st.shape; o.fc = st.fc || null; o.ol = st.ol ? 1 : 0; if (st.rr) o.rr = st.rr; const x = {}; ['rot', 'cl', 'dash', 'lcap', 'ljoin', 'fg', 'ns', 'cls', 'op', 'fx', 'sal', 'a0', 'a1', 'dl', 'id', 'mir', 'tp', 'vw'].forEach(k => { if (st[k]) x[k] = st[k]; }); if (Object.keys(x).length) o.x = x; } return o; }
 function deStroke(o) { const p = []; for (let i = 0; i + 2 < o.p.length; i += 3) p.push([o.p[i], o.p[i + 1], o.p[i + 2]]); const st = { color: o.c, opacity: o.o == null ? 1 : o.o, pts: p }; if (o.k === 'square') st.cap = 'square'; if (o.sh) { st.shape = o.sh; st.fc = o.fc || null; st.ol = !!o.ol; st.rr = o.rr || 0; if (o.x) Object.assign(st, o.x); } return st; }
 function serSurf(s) {
   const out = [];
@@ -5794,9 +5794,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.52.1';
+const APP_VERSION = '1.53.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.53.0', date: '2026-11-12', items: ['Vector brush (B): lines now fade to a thin point at the ends — “Thin start” and “Thin end” in the Vector brush settings (0 = blunt). Pick drawn lines and move the sliders to change them too', 'Pen pressure: with a drawing tablet the vector line gets thinner where you press lightly (can be turned off)', 'The line keeps its points: you can still bend and move them with A, and the thin ends follow'] },
   { v: '1.52.1', date: '2026-11-12', items: ['Add your own videos to the program desktop: drag .mp4 / .webm files from your computer onto the desktop (or into a folder window), or Start → Open a file…. They sync to your other devices like everything else'] },
   { v: '1.52.0', date: '2026-11-12', items: ['Finished videos on the desktop: in Export (MP4, WebM, GIF) choose Save to → The program desktop (or Both). The video appears on the desktop next to your animations and, with sync on, on your phone and other computers too', 'Double-click a video on the desktop to watch it; “Save to this device…” saves it as a normal file (on the phone too). On the computer the videos are real .mp4 files in Documents\\Starman Does Animations'] },
   { v: '1.51.0', date: '2026-11-12', items: ['Auto masks: right-click a layer → Auto mask from layer… → pick the layer with the shapes. The layer then shows only inside those shapes (the rest is hidden) — on every frame by itself, and it follows when the shapes move or change. Right-click the auto mask to show only outside instead', 'Right-click a shape → Show a layer only inside these shapes: the shape goes on its own layer and becomes the auto mask for the layer you pick'] },
@@ -9293,6 +9294,116 @@ async function importVideos(vids, dir) {   // video files from the computer or p
   return out;
 }
 window.__vid = { importVideos, put: putOnDesk, open: openVideo };
+/* ================= v53: vector brush with thin (fading) ends and pen pressure ================= */
+if (VSH.tpS == null) VSH.tpS = 25; if (VSH.tpE == null) VSH.tpE = 35; if (VSH.bpress == null) VSH.bpress = true; if (VSH.tpMin == null) VSH.tpMin = 0;
+const brushTp = () => (VSH.tpS > 0 || VSH.tpE > 0) ? [VSH.tpS / 100, VSH.tpE / 100] : undefined;
+const pressW = p => p == null ? 1 : 0.25 + 0.75 * clamp(p, 0, 1);   // light touch = thin line, full press = full width
+VEC_TOOL.vbrush = (p0, e0) => {
+  const prs = e => (VSH.bpress && e.pointerType === 'pen' && e.pressure > 0) ? e.pressure : null;
+  const raw = [[p0.x, p0.y, prs(e0)]]; let last = e0;
+  const make = (A, N, closed) => {
+    const w = i => VSH.lw * (A[i][2] == null ? 1 : pressW(A[i][2]));
+    const pts = []; N.forEach((n, i) => { const wi = w(i); n.forEach(q => pts.push([q[0], q[1], wi])); });
+    const st = Object.assign(vStyle(), { shape: 'path', pts, cl: closed, ol: true });
+    if (!closed) { st.fc = null; st.fg = undefined; const tp = brushTp(); if (tp) st.tp = tp; }
+    if (A.some(a => a[2] != null)) st.vw = true;
+    return st;
+  };
+  return vActive = {
+    move(e) {
+      last = e; const p = pos(e), q = raw[raw.length - 1]; if (Math.hypot(p.x - q[0], p.y - q[1]) < 0.5 / S.zoom.scale) return;
+      raw.push([p.x, p.y, prs(e)]);
+      vprev = make(raw, raw.map(r => [r, r, r]), false); render();
+    },
+    up() {
+      vprev = null; if (raw.length < 2) { render(); return; }
+      const eps = (0.4 + VSH.bsm / 100 * 9) / Math.max(0.01, S.zoom.scale);
+      let A = raw.some(r => r[2] != null) ? rdpP(raw, eps) : rdp(raw, eps); const tol = vtol() * 2;
+      const closed = VSH.bclose && A.length > 3 && Math.hypot(A[0][0] - A[A.length - 1][0], A[0][1] - A[A.length - 1][1]) < tol;
+      if (closed) A = A.slice(0, -1);
+      if (!last.ctrlKey && !closed) { const s0 = vSnapPt({ x: A[0][0], y: A[0][1] }); A[0] = [s0.x, s0.y, A[0][2]]; const s1 = vSnapPt({ x: A[A.length - 1][0], y: A[A.length - 1][1] }); A[A.length - 1] = [s1.x, s1.y, A[A.length - 1][2]]; vmark = null; }
+      const N = VSH.bkind === 'sharp' ? A.map(p => [p, p.slice(), p.slice()]) : smoothNodes(A, closed, 1);
+      vAddShapes([make(A, N, closed)], true); syncVecUI(true);
+    },
+    cancel() { vprev = null; render(); }
+  };
+};
+function rdpP(pts, eps) {   // like rdp, but also keeps points where the pressure changes
+  if (pts.length < 3) return pts.slice();
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1; const st = [[0, pts.length - 1]], wk = VSH.lw * 0.75;
+  while (st.length) { const [a, b] = st.pop(); let md = -1, mi = -1; const pa = pts[a][2] == null ? 1 : pts[a][2], pb = pts[b][2] == null ? 1 : pts[b][2];
+    for (let i = a + 1; i < b; i++) { const t = (i - a) / (b - a), pi = pts[i][2] == null ? 1 : pts[i][2]; const d = Math.max(distSeg(pts[i][0], pts[i][1], pts[a], pts[b]), Math.abs(pi - (pa + (pb - pa) * t)) * wk); if (d > md) { md = d; mi = i; } }
+    if (md > eps) { keep[mi] = 1; st.push([a, mi], [mi, b]); } }
+  return pts.filter((_, i) => keep[i]);
+}
+// drawing a line whose width changes along it (thin ends, pressure)
+function vRibbon(st) {   // the outline of a variable-width open path, as a Path2D
+  const N = vNodes(st); if (N.length < 2) return null;
+  const S_ = [];   // samples: [x, y, width]
+  for (let i = 0; i < N.length - 1; i++) {
+    const a = N[i], b = N[i + 1], w0 = a[0][2] || 0, w1 = b[0][2] || 0, steps = 16;
+    for (let k = i ? 1 : 0; k <= steps; k++) {
+      const t = k / steps, u = 1 - t;
+      const x = u * u * u * a[0][0] + 3 * u * u * t * a[2][0] + 3 * u * t * t * b[1][0] + t * t * t * b[0][0];
+      const y = u * u * u * a[0][1] + 3 * u * u * t * a[2][1] + 3 * u * t * t * b[1][1] + t * t * t * b[0][1];
+      S_.push([x, y, w0 + (w1 - w0) * t]);
+    }
+  }
+  let L = 0; const cum = [0]; for (let i = 1; i < S_.length; i++) { L += Math.hypot(S_[i][0] - S_[i - 1][0], S_[i][1] - S_[i - 1][1]); cum.push(L); }
+  if (L < 1e-6) return null;
+  const [ts, te] = st.tp || [0, 0], mn = 0.04;
+  const ez = v => Math.sin(clamp(v, 0, 1) * Math.PI / 2);   // a soft, rounded fade
+  const L_ = [], R_ = [];
+  for (let i = 0; i < S_.length; i++) {
+    const s = cum[i] / L; let f = 1;
+    if (ts > 0) f = Math.min(f, mn + (1 - mn) * ez(s / ts));
+    if (te > 0) f = Math.min(f, mn + (1 - mn) * ez((1 - s) / te));
+    const p = S_[Math.max(0, i - 1)], n = S_[Math.min(S_.length - 1, i + 1)]; let dx = n[0] - p[0], dy = n[1] - p[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+    const h = S_[i][2] * f / 2; L_.push([S_[i][0] - dy * h, S_[i][1] + dx * h]); R_.push([S_[i][0] + dy * h, S_[i][1] - dx * h]);
+  }
+  const P = new Path2D(); P.moveTo(L_[0][0], L_[0][1]); for (let i = 1; i < L_.length; i++) P.lineTo(L_[i][0], L_[i][1]);
+  for (let i = R_.length - 1; i >= 0; i--) P.lineTo(R_[i][0], R_[i][1]); P.closePath();
+  return P;
+}
+const ribbonOn = st => st && st.shape === 'path' && !st.cl && st.ol && (st.tp || st.vw) && (!st.dash || st.dash === 'solid') && (!st.sal || st.sal === 'center');
+const _vStrokeAll28 = vStrokeAll;
+vStrokeAll = function (ctx, st) {
+  if (!ribbonOn(st)) return _vStrokeAll28.apply(this, arguments);
+  const P = vRibbon(st); if (!P) return;
+  ctx.save(); ctx.fillStyle = st.color; ctx.lineJoin = 'round'; ctx.fill(P, 'nonzero');
+  ctx.restore();
+};
+// the Vector brush settings: thin ends + pressure (also change picked lines)
+(() => {
+  const close = $('#vBClose'); if (!close) return;
+  const box = document.createElement('div'); box.id = 'vTpBox';
+  const rng = (id, label) => '<div class="bopt"><label for="' + id + '">' + label + '</label><output id="' + id + 'Out"></output><input type="range" id="' + id + '" min="0" max="50" step="1"></div>';
+  box.innerHTML = rng('vTpS', 'Thin start') + rng('vTpE', 'Thin end') + '<label class="toggle"><input type="checkbox" id="vBPress"> Pen pressure (thinner when pressing lightly)</label>' +
+    '<p class="ainfo">The ends of brush lines fade to a point. Pick drawn lines (V) and move the sliders to change them too; 0 = blunt ends.</p>';
+  close.closest('label').after(box);
+  const apply = () => {
+    const tp = brushTp(), any = vSelList().some(st => st.shape === 'path' && !st.cl && st.ol);
+    if (any) vEditSel(st => st.shape === 'path' && !st.cl && st.ol ? Object.assign(vClone(st, {}), { tp }) : st);
+  };
+  let pend = false;
+  ['#vTpS', '#vTpE'].forEach(id => {
+    const el = box.querySelector(id);
+    el.addEventListener('input', () => { VSH[id === '#vTpS' ? 'tpS' : 'tpE'] = +el.value; syncTp(true); pend = true; });
+    el.addEventListener('change', () => { vshSave(); if (pend) { pend = false; apply(); } });
+  });
+  box.querySelector('#vBPress').addEventListener('change', e => { VSH.bpress = e.target.checked; vshSave(); });
+})();
+function syncTp(fromSlider) {
+  const s = $('#vTpS'); if (!s) return;
+  // a picked line shows its own ends
+  const one = vSelList().find(st => st.shape === 'path' && !st.cl && st.ol && st.tp);
+  if (one && !fromSlider && document.activeElement !== s && document.activeElement !== $('#vTpE')) { VSH.tpS = Math.round(one.tp[0] * 100); VSH.tpE = Math.round(one.tp[1] * 100); }
+  const setR = (id, v) => { const el = $(id); if (document.activeElement !== el) el.value = v; $(id + 'Out').textContent = v + '%'; };
+  setR('#vTpS', VSH.tpS); setR('#vTpE', VSH.tpE); $('#vBPress').checked = !!VSH.bpress;
+}
+const _syncVecMore28 = syncVecMore;
+syncVecMore = function () { _syncVecMore28.apply(this, arguments); syncTp(); };
+window.__tp = { ribbon: st => !!vRibbon(st) };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {

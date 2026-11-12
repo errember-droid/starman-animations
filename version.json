@@ -1,6 +1,15 @@
 {
- "version": "1.52.1",
+ "version": "1.53.0",
  "changelog": [
+  {
+   "v": "1.53.0",
+   "date": "2026-11-12",
+   "items": [
+    "Vector brush (B): lines now fade to a thin point at the ends — “Thin start” and “Thin end” in the Vector brush settings (0 = blunt). Pick drawn lines and move the sliders to change them too",
+    "Pen pressure: with a drawing tablet the vector line gets thinner where you press lightly (can be turned off)",
+    "The line keeps its points: you can still bend and move them with A, and the thin ends follow"
+   ]
+  },
   {
    "v": "1.52.1",
    "date": "2026-11-12",
