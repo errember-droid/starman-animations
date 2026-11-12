@@ -1,6 +1,14 @@
 {
- "version": "1.51.0",
+ "version": "1.52.0",
  "changelog": [
+  {
+   "v": "1.52.0",
+   "date": "2026-11-12",
+   "items": [
+    "Finished videos on the desktop: in Export (MP4, WebM, GIF) choose Save to → The program desktop (or Both). The video appears on the desktop next to your animations and, with sync on, on your phone and other computers too",
+    "Double-click a video on the desktop to watch it; “Save to this device…” saves it as a normal file (on the phone too). On the computer the videos are real .mp4 files in Documents\\Starman Does Animations"
+   ]
+  },
   {
    "v": "1.51.0",
    "date": "2026-11-12",

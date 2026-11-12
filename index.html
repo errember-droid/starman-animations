@@ -580,7 +580,7 @@ body.mobile .tip{display:none!important}
 #vecShapeSet{display:none}body[data-mode=vector] #vecShapeSet{display:block}
 body[data-mode=vector] #pageBrush>*:not(#vecShapeSet){display:none!important}
 body[data-mode=vector] #app>.tools [data-tool]:not([data-tool=rect]):not([data-tool=ellipse]):not([data-tool=line]):not([data-tool=picker]):not(.vt){display:none!important}
-#app>.tools .vt.mon{color:#40e0ff!important;background:rgba(64,224,255,.18);outline:1px dashed #40e0ff;outline-offset:-3px}.ezbox canvas{display:block;margin:4px auto;border:1px solid #0006;image-rendering:auto}.snbox.off{opacity:.45;pointer-events:none}#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
+#app>.tools .vt.mon{color:#40e0ff!important;background:rgba(64,224,255,.18);outline:1px dashed #40e0ff;outline-offset:-3px}.ezbox canvas{display:block;margin:4px auto;border:1px solid #0006;image-rendering:auto}.vidwin .dlg{min-width:min(560px,94vw)}.vidwin .vidbox{background:#000;display:flex;justify-content:center;align-items:center;max-height:62vh;border:1px solid #0006}.vidwin video,.vidwin .vidbox img{max-width:100%;max-height:62vh;display:block}.snbox.off{opacity:.45;pointer-events:none}#app>.tools .vt{display:none;font-size:15px;line-height:1;font-family:system-ui,'Segoe UI Symbol',sans-serif;color:var(--ink,#fff)}body[data-mode=vector] #app>.tools .vt{display:block}
 .vfs{display:flex;gap:8px;align-items:center;margin:4px 0 8px}.vsw{position:relative;width:34px;height:34px;padding:0;border:1px solid #16162b;background:#fff;cursor:pointer}.vsw i{position:absolute;inset:3px;display:block}
 .vsw.stroke i{background:transparent!important;border:7px solid #000;inset:3px}.vsw.on{outline:2px solid var(--accent);outline-offset:1px}.vfsr{display:flex;flex-direction:column;gap:2px}.vfsr .pb{padding:1px 6px}
 #vecShapeSet input[type=color]{width:34px;height:22px;padding:0;border:1px solid #555;background:none;margin-left:4px}#vecShapeSet select{margin:0 4px}
@@ -5794,9 +5794,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.51.0';
+const APP_VERSION = '1.52.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.52.0', date: '2026-11-12', items: ['Finished videos on the desktop: in Export (MP4, WebM, GIF) choose Save to → The program desktop (or Both). The video appears on the desktop next to your animations and, with sync on, on your phone and other computers too', 'Double-click a video on the desktop to watch it; “Save to this device…” saves it as a normal file (on the phone too). On the computer the videos are real .mp4 files in Documents\\Starman Does Animations'] },
   { v: '1.51.0', date: '2026-11-12', items: ['Auto masks: right-click a layer → Auto mask from layer… → pick the layer with the shapes. The layer then shows only inside those shapes (the rest is hidden) — on every frame by itself, and it follows when the shapes move or change. Right-click the auto mask to show only outside instead', 'Right-click a shape → Show a layer only inside these shapes: the shape goes on its own layer and becomes the auto mask for the layer you pick'] },
   { v: '1.50.0', date: '2026-11-12', items: ['Join / Cut / Overlap / Exclude now work with shapes on different layers (Shift+click them on any layer) — the result goes on the front shape’s layer (Cut: the back shape’s)', 'Move shapes to another layer: right-click a shape → Move to a new layer / Move to layer, or the buttons in the Shape window, or Ctrl+Shift+L for a new layer', 'Right-click on shapes (V or A) opens a menu: Join, Cut, Move to layer, Duplicate, Delete'] },
   { v: '1.49.0', date: '2026-11-12', items: ['Much faster big vector projects (many layers and frames): the layers you are not drawing on are kept as a ready picture, so moving, hovering and editing only redraws the current layer — about 30× less work with 30 layers', 'Shapes with effects (shadows, glow, inner shadow, glass, metal, light, textures, blur) are kept as ready pictures and are not recalculated on every redraw', 'Long vector animations now get ready for playing (a short progress bar) instead of drawing live, so playback is smooth; when very long they play a little softer, then sharp again on pause', 'Getting playback ready in the background is gentle now: heavy frames are made a few at a time and it pauses while the program is not in front, so the computer stays responsive'] },
@@ -6027,7 +6028,8 @@ const syncOn = () => { const c = syncCfg(); return !!(c.token && c.owner && c.re
 const syncBaseKey = () => { const c = syncCfg(); return 'syncBase.' + c.owner + '/' + c.repo; };
 let syncState = 'off', syncMsg = '', syncBusy = null, syncAgain = false, syncTimer = 0;
 const SYNC_DIR = 'files/';
-const ANIM_RX = /\.(sdt|sdv|sdp)$/i;
+const ANIM_RX = /\.(sdt|sdv|sdp|mp4|webm|gif)$/i, MEDIA_RX = /\.(mp4|webm|gif)$/i;   // videos sync as real files
+const fileBytes = (p, text) => MEDIA_RX.test(p) ? b64ToBytes(text) : utf8.encode(text);
 const syncMax = () => (document.body.classList.contains('mobile') || isCap() ? 35e6 : 70e6);
 
 /* --- bytes, base64, git hashes --- */
@@ -6068,7 +6070,7 @@ async function localFiles() {
       if (c && c.m === it.mtime && it.mtime) { out.set(it.path, c.s); next[it.path] = c; continue; }
       const text = await store.read(it.path); if (text == null) continue;
       if (text.length > syncMax()) { out.skip.add(it.path); continue; }   // too big to send in one piece: left alone
-      const s = await gitSha(utf8.encode(text)); out.set(it.path, s); next[it.path] = { m: it.mtime, s };
+      const s = await gitSha(fileBytes(it.path, text)); out.set(it.path, s); next[it.path] = { m: it.mtime, s };
     }
   };
   await walk('');
@@ -6127,7 +6129,7 @@ async function syncRun() {
   // download first (so nothing is lost if the upload fails)
   for (const [p, sha] of downs.concat(copies)) {
     const b = await gh('GET', repoUrl() + '/git/blobs/' + sha);
-    const text = utf8d.decode(b64ToBytes(b.content));
+    const raw = b64ToBytes(b.content), text = MEDIA_RX.test(p) ? bytesToB64(raw) : utf8d.decode(raw);
     await store.write(p, text);
     reloadOpenDoc(p);
   }
@@ -6135,7 +6137,7 @@ async function syncRun() {
   // upload: one commit with everything
   const entries = [];
   for (const p of up) {
-    const text = await store.read(p); const bytes = utf8.encode(text);
+    const text = await store.read(p); const bytes = fileBytes(p, text);
     const sha = await gitSha(bytes); nb[p] = sha;
     const blob = await gh('POST', repoUrl() + '/git/blobs', { content: bytesToB64(bytes), encoding: 'base64' });
     entries.push({ path: SYNC_DIR + p, mode: '100644', type: 'blob', sha: blob.sha });
@@ -9216,6 +9218,68 @@ buildTimeline = function () {
   return r;
 };
 window.__auto = { make: makeAutoMask, src: i => autoMaskSrc(S.layers[i]) };
+/* ================= v52: finished videos on the desktop — export straight there, open them, they sync to your other devices ================= */
+const VID_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABA0lEQVR42mNgGGDAiC5gYhL+nxoGnzmzkpEsjSYm4f8pBSYm4f+J9QgLLomPH39TFAIxMaEMDAwM/wmFBBMt4zcmJpRglDLROpERcgQTPVI6Pkcw0Su74XIEC60sXLJkNc5chpwwaeKAPXsWYxW/ceMJQ05OJfFRoKNjCccLFmwim01ySXj69AqGjx9/E9RMLLhy5ThKCCBHAROlhlIKmKjhswFzADUcwUTNOB4wBwx4CFCSW5gG0nKKHUCNcoJpIC0nyQElJZVks8kuiqkNqFoUUwtgrY5fOibSxDKFYVsQDWkHYE0Ds25coZ2NMsqEHeC2YRXN7N+E1ibE6gD0huOwBgDubLE+qrwMSAAAAABJRU5ErkJggg==';
+function blobToB64(blob) { return blob.arrayBuffer().then(b => { const u8 = new Uint8Array(b); let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); }); }
+function b64ToBlob(b64, type) { const s = atob(b64 || ''), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new Blob([u], { type }); }
+async function freeDeskPath(dir, name, ext) {   // "Name.mp4", or "Name 2.mp4" when taken
+  let list = []; try { list = await store.list(dir); } catch (e) {}
+  const taken = new Set(list.map(x => (x.kind === 'dir' ? x.name : x.name + '.' + x.ext).toLowerCase()));
+  let n = name, i = 2; while (taken.has((n + '.' + ext).toLowerCase())) n = name + ' ' + i++;
+  return (dir ? dir + '/' : '') + n + '.' + ext;
+}
+async function putOnDesk(fn, data) {
+  const sp = splitFile(fn), ext = (sp.ext || '').toLowerCase(); if (!MEDIA_EXT[ext]) return null;
+  const blob = data instanceof Blob ? data : new Blob([data], { type: MEDIA_EXT[ext] });
+  const p = await freeDeskPath('', cleanName(sp.name) || 'Video', ext);
+  await store.write(p, await blobToB64(blob));
+  try { refreshAll(); } catch (e) {} try { if (typeof syncSoon === 'function') syncSoon(); } catch (e) {}
+  return p;
+}
+// the export window: where finished videos go
+function exDest() { const s = $('#exDest'), r = $('#exDestRow'); return s && r && !r.hidden ? s.value : 'file'; }
+async function exToDesk(fn, data) {
+  const ext = (splitFile(fn).ext || '').toLowerCase(), d = exDest();
+  if (!MEDIA_EXT[ext] || d === 'file') return null;
+  try {
+    const p = await putOnDesk(fn, data);
+    exStatus('On the desktop: ' + baseName(p) + (typeof syncOn === 'function' && syncOn() ? ' · it will sync to your other devices' : ''));
+    toast('Video put on the desktop: ' + baseName(p));
+    return { only: d === 'desk', path: p };
+  } catch (e) { toast(desk && !desk.appVersion4 ? 'Restart the program once to finish the update, then try again' : 'Could not put the video on the desktop'); return null; }
+}
+(() => {
+  const fmt = $('#exFmt'); if (!fmt) return;
+  const row = document.createElement('label'); row.className = 'arow'; row.id = 'exDestRow';
+  row.innerHTML = 'Save to <select id="exDest"><option value="file">A file (download)</option><option value="desk">The program desktop (syncs)</option><option value="both">Both</option></select>';
+  row.title = 'The program desktop keeps the finished video next to your animations — with sync on, it shows up on your phone and other computers too';
+  const anchor = $('#exScale') && $('#exScale').closest('.arow, label, div'); (anchor || fmt.closest('.arow, label, div')).after(row);
+  try { const v = localStorage.getItem('sda.exDest'); if (v) row.querySelector('select').value = v; } catch (e) {}
+  row.querySelector('select').addEventListener('change', e => { try { localStorage.setItem('sda.exDest', e.target.value); } catch (er) {} });
+  const sync = () => { row.hidden = !/^(mp4|webm|gif)$/.test(fmt.value); };
+  fmt.addEventListener('change', sync); sync();
+})();
+const _syncExportTab27 = syncExportTab;
+syncExportTab = function () { _syncExportTab27.apply(this, arguments); const r = $('#exDestRow'), f = $('#exFmt'); if (r && f) r.hidden = !/^(mp4|webm|gif)$/.test(f.value); };
+// opening a video from the desktop
+async function openVideo(p) {
+  const ext = splitFile(p).ext.toLowerCase(), type = MEDIA_EXT[ext] || 'video/mp4';
+  let b64; try { b64 = await store.read(p); } catch (e) { toast('Could not open ' + baseName(p)); return; }
+  if (!b64) { toast('Could not open ' + baseName(p)); return; }
+  const blob = b64ToBlob(b64, type), url = URL.createObjectURL(blob);
+  const d = document.createElement('dialog'); d.className = 'fdlg wnew vidwin';
+  d.innerHTML = '<form method="dialog" class="dlg"><h2></h2><div class="vidbox">' + (ext === 'gif' ? '<img alt="">' : '<video controls autoplay loop playsinline></video>') + '</div>' +
+    '<p class="ainfo"></p><div class="dlgbtns"><button type="button" class="txtbtn" data-del>Delete</button><button type="button" class="txtbtn" data-save>Save to this device…</button><button type="button" class="txtbtn primary" data-x>Close</button></div></form>';
+  d.querySelector('h2').textContent = baseName(p);
+  const m = d.querySelector('video, img'); m.src = url;
+  d.querySelector('.ainfo').textContent = (blob.size < 1e6 ? Math.max(1, Math.round(blob.size / 1e3)) + ' KB' : (blob.size / 1e6).toFixed(1) + ' MB') + (typeof syncOn === 'function' && syncOn() ? ' · synced with your other devices' : '');
+  d.querySelector('[data-x]').onclick = () => d.close();
+  d.querySelector('[data-save]').onclick = () => saveFile(baseName(p), blob).then(r => { if (r) toast('Saved: ' + r); });
+  d.querySelector('[data-del]').onclick = () => { d.close(); trashEntry(p); };
+  d.addEventListener('close', () => { try { m.pause && m.pause(); } catch (e) {} URL.revokeObjectURL(url); d.remove(); });
+  document.body.appendChild(d); d.showModal();
+}
+window.__vid = { put: putOnDesk, open: openVideo };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
@@ -9546,6 +9610,7 @@ addEventListener('resize', () => setTimeout(placePanels, 50));
 new MutationObserver(() => placePanels()).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 /* ---------- paths & storage ---------- */
 const EXT = { trad: 'sdt', vector: 'sdv', pixel: 'sdp' }, EXT_MODE = { sdt: 'trad', sdv: 'vector', sdp: 'pixel' };
+const MEDIA_EXT = { mp4: 'video/mp4', webm: 'video/webm', gif: 'image/gif' };   // finished videos kept on the desktop
 const TYPE_LABEL = { trad: 'Traditional animation', vector: 'Vector animation', pixel: 'Pixel art animation' };
 const baseName = p => p.slice(p.lastIndexOf('/') + 1);
 const dirName = p => { const i = p.lastIndexOf('/'); return i < 0 ? '' : p.slice(0, i); };
@@ -9617,7 +9682,7 @@ const webStore = (() => {
       migrate();
       const out = [];
       for (const d of dirs()) if (dirName(d) === dir) out.push({ path: d, name: baseName(d), kind: 'dir', ext: '', mtime: 0 });
-      for (const p of filePaths()) if (dirName(p) === dir) { const sp = splitFile(p); if (EXT_MODE[sp.ext]) out.push({ path: p, name: sp.name, kind: 'file', ext: sp.ext, mtime: +(g(M + p) || 0), thumb: headThumb(g(F + p)) }); }
+      for (const p of filePaths()) if (dirName(p) === dir) { const sp = splitFile(p); if (EXT_MODE[sp.ext] || MEDIA_EXT[sp.ext]) out.push({ path: p, name: sp.name, kind: 'file', ext: sp.ext, mtime: +(g(M + p) || 0), thumb: MEDIA_EXT[sp.ext] ? null : headThumb(g(F + p)) }); }
       if (dir && !isDir(dir)) return Promise.reject(new Error('missing'));
       return Promise.resolve(out);
     },
@@ -9835,7 +9900,7 @@ function remapPaths(from, to) {
 
 /* ---------- taskbar ---------- */
 const tasksEl = $('#tasks');
-const ICON = { sdt: $('#icoT').src, sdv: $('#icoV').src, sdp: $('#icoP').src, dir: $('#icoDir').src, bin: $('#icoBin').src, binFull: $('#icoBinFull').src };
+const ICON = { sdt: $('#icoT').src, sdv: $('#icoV').src, sdp: $('#icoP').src, dir: $('#icoDir').src, bin: $('#icoBin').src, binFull: $('#icoBinFull').src, mp4: VID_ICON, webm: VID_ICON, gif: VID_ICON };
 function renderTaskbar() {
   tasksEl.textContent = '';
   for (const d of docs) {
@@ -9906,7 +9971,7 @@ function sortEntries(list, mode) {
 function entryInfo(e) {
   if (e.kind === 'bin') return 'Recycle Bin · ' + (trashCount ? trashCount + (trashCount === 1 ? ' item' : ' items') : 'empty');
   if (e.kind === 'dir') return e.name + ' · Folder';
-  return e.name + '.' + e.ext + ' · ' + TYPE_LABEL[EXT_MODE[e.ext]] + (e.mtime ? ' · modified ' + new Date(e.mtime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+  return e.name + '.' + e.ext + ' · ' + (MEDIA_EXT[e.ext] ? (e.ext === 'gif' ? 'GIF picture' : 'Video') : TYPE_LABEL[EXT_MODE[e.ext]]) + (e.mtime ? ' · modified ' + new Date(e.mtime).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 }
 function makeIcon(e) {
   const b = document.createElement('button');
@@ -10061,6 +10126,7 @@ function emptyBin() {
 function openEntry(p, kind) {
   if (kind === 'bin') return openBin();
   if (kind === 'dir') return openFolderWin(p);
+  if (MEDIA_EXT[splitFile(p).ext]) return openVideo(p);
   return openFile(p);
 }
 function trashEntry(p) {
@@ -11117,7 +11183,8 @@ function saveFile(filename, data) {
   if (!dl) return plainSave(filename, data);
   return dl.save({ filename, data }).then(() => filename, err => { if (err && err.code === 'declined') return null; throw err; });
 }
-const exSave = (fn, data) => saveFile(fn, data).then(p => { if (p) { exStatus('Saved: ' + p); if (exBusy && $('#exDiscord').checked && /\.(gif|png|webm|zip|aseprite)$/i.test(fn)) { exStatus('Saved: ' + p + ' · sending to Discord…'); sendWebhook(fn.replace(/[^\w.\- ]+/g, '_'), data, '').then(() => exStatus('Saved: ' + p + ' · posted to Discord'), err => exStatus('Saved: ' + p + ' · Discord: ' + (err && err.message || err))); } } return p; },
+const exSave = (fn, data) => exToDesk(fn, data).then(r => r && r.only ? r.path : exSave0(fn, data));
+const exSave0 = (fn, data) => saveFile(fn, data).then(p => { if (p) { exStatus('Saved: ' + p); if (exBusy && $('#exDiscord').checked && /\.(gif|png|webm|zip|aseprite)$/i.test(fn)) { exStatus('Saved: ' + p + ' · sending to Discord…'); sendWebhook(fn.replace(/[^\w.\- ]+/g, '_'), data, '').then(() => exStatus('Saved: ' + p + ' · posted to Discord'), err => exStatus('Saved: ' + p + ' · Discord: ' + (err && err.message || err))); } } return p; },
   () => { exStatus(desk ? 'Could not save the file' : 'Downloads are not available here, right-click the image to save it'); return null; });
 $('#exCopy').onclick = () => {
   const ta = $('#exXml');

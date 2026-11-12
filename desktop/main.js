@@ -66,7 +66,9 @@ const TRASH = () => path.join(ROOT(), '.trash');
 const TRASH_INDEX = () => path.join(TRASH(), 'index.json');
 const cleanName = n => String(n || '').replace(/[\\/:*?"<>|\u0000-\u001f]/g, '').replace(/\s+/g, ' ').trim().replace(/^\.+/, '').replace(/[. ]+$/, '').slice(0, 60);
 const extOf = f => path.extname(f).slice(1).toLowerCase();
-const isAnim = f => EXTS.has(extOf(f));
+const MEDIA = new Set(['mp4', 'webm', 'gif']);   // finished videos kept on the desktop (stored as real files)
+const isMedia = f => MEDIA.has(extOf(f));
+const isAnim = f => EXTS.has(extOf(f)) || isMedia(f);
 
 function segOk(s) { return s && s === s.trim() && s.length <= 80 && !/[\\/:*?"<>|\u0000-\u001f]/.test(s) && !s.startsWith('.') && !/[. ]$/.test(s); }
 // rel paths use "/" and must stay inside ROOT
@@ -135,11 +137,11 @@ H('fs-list', (e, dir) => {
     const p = path.join(d, ent.name), rel = relOf(p);
     if (ent.isDirectory()) return { path: rel, name: ent.name, kind: 'dir', ext: '', mtime: fs.statSync(p).mtimeMs };
     if (!ent.isFile() || !isAnim(ent.name)) return null;
-    return { path: rel, name: path.basename(ent.name, path.extname(ent.name)), kind: 'file', ext: extOf(ent.name), mtime: fs.statSync(p).mtimeMs, thumb: thumbOf(p) };
+    return { path: rel, name: path.basename(ent.name, path.extname(ent.name)), kind: 'file', ext: extOf(ent.name), mtime: fs.statSync(p).mtimeMs, thumb: isMedia(p) ? null : thumbOf(p) };
   }).filter(Boolean);
 });
-H('fs-read', (e, f) => fs.readFileSync(abs(f, 'file'), 'utf8'));
-H('fs-write', (e, f, text) => { ensureRoot(); const p = abs(f, 'file'); fs.mkdirSync(path.dirname(p), { recursive: true }); atomicWrite(p, text); return true; });
+H('fs-read', (e, f) => { const p = abs(f, 'file'); return isMedia(p) ? fs.readFileSync(p).toString('base64') : fs.readFileSync(p, 'utf8'); });   // videos travel as base64 text
+H('fs-write', (e, f, text) => { ensureRoot(); const p = abs(f, 'file'); fs.mkdirSync(path.dirname(p), { recursive: true }); if (isMedia(p)) { fs.writeFileSync(p + '.tmp', Buffer.from(String(text), 'base64')); fs.renameSync(p + '.tmp', p); } else atomicWrite(p, text); return true; });
 ipcMain.on('fs-write-sync', (e, f, text) => { try { const p = abs(f, 'file'); fs.mkdirSync(path.dirname(p), { recursive: true }); atomicWrite(p, text); e.returnValue = true; } catch (err) { e.returnValue = false; } });
 H('fs-mkdir', (e, dir, name) => { ensureRoot(); const p = freePath(abs(dir), cleanName(name) || 'New folder', ''); fs.mkdirSync(p); return relOf(p); });
 H('fs-rename', (e, rel, name) => {

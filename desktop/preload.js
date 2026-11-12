@@ -34,5 +34,6 @@ contextBridge.exposeInMainWorld('desktop', {
   openExternal: url => call('open-external', url),
   takeOpenFiles: () => call('take-open-files'),
   onOpenFiles: cb => { ipcRenderer.on('open-files', () => cb()); },
-  appVersion: 3
+  appVersion: 3,
+  appVersion4: true   // main.js that stores videos
 });
