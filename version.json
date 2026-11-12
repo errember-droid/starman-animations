@@ -1,6 +1,15 @@
 {
- "version": "1.49.0",
+ "version": "1.50.0",
  "changelog": [
+  {
+   "v": "1.50.0",
+   "date": "2026-11-12",
+   "items": [
+    "Join / Cut / Overlap / Exclude now work with shapes on different layers (Shift+click them on any layer) — the result goes on the front shape’s layer (Cut: the back shape’s)",
+    "Move shapes to another layer: right-click a shape → Move to a new layer / Move to layer, or the buttons in the Shape window, or Ctrl+Shift+L for a new layer",
+    "Right-click on shapes (V or A) opens a menu: Join, Cut, Move to layer, Duplicate, Delete"
+   ]
+  },
   {
    "v": "1.49.0",
    "date": "2026-11-12",

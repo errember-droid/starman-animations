@@ -5783,9 +5783,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.49.0';
+const APP_VERSION = '1.50.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.50.0', date: '2026-11-12', items: ['Join / Cut / Overlap / Exclude now work with shapes on different layers (Shift+click them on any layer) — the result goes on the front shape’s layer (Cut: the back shape’s)', 'Move shapes to another layer: right-click a shape → Move to a new layer / Move to layer, or the buttons in the Shape window, or Ctrl+Shift+L for a new layer', 'Right-click on shapes (V or A) opens a menu: Join, Cut, Move to layer, Duplicate, Delete'] },
   { v: '1.49.0', date: '2026-11-12', items: ['Much faster big vector projects (many layers and frames): the layers you are not drawing on are kept as a ready picture, so moving, hovering and editing only redraws the current layer — about 30× less work with 30 layers', 'Shapes with effects (shadows, glow, inner shadow, glass, metal, light, textures, blur) are kept as ready pictures and are not recalculated on every redraw', 'Long vector animations now get ready for playing (a short progress bar) instead of drawing live, so playback is smooth; when very long they play a little softer, then sharp again on pause', 'Getting playback ready in the background is gentle now: heavy frames are made a few at a time and it pauses while the program is not in front, so the computer stays responsive'] },
   { v: '1.48.3', date: '2026-11-12', items: ['A locked mask (🔒) stays where it is: moving, turning or resizing its layer — or a linked group — no longer moves it. Unlock it to make it follow again'] },
   { v: '1.48.2', date: '2026-11-11', items: ['Fix: linked layers ⛓ now always turn, resize and move together — also when a shape was already picked before, when you grab the box handles right away, and when a linked mask is in the group', 'Grabbing a shape by its very middle moves it again (before it grabbed the center point). To move the center point the first time hold Alt and drag the cross; after that it can be dragged normally'] },
@@ -6830,6 +6831,7 @@ function vApplyStyle(keys) {   // a style setting changed in the panel: the sele
 const VKEYS = { KeyB: 'vbrush', KeyV: 'vselect', KeyA: 'vdirect', KeyP: 'pen', KeyU: 'rect', KeyM: 'rect', KeyL: 'ellipse', KeyY: 'poly', KeyS: 'star', Backslash: 'line', KeyI: 'picker' };
 window.addEventListener('keydown', e => {
   if (MODE !== 'vector' || !S.inEditor || document.querySelector('dialog[open]')) return;
+  if (e.key === 'Escape' && document.querySelector('#menuLayer .ctx')) return;   // Escape closes an open menu first
   const t = e.target; if (t.closest && t.closest('input:not([type=range]):not([type=checkbox]):not([type=radio]),textarea,select,[contenteditable]')) return;
   const c = e.code, mod = e.ctrlKey || e.metaKey, done = () => { e.preventDefault(); e.stopImmediatePropagation(); };
   if (mod) {
@@ -9068,6 +9070,103 @@ drawLayers = function (ctx, f, o) {
   if (cur < n - 1) partDraw(1, ctx, f, o, cur + 1, n - 1, base);
 };
 window.__perf = { shots: () => [shotLRU.size, Math.round(shotBytes / 1e6) + 'MB'], clear: shotsClear };
+/* ================= v50: join shapes from different layers, move shapes to another (or a new) layer ================= */
+const mMul2 = (A, B) => ({ a: A.a * B.a + A.c * B.b, b: A.b * B.a + A.d * B.b, c: A.a * B.c + A.c * B.d, d: A.b * B.c + A.d * B.d, e: A.a * B.e + A.c * B.f + A.e, f: A.b * B.e + A.d * B.f + A.f });
+const mInv2 = M => { const det = M.a * M.d - M.b * M.c || 1; return { a: M.d / det, b: -M.b / det, c: -M.c / det, d: M.a / det, e: (M.c * M.f - M.d * M.e) / det, f: (M.b * M.e - M.a * M.f) / det }; };
+const ID = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
+function vMoveMat(fromLi, toLi) {   // shape coordinates of one layer → the other (layers can be moved/turned on their own)
+  if (fromLi === toLi) return null;
+  const A = layerMat(S.layers[fromLi], S.cur) || ID, B = layerMat(S.layers[toLi], S.cur) || ID;
+  const M = mMul2(mInv2(B), A); return Math.abs(M.a - 1) + Math.abs(M.b) + Math.abs(M.c) + Math.abs(M.d - 1) + Math.abs(M.e) + Math.abs(M.f) < 1e-9 ? null : M;
+}
+function vPickedByLayer() {   // [{ li, c, list:[shapes in back-to-front order] }] on this frame
+  const f = curFrame(), sel = new Set(vSelList()), out = []; if (!f) return out;
+  S.layers.forEach((l, li) => { const c = f.cels[li]; if (!c || !c.strokes) return; const list = c.strokes.filter(st => sel.has(st)); if (list.length) out.push({ li, c, list }); });
+  return out;
+}
+function vReplaceCels(fn, msg) {   // one undo step for changes to several layers (and maybe a new layer)
+  const touched = new Set();
+  layerOp(() => { fn((li, strokes) => { const f = curFrame(), c = f.cels[li]; f.cels[li] = Object.assign({}, c, { strokes, dirty: true }); touched.add(li); }); touched.forEach(li => { try { vRetween(li); } catch (e) {} }); });
+  invComp(); onionValid = false; vRefresh(); syncVecUI(true); buildTimeline(); if (msg) flash(msg);
+}
+function vToLayer(target) {   // target: a layer index, or 'new' (a new layer above the current one)
+  const groups = vPickedByLayer(); if (!groups.length) { flash('Pick shapes first (V)'); return; }
+  const shapes = groups.flatMap(g => g.list.map(st => ({ st, li: g.li })));
+  let moved = [];
+  vReplaceCels(put => {
+    let ti = target;
+    if (target === 'new') {
+      const top = Math.max(...groups.map(g => g.li)), l = newLayer(layerName()); ti = top + 1;
+      l.lv = (S.layers[top] && S.layers[top].lv) || 0; S.layers.splice(ti, 0, l); S.frames.forEach(f => f.cels.splice(ti, 0, newCel()));
+    }
+    const f = curFrame(), tl = S.layers[ti]; if (!tl || !isDraw(tl)) return;
+    groups.forEach(g => { if (g.li === ti) return; const keep = f.cels[g.li].strokes.filter(st => !g.list.includes(st)); put(g.li, keep); });
+    const add = shapes.filter(x => x.li !== ti).map(x => { const M = vMoveMat(x.li, ti); return M ? vApply(x.st, M) : x.st; });
+    moved = add; put(ti, f.cels[ti].strokes.concat(add)); S.layer = ti;
+  }, target === 'new' ? 'Moved to a new layer' : 'Moved to “' + (S.layers[target] ? S.layers[target].name : '') + '”');
+  vsel = new Set(moved); syncVecUI(true); render();
+}
+// Join / Cut / Overlap / Exclude for shapes on different layers: the result goes where the main shape is
+const _vCombine25 = vCombine;
+vCombine = function (op) {
+  const groups = vPickedByLayer();
+  if (op === 'release' || groups.length < 2) return _vCombine25.apply(this, arguments);
+  const all = groups.flatMap(g => g.list.filter(st => st.shape).map(st => ({ st, li: g.li })));   // back layer first
+  if (all.length < 2) { flash('Select 2 or more shapes (Shift + click)'); return; }
+  const home = op === 'minus' ? all[0] : all[all.length - 1];   // Cut keeps the back shape, the others keep the front one
+  // bring every shape into the home layer's coordinates, then combine there
+  const f = curFrame(), hc = f.cels[home.li], tmp = all.map(x => { const M = vMoveMat(x.li, home.li); return M ? vApply(x.st, M) : x.st; });
+  const before = new Map(groups.map(g => [g.li, f.cels[g.li].strokes]));
+  const strip = new Set(all.map(x => x.st));
+  vReplaceCels(put => {
+    groups.forEach(g => { if (g.li !== home.li) put(g.li, before.get(g.li).filter(st => !strip.has(st))); });
+    // in the home layer: the shapes sit where the main one was; the original combine does the rest
+    const hs = before.get(home.li).filter(st => !strip.has(st) || st === home.st), at = hs.indexOf(home.st), mapped = tmp.slice();
+    const list = hs.slice(0, at).concat(mapped, hs.slice(at + 1));
+    put(home.li, list);
+  });
+  // now they are all on one layer: pick them there and combine (its own undo step, like a normal Join)
+  const hc2 = curFrame().cels[home.li]; S.layer = home.li; vsel = new Set(hc2.strokes.filter(st => tmp.includes(st)));
+  _vCombine25.call(this, op);
+};
+// buttons in the Shape window + right-click on the canvas
+(() => {
+  const fs = $('#vecShapeSet'), d = fs && fs.querySelector('[data-vc="del"]'); if (!d) return;
+  const row = document.createElement('div'); row.className = 'arow vbtns';
+  row.innerHTML = '<button type="button" class="pb" id="vToNew" title="Move the picked shapes to a new layer (Ctrl+Shift+L)">To new layer</button><select id="vToLayer" title="Move the picked shapes to another layer"></select>';
+  d.closest('.arow').after(row);
+  row.querySelector('#vToNew').onclick = () => vToLayer('new');
+  const s = row.querySelector('#vToLayer');
+  s.addEventListener('focus', () => { s.innerHTML = '<option value="">Move to layer…</option>' + S.layers.map((l, i) => isDraw(l) ? '<option value="' + i + '">' + l.name.replace(/</g, '&lt;') + (l.type === 'mask' ? ' (mask)' : '') + '</option>' : '').reverse().join(''); });
+  s.addEventListener('change', () => { if (s.value !== '') vToLayer(+s.value); s.value = ''; s.blur(); });
+  s.innerHTML = '<option value="">Move to layer…</option>';
+})();
+view.addEventListener('contextmenu', e => {
+  if (MODE !== 'vector' || !S.inEditor || !(S.tool === 'vselect' || S.tool === 'vdirect')) return;
+  const hh = vTopAtE(e); if (!hh && !vSelList().length) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (hh && !vsel.has(hh.st)) { vsel = new Set([hh.st]); syncVecUI(true); render(); }
+  const n = vSelList().length, layers = S.layers.map((l, i) => ({ l, i })).filter(x => isDraw(x.l)).reverse();
+  openMenu([
+    { label: 'Join (⊕)', disabled: n < 2, action: () => vCombine('unite') },
+    { label: 'Cut with the top shapes', disabled: n < 2, action: () => vCombine('minus') },
+    { sep: true },
+    { label: 'Move to a new layer', action: () => vToLayer('new') },
+    { label: 'Move to layer', sub: layers.map(x => ({ label: x.l.name + (x.l.type === 'mask' ? ' (mask)' : ''), check: vPickedByLayer().every(g => g.li === x.i), action: () => vToLayer(x.i) })) },
+    { sep: true },
+    { label: 'Duplicate', action: () => vDuplicate() },
+    { label: 'Delete', action: () => vDelete() }
+  ], e.clientX, e.clientY);
+}, true);
+window.addEventListener('keydown', e => {
+  if (MODE !== 'vector' || !S.inEditor || !e.shiftKey || !(e.ctrlKey || e.metaKey) || e.code !== 'KeyL' || document.querySelector('dialog[open]')) return;
+  const t = e.target; if (t.closest && t.closest('input,textarea,select')) return;
+  e.preventDefault(); e.stopImmediatePropagation(); vToLayer('new');
+}, true);
+window.__mv = { toLayer: vToLayer, combine: op => vCombine(op) };
+// a right-click only opens the menu — it must not start dragging shapes
+view.addEventListener('pointerdown', e => { if (e.button === 2 && MODE === 'vector' && S.inEditor && (S.tool === 'vselect' || S.tool === 'vdirect')) { e.stopImmediatePropagation(); } }, true);
+window.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('#menuLayer .ctx')) { closeMenus(); e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
