@@ -1383,7 +1383,16 @@ function drawLayers(ctx, f, o) {
     const tf = ctx.getTransform(), g = scratchCtx(0, W_, H_); g.setTransform(tf); if (moved) g.transform(M.a, M.b, M.c, M.d, M.e, M.f);
     drawOneLayer(g, l, i, f, o2, la);
     for (const j of masks) {
-      const m = S.layers[j], g2 = scratchCtx(1, W_, H_); g2.setTransform(tf); if (moved) g2.transform(M.a, M.b, M.c, M.d, M.e, M.f);
+      const m = S.layers[j], g2 = scratchCtx(1, W_, H_); g2.setTransform(tf);
+      const si = autoMaskSrc(m);
+      if (si >= 0) {   // an auto mask: everything is hidden except where the source layer has something (or the other way round)
+        const sl = S.layers[si], Ms = layerMat(sl, fi); if (Ms) g2.transform(Ms.a, Ms.b, Ms.c, Ms.d, Ms.e, Ms.f);
+        g2.save(); g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, W_, H_); g2.restore();
+        drawOneLayer(g2, sl, si, f, Object.assign({}, o, { live: false, r: Ms && o.r ? invRect(Ms, o.r) : o.r }), 1);
+        g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = m.invert === false ? 'destination-out' : 'destination-in'; g.drawImage(g2.canvas, 0, 0); g.restore();
+        continue;
+      }
+      if (moved) g2.transform(M.a, M.b, M.c, M.d, M.e, M.f);
       drawOneLayer(g2, m, j, f, Object.assign({}, o2, { live: false }), 1);
       g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = m.invert === false ? 'destination-in' : 'destination-out'; g.drawImage(g2.canvas, 0, 0); g.restore();
     }
@@ -3834,6 +3843,8 @@ function layerMenu(li, x, y) {
     special.push({ label: 'Blend mode', sub: BLENDS.map(([k, n]) => ({ label: n, check: (l.blend || 'source-over') === k, action: () => setBlend(li, k) })) });
     if (isDraw(l) || l.type === 'img') special.push({ label: 'Spatial object…', action: () => openSpatial(li) });
     if (isDraw(l)) special.push(layerLinkItem(li));
+    if (isDraw(l) && l.type !== 'mask') special.push(autoMaskItem(li));
+    if (l.type === 'mask' && autoMaskSrc(l) >= 0) special.push({ label: 'Auto mask: show ' + (l.invert === false ? 'only inside' : 'only outside') + ' the shapes instead', action: () => layerOp(() => { l.invert = l.invert === false; }) });
     if (l.type === 'mask') special.push(maskLinkItem(li));
     if (l.type === 'mask') special.push({ label: l.invert === false ? 'Painted area: reveals (switch to hides)' : 'Painted area: hides (switch to reveals)', action: () => layerOp(() => { l.invert = l.invert === false; }) });
     if (l.type === 'bg') special.push({ label: 'Use current color', action: () => layerOp(() => { l.color = S.color; }) });
@@ -3952,7 +3963,7 @@ function projectData() {
       if (l.blend && l.blend !== 'source-over') o.blend = l.blend;
       if (l.px != null && l.px !== 1) o.px = l.px;
       if (l.py != null && l.py !== 1) o.py = l.py;
-      if (l.type === 'mask') { o.invert = l.invert !== false; if (maskLinked(l)) o.mt = S.layers.findIndex(x => x.id === l.mt); }
+      if (l.type === 'mask') { o.invert = l.invert !== false; if (maskLinked(l)) o.mt = S.layers.findIndex(x => x.id === l.mt); if (autoMaskSrc(l) >= 0) o.msrc = autoMaskSrc(l); }
       if (l.type === 'bg') o.color = l.color;
       if (isImg(l)) Object.assign(o, { data: l.data, x: l.x, y: l.y, iw: l.w, ih: l.h });
       if (l.type === 'sound') Object.assign(o, { data: l.data, offset: l.offset || 0, volume: l.volume == null ? 1 : l.volume });
@@ -3986,7 +3997,7 @@ function loadProject(pp) {
       if (l.pv && isFinite(l.pv.x) && isFinite(l.pv.y)) L_.pv = { x: +l.pv.x, y: +l.pv.y };
       if (isFinite(l.px)) L_.px = clamp(+l.px, -10, 10);
       if (isFinite(l.py)) L_.py = clamp(+l.py, -10, 10);
-      if (type === 'mask') { L_.invert = l.invert !== false; if (Number.isInteger(l.mt)) L_._mtIdx = l.mt; }
+      if (type === 'mask') { L_.invert = l.invert !== false; if (Number.isInteger(l.mt)) L_._mtIdx = l.mt; if (Number.isInteger(l.msrc)) L_._msIdx = l.msrc; }
       if (type === 'ref' || type === 'img') Object.assign(L_, { data: l.data, x: l.x || 0, y: l.y || 0, w: l.iw || W, h: l.ih || H });
       if (type === 'sound') Object.assign(L_, { data: l.data, offset: l.offset || 0, volume: l.volume == null ? 1 : l.volume });
       if (type === 'sprite') Object.assign(L_, { src: typeof l.src === 'string' ? l.src : '', x: +l.x || 0, y: +l.y || 0, w: +l.iw || 64, h: +l.ih || 64, bake: cleanBake(l.bake), pics: [] });
@@ -3994,7 +4005,7 @@ function loadProject(pp) {
       return L_;
     })
     : [newLayer('Layer 1')];
-  S.layers.forEach(l => { if (l._mtIdx != null) { const t = S.layers[l._mtIdx]; if (t && t !== l) l.mt = t.id; delete l._mtIdx; } });   // masks linked to a far layer
+  S.layers.forEach(l => { if (l._mtIdx != null) { const t = S.layers[l._mtIdx]; if (t && t !== l) l.mt = t.id; delete l._mtIdx; } if (l._msIdx != null) { const t = S.layers[l._msIdx]; if (t && t !== l) l.msrc = t.id; delete l._msIdx; } });   // masks linked to a far layer
   const celsOf = fr => Array.isArray(fr.cels) ? fr.cels : [fr];   // older files: one layer
   S.fps = d.fps || 12;
   const extras = S.layers.map(l => l.type === 'sound' ? decodeSound(l) : isImg(l) ? loadRefImage(l) : isSprite(l) ? loadSpritePics(l) : null).filter(Boolean);
@@ -5783,9 +5794,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.50.0';
+const APP_VERSION = '1.51.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.51.0', date: '2026-11-12', items: ['Auto masks: right-click a layer → Auto mask from layer… → pick the layer with the shapes. The layer then shows only inside those shapes (the rest is hidden) — on every frame by itself, and it follows when the shapes move or change. Right-click the auto mask to show only outside instead', 'Right-click a shape → Show a layer only inside these shapes: the shape goes on its own layer and becomes the auto mask for the layer you pick'] },
   { v: '1.50.0', date: '2026-11-12', items: ['Join / Cut / Overlap / Exclude now work with shapes on different layers (Shift+click them on any layer) — the result goes on the front shape’s layer (Cut: the back shape’s)', 'Move shapes to another layer: right-click a shape → Move to a new layer / Move to layer, or the buttons in the Shape window, or Ctrl+Shift+L for a new layer', 'Right-click on shapes (V or A) opens a menu: Join, Cut, Move to layer, Duplicate, Delete'] },
   { v: '1.49.0', date: '2026-11-12', items: ['Much faster big vector projects (many layers and frames): the layers you are not drawing on are kept as a ready picture, so moving, hovering and editing only redraws the current layer — about 30× less work with 30 layers', 'Shapes with effects (shadows, glow, inner shadow, glass, metal, light, textures, blur) are kept as ready pictures and are not recalculated on every redraw', 'Long vector animations now get ready for playing (a short progress bar) instead of drawing live, so playback is smooth; when very long they play a little softer, then sharp again on pause', 'Getting playback ready in the background is gentle now: heavy frames are made a few at a time and it pauses while the program is not in front, so the computer stays responsive'] },
   { v: '1.48.3', date: '2026-11-12', items: ['A locked mask (🔒) stays where it is: moving, turning or resizing its layer — or a linked group — no longer moves it. Unlock it to make it follow again'] },
@@ -9043,6 +9055,7 @@ function layerSig(l, i, f, fi) {
 function masksOf(i) { const l = S.layers[i], out = []; if (!l || l.type === 'mask') return out;
   for (let j = i + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) out.push(j);
   if (l.id) S.layers.forEach((m, j) => { if (m.type === 'mask' && m.mt === l.id) out.push(j); });
+  out.slice().forEach(j => { const s = autoMaskSrc(S.layers[j]); if (s >= 0) out.push(s); });   // an auto mask depends on its source layer
   return out; }
 const partC = [document.createElement('canvas'), document.createElement('canvas')], partKey = ['', ''];
 function partDraw(n, ctx, f, o, from, to, base) {
@@ -9152,6 +9165,7 @@ view.addEventListener('contextmenu', e => {
     { label: 'Cut with the top shapes', disabled: n < 2, action: () => vCombine('minus') },
     { sep: true },
     { label: 'Move to a new layer', action: () => vToLayer('new') },
+    { label: 'Show a layer only inside these shapes', sub: layers.filter(x => x.l.type !== 'mask').map(x => ({ label: x.l.name, action: () => maskWithShapes(x.i) })) },
     { label: 'Move to layer', sub: layers.map(x => ({ label: x.l.name + (x.l.type === 'mask' ? ' (mask)' : ''), check: vPickedByLayer().every(g => g.li === x.i), action: () => vToLayer(x.i) })) },
     { sep: true },
     { label: 'Duplicate', action: () => vDuplicate() },
@@ -9167,6 +9181,41 @@ window.__mv = { toLayer: vToLayer, combine: op => vCombine(op) };
 // a right-click only opens the menu — it must not start dragging shapes
 view.addEventListener('pointerdown', e => { if (e.button === 2 && MODE === 'vector' && S.inEditor && (S.tool === 'vselect' || S.tool === 'vdirect')) { e.stopImmediatePropagation(); } }, true);
 window.addEventListener('keydown', e => { if (e.key === 'Escape' && document.querySelector('#menuLayer .ctx')) { closeMenus(); e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+/* ================= v51: auto masks — a mask made from another layer, every frame by itself ================= */
+function autoMaskSrc(m) {   // index of the source layer of an auto mask, or -1
+  if (!m || m.type !== 'mask' || !m.msrc) return -1;
+  const i = S.layers.findIndex(x => x.id === m.msrc); return i >= 0 && S.layers[i] !== m && isDraw(S.layers[i]) && S.layers[i].type !== 'mask' ? i : -1;
+}
+function makeAutoMask(ti, si, keepOutside) {   // ti: the layer to cut, si: the layer whose shapes make the hole
+  const t = S.layers[ti], src = S.layers[si]; if (!t || !src) return;
+  stopPlay();
+  layerOp(() => {
+    const m = newLayer('Auto mask: ' + src.name, 'mask'); m.invert = !keepOutside; m.msrc = src.id; m.lv = t.lv || 0;
+    let at = ti + 1; while (at < S.layers.length && S.layers[at].type === 'mask') at++;   // above the layer (after its other masks)
+    S.layers.splice(at, 0, m); S.frames.forEach(f => f.cels.splice(at, 0, newCel()));
+  });
+  flash('“' + t.name + '” now shows only where “' + src.name + '” has something — on every frame');
+}
+function autoMaskItem(li) {
+  const me = S.layers[li], sub = [];
+  S.layers.forEach((l, i) => { if (i === li || !isDraw(l) || l.type === 'mask') return; sub.push({ label: l.name, action: () => makeAutoMask(li, i) }); });
+  return { label: 'Auto mask from layer… (show only inside its shapes)', sub: sub.length ? sub : [{ label: 'No other drawing layers', disabled: true }] };
+}
+// the shape menu: "Mask a layer with these shapes" — the shapes go to their own layer, which cuts the chosen layer
+function maskWithShapes(ti) {
+  const tl = S.layers[ti], before = S.layers.length; if (!tl) return;
+  vToLayer('new'); if (S.layers.length === before) return;
+  const src = S.layers[S.layer]; src.name = layerName('Mask shape');
+  makeAutoMask(S.layers.indexOf(tl), S.layer);
+}
+// auto mask rows in the layer list
+const _buildTimeline26 = buildTimeline;
+buildTimeline = function () {
+  const r = _buildTimeline26.apply(this, arguments);
+  tg.querySelectorAll('.ln.t-mask[data-l]').forEach(el => { const j = +el.dataset.l, si = autoMaskSrc(S.layers[j]); if (si < 0) return; const s = document.createElement('span'); s.className = 'mto'; s.textContent = '◐ ' + S.layers[si].name; s.title = 'Auto mask: made from “' + S.layers[si].name + '” on every frame'; el.appendChild(s); });
+  return r;
+};
+window.__auto = { make: makeAutoMask, src: i => autoMaskSrc(S.layers[i]) };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {

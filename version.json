@@ -1,6 +1,14 @@
 {
- "version": "1.50.0",
+ "version": "1.51.0",
  "changelog": [
+  {
+   "v": "1.51.0",
+   "date": "2026-11-12",
+   "items": [
+    "Auto masks: right-click a layer → Auto mask from layer… → pick the layer with the shapes. The layer then shows only inside those shapes (the rest is hidden) — on every frame by itself, and it follows when the shapes move or change. Right-click the auto mask to show only outside instead",
+    "Right-click a shape → Show a layer only inside these shapes: the shape goes on its own layer and becomes the auto mask for the layer you pick"
+   ]
+  },
   {
    "v": "1.50.0",
    "date": "2026-11-12",
