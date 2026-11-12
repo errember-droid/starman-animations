@@ -5783,9 +5783,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.48.3';
+const APP_VERSION = '1.49.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.49.0', date: '2026-11-12', items: ['Much faster big vector projects (many layers and frames): the layers you are not drawing on are kept as a ready picture, so moving, hovering and editing only redraws the current layer — about 30× less work with 30 layers', 'Shapes with effects (shadows, glow, inner shadow, glass, metal, light, textures, blur) are kept as ready pictures and are not recalculated on every redraw', 'Long vector animations now get ready for playing (a short progress bar) instead of drawing live, so playback is smooth; when very long they play a little softer, then sharp again on pause', 'Getting playback ready in the background is gentle now: heavy frames are made a few at a time and it pauses while the program is not in front, so the computer stays responsive'] },
   { v: '1.48.3', date: '2026-11-12', items: ['A locked mask (🔒) stays where it is: moving, turning or resizing its layer — or a linked group — no longer moves it. Unlock it to make it follow again'] },
   { v: '1.48.2', date: '2026-11-11', items: ['Fix: linked layers ⛓ now always turn, resize and move together — also when a shape was already picked before, when you grab the box handles right away, and when a linked mask is in the group', 'Grabbing a shape by its very middle moves it again (before it grabbed the center point). To move the center point the first time hold Alt and drag the cross; after that it can be dragged normally'] },
   { v: '1.48.1', date: '2026-11-11', items: ['Fix: a mask now turns, resizes and moves with its layer even when the mask layer is locked or painted with the brush (not only shapes)', 'Brush lines on vector layers can be moved, turned and resized like shapes'] },
@@ -8988,6 +8989,85 @@ vKeyItems = function (fi, li) {
   return items;
 };
 window.__ease = { fn: easeFn, str: easeStr };
+window.__dbgF = { draw: () => draw(), json: () => { const t = performance.now(), n = projectJSON().length; return [Math.round(performance.now() - t), Math.round(n / 1e6 * 10) / 10 + 'MB']; }, build: () => buildTimeline(), render: () => render(), sel: i => selectFrame(i), newCel, newLayer: n => newLayer(n), play: () => play(), stop: () => stopPlay(), preview: () => renderPreview() };
+/* ================= v49: big projects stay fast — shapes with effects are kept as ready pictures, layers you are not editing are kept as one picture ================= */
+// ---- 1) shapes with effects (shadows, glow, inner shadow, glass, metal, light, textures, blur) are drawn once and reused
+const fxHeavy = st => { const fx = st.fx; if (!fx || (fx.blend && fx.blend !== 'normal')) return false;
+  const L = fx.light || {};
+  return !!((fx.shadow && fx.shadow.on) || (fx.glow && fx.glow.on) || fx.blur > 0 || (fx.inner && fx.inner.on) || (fx.iglow && fx.iglow.on) || L.on || (fx.mat && fx.mat !== 'none') || (fx.tex && fx.tex.k && fx.tex.k !== 'none')); };
+const fxPad = st => { const fx = st.fx || {}, lw = st.ol && st.pts[0] ? st.pts[0][2] || 0 : 0;
+  let p = lw + 2 + (fx.blur || 0) * 3;
+  if (fx.shadow && fx.shadow.on) p = Math.max(p, (fx.shadow.b || 0) * 1.5 + Math.hypot(fx.shadow.x || 0, fx.shadow.y || 0) + lw);
+  if (fx.glow && fx.glow.on) p = Math.max(p, (fx.glow.b || 0) * 1.5 + lw);
+  return p + 4; };
+const shotMap = new WeakMap(), shotLRU = new Set(), shotSeen = new WeakSet(); let shotBytes = 0;
+const shotBudget = () => (document.body.classList.contains('mobile') || isCap()) ? 40e6 : 160e6;
+function shotDrop(e) { if (!e.c) return; shotBytes -= e.c.width * e.c.height * 4; e.c.width = e.c.height = 0; e.c = null; shotLRU.delete(e); }
+function shotsClear() { [...shotLRU].forEach(shotDrop); }
+const _drawVShape24 = drawVShape;
+drawVShape = function (ctx, st) {
+  if (!st || !st.shape || !fxHeavy(st) || ctx === hctx) return _drawVShape24.call(this, ctx, st);
+  const T = ctx.getTransform(), fx = Math.round((T.e - Math.floor(T.e)) * 4) / 4, fy = Math.round((T.f - Math.floor(T.f)) * 4) / 4;
+  const key = [T.a, T.b, T.c, T.d].map(v => v.toFixed(5)).join(',') + '|' + fx + ',' + fy;
+  let e = shotMap.get(st);
+  if (!e || e.key !== key || !e.c) {
+    // a shape drawn only once (being dragged, exported) or while playing is drawn straight — no picture made for it
+    if (S.playing || !shotSeen.has(st)) { shotSeen.add(st); return _drawVShape24.call(this, ctx, st); }
+    const b = vBounds(st), pad = fxPad(st), P = [[b.x0 - pad, b.y0 - pad], [b.x1 + pad, b.y0 - pad], [b.x1 + pad, b.y1 + pad], [b.x0 - pad, b.y1 + pad]].map(([x, y]) => [T.a * x + T.c * y + fx, T.b * x + T.d * y + fy]);
+    const X0 = Math.floor(Math.min(...P.map(p => p[0]))), Y0 = Math.floor(Math.min(...P.map(p => p[1]))), X1 = Math.ceil(Math.max(...P.map(p => p[0]))), Y1 = Math.ceil(Math.max(...P.map(p => p[1])));
+    const w = X1 - X0, h = Y1 - Y0;
+    if (w < 1 || h < 1 || w * h > 6e6) return _drawVShape24.call(this, ctx, st);   // huge on screen: draw it straight
+    if (e) shotDrop(e);
+    const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d');
+    g.setTransform(T.a, T.b, T.c, T.d, fx - X0, fy - Y0); _drawVShape24.call(this, g, st);
+    e = { key, c, x: X0, y: Y0 }; shotMap.set(st, e); shotBytes += w * h * 4;
+    while (shotBytes > shotBudget() && shotLRU.size) shotDrop(shotLRU.values().next().value);
+  } else shotLRU.delete(e);
+  shotLRU.add(e);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, Math.floor(T.e), Math.floor(T.f)); ctx.drawImage(e.c, e.x, e.y); ctx.restore();
+};
+
+// ---- 2) while you edit, the layers below and above the current one are kept as two pictures (redrawn only when they change)
+const oidMap = new WeakMap(); let oidN = 0;
+const oid = o => { if (!o || typeof o !== 'object') return 0; let v = oidMap.get(o); if (!v) { v = ++oidN; oidMap.set(o, v); } return v; };
+function layerSig(l, i, f, fi) {
+  let s = '';
+  for (const k in l) { const v = l[k], t = typeof v; if (t === 'number' || t === 'string' || t === 'boolean') s += k + '=' + v + ';'; else if (v && t === 'object') s += k + '#' + oid(v) + ';'; }
+  const M = layerMat(l, fi); if (M) s += 'M' + M.a + ',' + M.b + ',' + M.c + ',' + M.d + ',' + M.e + ',' + M.f;
+  s += 'o' + motionOp(l, fi); if (hasGroups()) { const ef = effOf(i); s += 'e' + ef.vis + ',' + ef.mul + ',' + ef.locked; }
+  const c = f.cels[i]; s += '|c' + oid(c) + 's' + oid(c && c.strokes) + 'n' + (c && c.strokes ? c.strokes.length : 0);
+  return s;
+}
+function masksOf(i) { const l = S.layers[i], out = []; if (!l || l.type === 'mask') return out;
+  for (let j = i + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) out.push(j);
+  if (l.id) S.layers.forEach((m, j) => { if (m.type === 'mask' && m.mt === l.id) out.push(j); });
+  return out; }
+const partC = [document.createElement('canvas'), document.createElement('canvas')], partKey = ['', ''];
+function partDraw(n, ctx, f, o, from, to, base) {
+  const c = partC[n], vw = ctx.canvas.width, vh = ctx.canvas.height, T = ctx.getTransform();
+  let key = base + '|' + vw + 'x' + vh + '|' + [T.a, T.b, T.c, T.d, T.e, T.f].map(v => Math.round(v * 1000)).join(',') + '|' + from + '-' + to;
+  const dep = new Set(); for (let i = from; i <= to; i++) { dep.add(i); masksOf(i).forEach(j => dep.add(j)); }   // the layers it shows, and the masks that cut them
+  [...dep].sort((a, b) => a - b).forEach(i => { key += '#' + i + ':' + layerSig(S.layers[i], i, f, S.cur); });
+  if (partKey[n] !== key) {
+    if (c.width !== vw || c.height !== vh) { c.width = vw; c.height = vh; }
+    const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, vw, vh);
+    g.setTransform(T);
+    for (let i = from; i <= to; i++) _drawLayers24(g, f, Object.assign({}, o, { only: i, tmp: o.tmp }));
+    partKey[n] = key;
+  }
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(c, 0, 0); ctx.restore();
+}
+const _drawLayers24 = drawLayers;
+drawLayers = function (ctx, f, o) {
+  o = o || {};
+  if (MODE !== 'vector' || ctx !== vctx || S.playing || o.only != null || o.exportOnly || o.onion || o.applyFx || f !== curFrame() || S.layers.length < 4
+    || S.layers.some(l => (l.blend && l.blend !== 'source-over' && l.blend !== 'normal') || l.type === 'fx')) return _drawLayers24.call(this, ctx, f, o);
+  const cur = clamp(S.layer, 0, S.layers.length - 1), n = S.layers.length, base = 'L' + cur + '|f' + S.cur;
+  if (cur > 0) partDraw(0, ctx, f, o, 0, cur - 1, base);
+  _drawLayers24.call(this, ctx, f, Object.assign({}, o, { only: cur }));
+  if (cur < n - 1) partDraw(1, ctx, f, o, cur + 1, n - 1, base);
+};
+window.__perf = { shots: () => [shotLRU.size, Math.round(shotBytes / 1e6) + 'MB'], clear: shotsClear };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
@@ -9184,7 +9264,7 @@ function stopIdlePrep() { if (idleJob) idleJob.stop = true; idleJob = null; }
 ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, () => { lastInput = performance.now(); stopIdlePrep(); }, true));
 const nextIdle = fn => window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 200 }) : setTimeout(fn, 16);
 function runIdlePrep() {
-  if (idleJob || S.playing || prepBusy || !S.inEditor || document.hidden || S.frames.length < 2 || stroke || !playNeedsPrep()) return;
+  if (idleJob || S.playing || prepBusy || !S.inEditor || document.hidden || !document.hasFocus() || S.frames.length < 2 || stroke || !playNeedsPrep()) return;
   const n = S.frames.length, sc = playScaleFit(), bytes = n * W * H * sc * sc * 4;
   if (bytes > memBudget()) return;
   const job = idleJob = { stop: false, ver: upVer, pics: [], sc, frames: S.frames.slice() };
@@ -9192,10 +9272,11 @@ function runIdlePrep() {
     const t0 = performance.now();
     do {
       if (job.stop || upVer !== job.ver || S.frames.length !== job.frames.length || job.frames.some((f, i) => S.frames[i] !== f)) { if (idleJob === job) idleJob = null; return; }
-      const i = job.pics.length; const c = renderFrame(job.frames[i], sc, false);
+      const i = job.pics.length, tf = performance.now(); const c = renderFrame(job.frames[i], sc, false); const took = performance.now() - tf;
       job.pics.push(window.createImageBitmap ? await createImageBitmap(c) : c);
       idleSeed = { ver: job.ver, sc, pics: job.pics };
       if (job.pics.length >= n) { if (!job.stop && upVer === job.ver) setPlayCache({ ver: job.ver, sc, pics: job.pics }); if (idleJob === job) idleJob = null; return; }
+      if (took > 25) { setTimeout(() => { if (!document.hasFocus()) { job.stop = true; if (idleJob === job) idleJob = null; return; } nextIdle(stepJ); }, Math.min(2000, Math.max(250, took * 4))); return; }   // heavy frames: a few at a time, the computer stays free
     } while (performance.now() - t0 < (deadline && deadline.timeRemaining ? Math.max(4, deadline.timeRemaining() - 2) : 12));
     nextIdle(stepJ);
   };
@@ -9217,7 +9298,7 @@ remapPaths = function (a, b) { const L = localOnlyList(); if (L.some(d => d === 
 /* ---------- memory: keep less, give back what is not needed ---------- */
 function memBudget() {   // how much the ready playback pictures may take
   if (document.body.classList.contains('mobile') || isCap()) return 80e6;
-  const dm = navigator.deviceMemory || 4; return clamp(dm * 24e6, 96e6, 220e6);
+  const dm = navigator.deviceMemory || 4; return dm >= 8 ? 400e6 : clamp(dm * 24e6, 96e6, 220e6);   // a computer with plenty of memory keeps more ready
 }
 const freePics = pics => { if (pics) pics.forEach(p => { try { if (p && p.close) p.close(); else if (p && p.width) { p.width = p.height = 0; } } catch (e) {} }); };
 function setPlayCache(c) {
@@ -9234,10 +9315,11 @@ setInterval(() => {   // old pictures that can no longer be used are freed right
 
 // long animations: the playback pictures are made a bit smaller so they still fit (pixel art stays exact)
 function playScaleFit() {
-  const sc = playScale(); if (MODE !== 'trad') return sc;   // pixel art stays exact, vector stays sharp (plays live when too long)
+  const sc = playScale(); if (MODE === 'pixel') return sc;   // pixel art stays exact
   const n = Math.max(1, S.frames.length), bytes = n * W * H * sc * sc * 4, B = memBudget();
   if (bytes <= B) return sc;
-  const s2 = sc * Math.sqrt(B / bytes); return s2 >= 0.3 ? Math.floor(s2 * 100) / 100 : sc;
+  const s2 = sc * Math.sqrt(B / bytes), min = MODE === 'vector' ? Math.max(0.35, sc * 0.5) : 0.3;   // vector: a little softer while playing beats stuttering
+  return s2 >= min ? Math.floor(s2 * 100) / 100 : sc;
 }
 /* ================= v30: settings as separate windows (F5–F8) — palette and layers stay where they are ================= */
 const PANELS = [

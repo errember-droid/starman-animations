@@ -1,6 +1,16 @@
 {
- "version": "1.48.3",
+ "version": "1.49.0",
  "changelog": [
+  {
+   "v": "1.49.0",
+   "date": "2026-11-12",
+   "items": [
+    "Much faster big vector projects (many layers and frames): the layers you are not drawing on are kept as a ready picture, so moving, hovering and editing only redraws the current layer — about 30× less work with 30 layers",
+    "Shapes with effects (shadows, glow, inner shadow, glass, metal, light, textures, blur) are kept as ready pictures and are not recalculated on every redraw",
+    "Long vector animations now get ready for playing (a short progress bar) instead of drawing live, so playback is smooth; when very long they play a little softer, then sharp again on pause",
+    "Getting playback ready in the background is gentle now: heavy frames are made a few at a time and it pauses while the program is not in front, so the computer stays responsive"
+   ]
+  },
   {
    "v": "1.48.3",
    "date": "2026-11-12",
