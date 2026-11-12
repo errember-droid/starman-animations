@@ -5797,9 +5797,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.56.0';
+const APP_VERSION = '1.56.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.56.1', date: '2026-11-12', items: ['Fix: text turned into shapes no longer gets its outline inside the letters — the outline stays outside (behind the letters) like on the text, and parts of letters that overlap stay filled instead of becoming holes with lines through them', 'Already converted letters: right-click them (V) → “Fix letters: fill overlaps, outline outside”', 'Stroke “Outside” now works on combined shapes too and never leaks into the fill'] },
   { v: '1.56.0', date: '2026-11-12', items: ['Trace to vector (Shift+I, or “Trace…” in the Shape window): a picture, a pasted picture, this frame, or picked shapes with effects become plain vector shapes on a new layer “Traced”. Set Colors, Smooth, Detail, Skip specks and Leave out the background', 'Thick outlines are clean now: no more spikes and cut-off corners on fat outlines of shapes and text, and thick brush lines with thin ends no longer fold over in tight bends'] },
   { v: '1.55.1', date: '2026-11-12', items: ['Outlines now follow the shape by default: a square’s outline has square corners, a star’s outline has sharp points (Corners: “Sharp — follows the shape”). Round and Cut are still there; shapes you already drew keep their look'] },
   { v: '1.55.0', date: '2026-11-12', items: ['Text outline corners: Round, Sharp or Cut (Text section, or Corners / Ends / dashes in Fill & stroke)', 'Text → shapes: “To shapes (letters)” makes every letter a shape with points you can edit with A; “To one shape” makes the whole text one shape. Keeps the fill, gradient, outline and effects. Works with TrueType fonts (.ttf — most fonts)'] },
@@ -6988,6 +6989,7 @@ const BIG = 1e6;
 function vOutside(p) { const o = new Path2D(); o.rect(-BIG, -BIG, 2 * BIG, 2 * BIG); o.addPath(p); return o; }
 function vInRegion(st, x, y) {
   if (st.shape !== 'compound') return hctx.isPointInPath(vGeom(st), x, y);
+  if (st.op === 'nz') return hctx.isPointInPath(vGeom(st), x, y, 'nonzero');   // letters: overlapping strokes stay filled, holes by direction
   const ins = vParts(st).map(p => hctx.isPointInPath(vGeom(p), x, y)), op = st.op || 'unite';
   if (op === 'exclude') return ins.filter(Boolean).length % 2 === 1;
   if (op === 'minus') return ins[0] && !ins.slice(1).some(Boolean);
@@ -6998,6 +7000,7 @@ function vClipRegion(ctx, st) {   // clip to where the shape is filled
   if (st.shape !== 'compound') { ctx.clip(vGeom(st)); return; }
   const P = vParts(st).map(vGeom), op = st.op || 'unite';
   if (op === 'exclude') { ctx.clip(vGeom(st), 'evenodd'); return; }
+  if (op === 'nz') { ctx.clip(vGeom(st), 'nonzero'); return; }
   if (op === 'unite') { ctx.clip(vGeom(st)); return; }
   ctx.clip(P[0]);
   for (const p of P.slice(1)) { if (op === 'minus') ctx.clip(vOutside(p), 'evenodd'); else ctx.clip(p); }
@@ -7005,14 +7008,19 @@ function vClipRegion(ctx, st) {   // clip to where the shape is filled
 function vFillRegion(ctx, st) {
   if (st.shape !== 'compound' || (st.op || 'unite') === 'unite') { ctx.fill(vGeom(st)); return; }
   if (st.op === 'exclude') { ctx.fill(vGeom(st), 'evenodd'); return; }
+  if (st.op === 'nz') { ctx.fill(vGeom(st), 'nonzero'); return; }
   ctx.save(); vClipRegion(ctx, st); const b = vBounds(st); ctx.fillRect(b.x0 - 2, b.y0 - 2, b.x1 - b.x0 + 4, b.y1 - b.y0 + 4); ctx.restore();
 }
 function vFillStyle(ctx, st) { return st.fg ? vGradient(ctx, st) : st.fc; }
-function vStrokeAll(ctx, st) {
+const vBehind = st => st.sal === 'outside' && st.fc && st.ol && st.shape !== 'text';   // outline outside: drawn twice as wide behind the fill
+function vStrokeAll(ctx, st, behind) {
   const lw = st.pts[0] ? st.pts[0][2] : 0; if (!st.ol || !(lw > 0)) return;
+  if (vBehind(st) && !behind) return;
   const dash = st.dash === 'custom' && st.dl ? [lw * st.dl[0], lw * st.dl[1]] : vDash(st, lw);
   ctx.lineJoin = st.ljoin || 'round'; ctx.lineCap = st.dash === 'dot' ? 'round' : (st.lcap || 'round'); ctx.miterLimit = 4; ctx.strokeStyle = st.color; ctx.setLineDash(dash);
-  if (st.shape === 'compound') { ctx.lineWidth = lw; ctx.stroke(vEdge(st));
+  if (behind) { ctx.lineWidth = lw * 2; ctx.stroke(st.shape === 'compound' ? vEdge(st) : vGeom(st));
+  } else if (st.shape === 'compound' && st.sal === 'inside') { ctx.save(); vClipRegion(ctx, st); ctx.lineWidth = lw * 2; ctx.stroke(vEdge(st)); ctx.restore();
+  } else if (st.shape === 'compound') { ctx.lineWidth = lw; ctx.stroke(vEdge(st));
   } else if (st.sal === 'inside' || st.sal === 'outside') {
     ctx.save(); const p = vGeom(st); if (st.sal === 'inside') ctx.clip(p); else ctx.clip(vOutside(p), 'evenodd'); ctx.lineWidth = lw * 2; ctx.stroke(p); ctx.restore();
   } else { ctx.lineWidth = lw; ctx.stroke(vGeom(st)); }
@@ -7050,13 +7058,14 @@ function vEdge(st) {
   const parts = vParts(st), bb = vBounds(st), step = Math.max(0.2, Math.max(bb.x1 - bb.x0, bb.y1 - bb.y0) / 1200);
   const polys = parts.map(p => vFlat(p, step)), op = st.op || 'unite';
   const PP = polys.map(P => { const g = new Path2D(); P.forEach((q, i) => i ? g.lineTo(q[0], q[1]) : g.moveTo(q[0], q[1])); g.closePath(); return g; });
-  const inside = (x, y) => { const ins = PP.map(g => hctx.isPointInPath(g, x, y)); if (op === 'exclude') return ins.filter(Boolean).length % 2 === 1; if (op === 'minus') return ins[0] && !ins.slice(1).some(Boolean); if (op === 'intersect') return ins.every(Boolean); return ins.some(Boolean); };
+  const NZ = new Path2D(); if (op === 'nz') PP.forEach(g => NZ.addPath(g));
+  const inside = (x, y) => { if (op === 'nz') return hctx.isPointInPath(NZ, x, y, 'nonzero'); const ins = PP.map(g => hctx.isPointInPath(g, x, y)); if (op === 'exclude') return ins.filter(Boolean).length % 2 === 1; if (op === 'minus') return ins[0] && !ins.slice(1).some(Boolean); if (op === 'intersect') return ins.every(Boolean); return ins.some(Boolean); };
   const E = []; polys.forEach((P, pi) => { for (let i = 0; i < P.length; i++) E.push({ a: P[i], b: P[(i + 1) % P.length], pi, ts: [] }); });
   const cell = step * 6, grid = new Map(), key = (x, y) => x + ',' + y;
   E.forEach((e, i) => { const x0 = Math.floor(Math.min(e.a[0], e.b[0]) / cell), x1 = Math.floor(Math.max(e.a[0], e.b[0]) / cell), y0 = Math.floor(Math.min(e.a[1], e.b[1]) / cell), y1 = Math.floor(Math.max(e.a[1], e.b[1]) / cell); for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) { const k = key(x, y); let l = grid.get(k); if (!l) grid.set(k, l = []); l.push(i); } });
   const seen = new Set();
   for (const l of grid.values()) for (let m = 0; m < l.length; m++) for (let n = m + 1; n < l.length; n++) {
-    const i = l[m], j = l[n]; if (E[i].pi === E[j].pi) continue; const pk = i < j ? i * 1e6 + j : j * 1e6 + i; if (seen.has(pk)) continue; seen.add(pk);
+    const i = l[m], j = l[n]; if (E[i].pi === E[j].pi && op !== 'nz') continue; const pk = i < j ? i * 1e6 + j : j * 1e6 + i; if (seen.has(pk)) continue; seen.add(pk);
     const A = E[i], B = E[j], rx = A.b[0] - A.a[0], ry = A.b[1] - A.a[1], sx = B.b[0] - B.a[0], sy = B.b[1] - B.a[1], den = rx * sy - ry * sx; if (Math.abs(den) < 1e-12) continue;
     const qx = B.a[0] - A.a[0], qy = B.a[1] - A.a[1], t = (qx * sy - qy * sx) / den, u = (qx * ry - qy * rx) / den;
     if (t > 1e-9 && t < 1 - 1e-9 && u > 1e-9 && u < 1 - 1e-9) { A.ts.push(t); B.ts.push(u); }
@@ -7107,10 +7116,11 @@ function vDrawFull(ctx, st) {
   ctx.save();
   if (fx.blend && fx.blend !== 'normal') ctx.globalCompositeOperation = fx.blend;
   if (fx.blur > 0) ctx.filter = 'blur(' + (fx.blur * k).toFixed(2) + 'px)';
-  const body = () => { if (st.fc) { ctx.fillStyle = vFillStyle(ctx, st); vFillRegion(ctx, st); } else vStrokeAll(ctx, st); };
+  const body = () => { if (st.fc) { if (vBehind(st)) vStrokeAll(ctx, st, true); ctx.fillStyle = vFillStyle(ctx, st); vFillRegion(ctx, st); } else vStrokeAll(ctx, st); };
   const sh = (c, o, b, x, y) => { ctx.save(); ctx.shadowColor = hexA(c, o); ctx.shadowBlur = b * k; ctx.shadowOffsetX = x * k; ctx.shadowOffsetY = y * k; body(); ctx.restore(); };
   if (fx.glow && fx.glow.on) { sh(fx.glow.c, fx.glow.o, fx.glow.b, 0, 0); sh(fx.glow.c, fx.glow.o * 0.7, fx.glow.b * 0.5, 0, 0); }
   if (fx.shadow && fx.shadow.on) sh(fx.shadow.c, fx.shadow.o, fx.shadow.b, fx.shadow.x, fx.shadow.y);
+  if (vBehind(st)) vStrokeAll(ctx, st, true);
   if (st.fc) {
     ctx.fillStyle = vFillStyle(ctx, st); vFillRegion(ctx, st);
     const t = fx.tex; if (t && t.k && t.k !== 'none') { const pat = vPattern(ctx, t); if (pat) { ctx.save(); vClipRegion(ctx, st); ctx.globalAlpha *= t.o == null ? 0.35 : t.o; if (t.mode) ctx.globalCompositeOperation = t.mode; ctx.fillStyle = pat; const b = vBounds(st); ctx.fillRect(b.x0 - 2, b.y0 - 2, b.x1 - b.x0 + 4, b.y1 - b.y0 + 4); ctx.restore(); } }
@@ -9178,6 +9188,7 @@ view.addEventListener('contextmenu', e => {
     { label: 'Move to a new layer', action: () => vToLayer('new') },
     { label: 'Show a layer only inside these shapes', sub: layers.filter(x => x.l.type !== 'mask').map(x => ({ label: x.l.name, action: () => maskWithShapes(x.i) })) },
     { label: 'Move to layer', sub: layers.map(x => ({ label: x.l.name + (x.l.type === 'mask' ? ' (mask)' : ''), check: vPickedByLayer().every(g => g.li === x.i), action: () => vToLayer(x.i) })) },
+    ...(vSelList().some(st => st.shape === 'compound' && st.op === 'exclude') ? [{ sep: true }, { label: 'Fix letters: fill overlaps, outline outside', action: () => { vEditSel(st => st.shape === 'compound' && st.op === 'exclude' ? Object.assign(vClone(st, {}), { op: 'nz' }, st.ol && st.fc ? { sal: 'outside' } : {}) : st); vRefresh(); render(); flash('Letters fixed: overlapping parts are filled, the outline stays outside'); } }] : []),
     { sep: true },
     { label: 'Duplicate', action: () => vDuplicate() },
     { label: 'Delete', action: () => vDelete() }
@@ -9859,8 +9870,8 @@ async function textToShapes(st, perLetter) {
   const mk = parts => {
     const pts = parts.flatMap(N => N.flatMap(n => n.map(q => [q[0], q[1], lw])));
     const base = Object.assign({}, look, { id: vNewId() });
-    if (parts.length === 1) return Object.assign(base, { shape: 'path', cl: true, pts });
-    return Object.assign(base, { shape: 'compound', op: 'exclude', pts, ns: parts.map(N => N.length), cls: parts.map(() => true) });
+    if (st.ol && st.tx && st.tx.pob !== false && st.fc) base.sal = 'outside';   // the outline stays behind the letters, like on the text
+    return Object.assign(base, { shape: 'compound', op: 'nz', pts, ns: parts.map(N => N.length), cls: parts.map(() => true) });
   };
   return perLetter ? letters.map(mk) : [mk(letters.flat())];
 }

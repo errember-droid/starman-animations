@@ -1,6 +1,15 @@
 {
- "version": "1.56.0",
+ "version": "1.56.1",
  "changelog": [
+  {
+   "v": "1.56.1",
+   "date": "2026-11-12",
+   "items": [
+    "Fix: text turned into shapes no longer gets its outline inside the letters — the outline stays outside (behind the letters) like on the text, and parts of letters that overlap stay filled instead of becoming holes with lines through them",
+    "Already converted letters: right-click them (V) → “Fix letters: fill overlaps, outline outside”",
+    "Stroke “Outside” now works on combined shapes too and never leaks into the fill"
+   ]
+  },
   {
    "v": "1.56.0",
    "date": "2026-11-12",
