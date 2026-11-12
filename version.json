@@ -1,6 +1,14 @@
 {
- "version": "1.54.0",
+ "version": "1.55.0",
  "changelog": [
+  {
+   "v": "1.55.0",
+   "date": "2026-11-12",
+   "items": [
+    "Text outline corners: Round, Sharp or Cut (Text section, or Corners / Ends / dashes in Fill & stroke)",
+    "Text → shapes: “To shapes (letters)” makes every letter a shape with points you can edit with A; “To one shape” makes the whole text one shape. Keeps the fill, gradient, outline and effects. Works with TrueType fonts (.ttf — most fonts)"
+   ]
+  },
   {
    "v": "1.54.0",
    "date": "2026-11-12",

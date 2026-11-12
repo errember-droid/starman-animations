@@ -5797,9 +5797,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.54.0';
+const APP_VERSION = '1.55.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.55.0', date: '2026-11-12', items: ['Text outline corners: Round, Sharp or Cut (Text section, or Corners / Ends / dashes in Fill & stroke)', 'Text → shapes: “To shapes (letters)” makes every letter a shape with points you can edit with A; “To one shape” makes the whole text one shape. Keeps the fill, gradient, outline and effects. Works with TrueType fonts (.ttf — most fonts)'] },
   { v: '1.54.0', date: '2026-11-12', items: ['Text (T) in vector animations: click to write, click a text to change it. Font, size, weight, italic, underline, align, letter spacing, line height, UPPER/lower/Title case, bend on an arc, outline behind the letters — plus fill, gradient, outline, shadow, glow and blur like other shapes. Resize, turn, lean, mirror and animate it with keys ◆', 'All fonts installed on your computer are in the font list (shown in their own look, with search)', 'Font sync: a font you use is copied into the desktop Fonts folder and syncs, so the text looks the same on your phone and other computers. You can also drop .ttf / .otf files into the Fonts folder'] },
   { v: '1.53.0', date: '2026-11-12', items: ['Vector brush (B): lines now fade to a thin point at the ends — “Thin start” and “Thin end” in the Vector brush settings (0 = blunt). Pick drawn lines and move the sliders to change them too', 'Pen pressure: with a drawing tablet the vector line gets thinner where you press lightly (can be turned off)', 'The line keeps its points: you can still bend and move them with A, and the thin ends follow'] },
   { v: '1.52.1', date: '2026-11-12', items: ['Add your own videos to the program desktop: drag .mp4 / .webm files from your computer onto the desktop (or into a folder window), or Start → Open a file…. They sync to your other devices like everything else'] },
@@ -9723,6 +9724,159 @@ async function importFontFiles(files) {   // .ttf / .otf dropped in → the Font
   if (n) { refreshAll(); try { if (typeof syncSoon === 'function') syncSoon(); } catch (e) {} toast(n === 1 ? 'Font added to the Fonts folder' : n + ' fonts added to the Fonts folder'); }
 }
 window.__txt = { shape: textShape, layout: st => { const L = textLayout(st); return { W: L.W, H: L.H, box: L.box, lines: L.lines.length }; }, corners: textCorners, fonts: () => ({ local: fontLib.local.size, synced: syncedFamilies() }), loadSynced: loadSyncedFonts, names: fontNamesFromBytes, syncFam: syncFontFamily, lib: fontLib };
+/* ================= v55: text outline corners, text → shapes (TrueType outlines read right here) ================= */
+// outline look for text: corners (round / sharp / cut), ends, dashes — same settings as shapes
+const _textPaint30 = textPaint;
+textPaint = function (ctx, st, how) {
+  if (how !== 'stroke') return _textPaint30.apply(this, arguments);
+  const lj = st.ljoin || 'round', lc = st.lcap || 'round', lw = st.pts[0][2] || 1;
+  const orig = ctx.strokeText;
+  // strokeText inside uses the context state; set it through a wrapper on this context only
+  const m = st.tm || ID_M, s = Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1, w = lw * (st.tx.pob !== false && st.fc ? 2 : 1) / s;
+  ctx.strokeText = function () { this.lineJoin = lj; this.lineCap = lc; this.miterLimit = lj === 'miter' ? 10 : 4; this.lineWidth = w; if (st.dash && st.dash !== 'solid') this.setLineDash(st.dash === 'custom' && st.dl ? [w * st.dl[0], w * st.dl[1]] : vDash(st, w)); return orig.apply(this, arguments); };
+  try { return _textPaint30.apply(this, arguments); } finally { ctx.strokeText = orig; }
+};
+
+/* ---------- a small TrueType reader: glyph outlines, advances, kerning ---------- */
+function ttFont(u8) {
+  const dv = new DataView(u8.buffer, u8.byteOffset, u8.byteLength), tag = o => String.fromCharCode(u8[o], u8[o + 1], u8[o + 2], u8[o + 3]);
+  let off = 0; if (tag(0) === 'ttcf') off = dv.getUint32(12);
+  const sig = dv.getUint32(off); if (tag(off) === 'OTTO') throw new Error('cff');
+  const n = dv.getUint16(off + 4), T = {};
+  for (let i = 0; i < n; i++) { const r = off + 12 + i * 16; T[tag(r)] = { o: dv.getUint32(r + 8), l: dv.getUint32(r + 12) }; }
+  if (!T.glyf || !T.loca || !T.head || !T.cmap || !T.hmtx || !T.hhea || !T.maxp) throw new Error(T.CFF ? 'cff' : 'not truetype');
+  const upm = dv.getUint16(T.head.o + 18), longLoca = dv.getInt16(T.head.o + 50) === 1, ng = dv.getUint16(T.maxp.o + 4), nhm = dv.getUint16(T.hhea.o + 34);
+  const loca = i => longLoca ? dv.getUint32(T.loca.o + i * 4) : dv.getUint16(T.loca.o + i * 2) * 2;
+  const adv = g => dv.getUint16(T.hmtx.o + Math.min(g, nhm - 1) * 4);
+  // cmap: prefer a full Unicode table (format 12), else BMP (format 4)
+  let f12 = null, f4 = null;
+  { const c = T.cmap.o, nt = dv.getUint16(c + 2);
+    for (let i = 0; i < nt; i++) { const pid = dv.getUint16(c + 4 + i * 8), eid = dv.getUint16(c + 6 + i * 8), so = c + dv.getUint32(c + 8 + i * 8), fmt = dv.getUint16(so);
+      if (fmt === 12 && (pid === 3 || pid === 0)) f12 = so; else if (fmt === 4 && (pid === 3 && (eid === 1 || eid === 0) || pid === 0)) f4 = f4 || so; } }
+  const gid = cp => {
+    if (f12) { const ng2 = dv.getUint32(f12 + 12); for (let i = 0; i < ng2; i++) { const r = f12 + 16 + i * 12, a = dv.getUint32(r), b = dv.getUint32(r + 4); if (cp >= a && cp <= b) return dv.getUint32(r + 8) + cp - a; } }
+    if (f4 && cp < 0x10000) { const sc = dv.getUint16(f4 + 6) / 2, ends = f4 + 14, starts = ends + sc * 2 + 2, deltas = starts + sc * 2, ranges = deltas + sc * 2;
+      for (let i = 0; i < sc; i++) { const e = dv.getUint16(ends + i * 2); if (cp > e) continue; const s = dv.getUint16(starts + i * 2); if (cp < s) return 0;
+        const d = dv.getInt16(deltas + i * 2), ro = dv.getUint16(ranges + i * 2); if (!ro) return (cp + d) & 0xffff;
+        const g = dv.getUint16(ranges + i * 2 + ro + (cp - s) * 2); return g ? (g + d) & 0xffff : 0; } }
+    return 0;
+  };
+  // kerning (old 'kern' table, format 0)
+  const kern = new Map();
+  if (T.kern) { try { const k = T.kern.o, nt = dv.getUint16(k + 2); let p = k + 4; for (let t = 0; t < nt; t++) { const len = dv.getUint16(p + 2), cov = dv.getUint16(p + 4); if ((cov >> 8) === 0 && (cov & 1)) { const np = dv.getUint16(p + 6); for (let i = 0; i < np; i++) { const r = p + 14 + i * 6; kern.set(dv.getUint16(r) * 65536 + dv.getUint16(r + 2), dv.getInt16(r + 4)); } } p += len; } } catch (e) {} }
+  const memo = new Map();
+  function contours(g, depth) {   // [[ [x, y, on], … ], …] in font units
+    if (memo.has(g)) return memo.get(g); if (g >= ng || depth > 8) return [];
+    const a = loca(g), b = loca(g + 1); if (b <= a) { memo.set(g, []); return []; }
+    const o = T.glyf.o + a, nc = dv.getInt16(o); let out = [];
+    if (nc >= 0) {
+      const ends = []; for (let i = 0; i < nc; i++) ends.push(dv.getUint16(o + 10 + i * 2));
+      const np = nc ? ends[nc - 1] + 1 : 0, il = dv.getUint16(o + 10 + nc * 2); let p = o + 12 + nc * 2 + il;
+      const flags = []; while (flags.length < np) { const f = u8[p++]; flags.push(f); if (f & 8) { let r = u8[p++]; while (r--) flags.push(f); } }
+      const xs = [], ys = []; let v = 0;
+      for (const f of flags) { if (f & 2) { const d = u8[p++]; v += f & 16 ? d : -d; } else if (!(f & 16)) { v += dv.getInt16(p); p += 2; } xs.push(v); }
+      v = 0; for (const f of flags) { if (f & 4) { const d = u8[p++]; v += f & 32 ? d : -d; } else if (!(f & 32)) { v += dv.getInt16(p); p += 2; } ys.push(v); }
+      let s = 0; for (const e of ends) { const c = []; for (let i = s; i <= e; i++) c.push([xs[i], ys[i], flags[i] & 1]); out.push(c); s = e + 1; }
+    } else {   // a glyph made of other glyphs
+      let p = o + 10, more = true;
+      while (more) {
+        const fl = dv.getUint16(p), cg = dv.getUint16(p + 2); p += 4; let dx, dy;
+        if (fl & 1) { dx = fl & 2 ? dv.getInt16(p) : 0; dy = fl & 2 ? dv.getInt16(p + 2) : 0; p += 4; } else { dx = fl & 2 ? dv.getInt8(p) : 0; dy = fl & 2 ? dv.getInt8(p + 1) : 0; p += 2; }
+        let A = 1, B = 0, C = 0, D = 1; const f2 = q => dv.getInt16(q) / 16384;
+        if (fl & 8) { A = D = f2(p); p += 2; } else if (fl & 64) { A = f2(p); D = f2(p + 2); p += 4; } else if (fl & 128) { A = f2(p); B = f2(p + 2); C = f2(p + 4); D = f2(p + 6); p += 8; }
+        contours(cg, depth + 1).forEach(c => out.push(c.map(([x, y, on]) => [A * x + C * y + dx, B * x + D * y + dy, on])));
+        more = !!(fl & 32);
+      }
+    }
+    memo.set(g, out); return out;
+  }
+  return { upm, gid, adv, kern: (a, b) => kern.get(a * 65536 + b) || 0, contours: g => contours(g, 0) };
+}
+// a TrueType contour → our path nodes [anchor, in, out] (quadratic curves become cubic)
+function ttNodes(c, map) {
+  if (c.length < 2) return null;
+  let P = []; for (let i = 0; i < c.length; i++) { const a = c[i], b = c[(i + 1) % c.length]; P.push(a); if (!a[2] && !b[2]) P.push([(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, 1]); }
+  const k = P.findIndex(q => q[2]); if (k < 0) return null; P = P.slice(k).concat(P.slice(0, k));
+  const N = [];   // anchors with handles, in world coords
+  for (let i = 0; i < P.length; i++) { if (!P[i][2]) continue; const A = map(P[i][0], P[i][1]); N.push([A, A.slice(), A.slice(), i]); }
+  for (let j = 0; j < N.length; j++) {
+    const a = N[j], b = N[(j + 1) % N.length], q = P[(a[3] + 1) % P.length];
+    if (!q[2]) { const Q = map(q[0], q[1]); a[2] = [a[0][0] + (Q[0] - a[0][0]) * 2 / 3, a[0][1] + (Q[1] - a[0][1]) * 2 / 3]; b[1] = [b[0][0] + (Q[0] - b[0][0]) * 2 / 3, b[0][1] + (Q[1] - b[0][1]) * 2 / 3]; }
+  }
+  return N.map(n => [n[0], n[1], n[2]]);
+}
+/* ---------- getting the font file for a text ---------- */
+const b64u8 = b64 => { const s = atob(b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+async function fontBytesFor(t) {   // the closest file of the family: synced first, then this computer
+  const want = t.fw || 400, it = !!t.it, score = s => Math.abs(styleWeight(s) - want) + (styleItalic(s) === it ? 0 : 1000);
+  const syn = (fontLib.synced.get(t.ff) || []).filter(f => f.path).sort((a, b) => score(a.style) - score(b.style));
+  if (syn.length) { try { return { u8: b64u8(await store.read(syn[0].path)), style: syn[0].style }; } catch (e) {} }
+  await loadLocalFonts(true);
+  const loc = (fontLib.local.get(t.ff) || []).filter(f => !f.ttc).sort((a, b) => score(a.style) - score(b.style));
+  for (const f of loc) { try { if (f.file) return { u8: b64u8(await desk.fontRead(f.file)), style: f.style }; if (f.fd) return { u8: new Uint8Array(await (await f.fd.blob()).arrayBuffer()), style: f.style }; } catch (e) {} }
+  return null;
+}
+/* ---------- text → shapes ---------- */
+async function textToShapes(st, perLetter) {
+  const fb = await fontBytesFor(st.tx); if (!fb) throw new Error('nofont');
+  const F = ttFont(fb.u8), t = st.tx, L = textLayout(st), sc = L.fs / F.upm, m = st.tm || ID_M;
+  const oblique = t.it && !styleItalic(fb.style) ? 0.2 : 0;   // the file has no italic: lean the letters like the screen does
+  const letters = [];   // [{ nodes:[contour nodes…] }]
+  const addGlyph = (ch, place) => {
+    const g = F.gid(ch.codePointAt(0)); const cs = F.contours(g); if (!cs.length) return;
+    const parts = cs.map(c => ttNodes(c, (x, y) => { const lx = x * sc + y * sc * oblique, ly = -y * sc; const q = place(lx, ly); return tmApply(m, q[0], q[1]); })).filter(Boolean);
+    if (parts.length) letters.push(parts);
+  };
+  const lsPx = (t.ls || 0) * L.fs;
+  for (const l of L.lines) {
+    const chars = [...tCase(l.s, '')];
+    if (l.chars) { l.chars.forEach(c => { const w = c.cw - lsPx, cs = Math.cos(c.rot), sn = Math.sin(c.rot); addGlyph(c.ch, (x, y) => { const X = x - w / 2; return [c.px + X * cs - y * sn, c.py + X * sn + y * cs]; }); }); continue; }
+    // our own spacing (advances + kerning) so the shapes match the letters
+    let W = 0; const adv = []; let prev = null;
+    for (const ch of chars) { const g = F.gid(ch.codePointAt(0)); const k = prev != null ? F.kern(prev, g) * sc : 0; adv.push([ch, W + k]); W += k + F.adv(g) * sc + lsPx; prev = g; }
+    W -= lsPx; const x0 = t.ta === 'center' ? (L.W - W) / 2 : t.ta === 'right' ? L.W - W : 0;
+    adv.forEach(([ch, x]) => addGlyph(ch, (gx, gy) => [x0 + x + gx, l.y + gy]));
+    if (t.ul && chars.length) { const th = Math.max(1, L.fs * 0.06), y = l.y + L.fs * 0.12, P = [[x0, y], [x0 + W, y], [x0 + W, y + th], [x0, y + th]].map(q => tmApply(m, q[0], q[1])); letters.push([P.map(q => [q, q.slice(), q.slice()])]); }
+  }
+  if (!letters.length) return [];
+  const lw = st.pts[0][2], look = { fc: st.fc, fg: st.fg, color: st.color, ol: st.ol, opacity: st.opacity, fx: st.fx, ljoin: st.ljoin, lcap: st.lcap, dash: st.dash, dl: st.dl };
+  const mk = parts => {
+    const pts = parts.flatMap(N => N.flatMap(n => n.map(q => [q[0], q[1], lw])));
+    const base = Object.assign({}, look, { id: vNewId() });
+    if (parts.length === 1) return Object.assign(base, { shape: 'path', cl: true, pts });
+    return Object.assign(base, { shape: 'compound', op: 'exclude', pts, ns: parts.map(N => N.length), cls: parts.map(() => true) });
+  };
+  return perLetter ? letters.map(mk) : [mk(letters.flat())];
+}
+async function vTextToShapes(perLetter) {
+  const sel = vSelList().filter(s => s.shape === 'text'); if (!sel.length) { flash('Pick a text first (V)'); return; }
+  textEditEnd();
+  const out = new Map(); let fail = null;
+  for (const st of sel) { try { out.set(st, await textToShapes(st, perLetter)); } catch (e) { fail = e && e.message; } }
+  if (!out.size) { flash(fail === 'cff' ? 'This font keeps its letters in a format that cannot be turned into shapes yet (OpenType CFF) — try another font' : fail === 'nofont' ? 'The font file is not on this device — pick a synced ☁ font or a font of this computer' : 'Could not read this font'); return; }
+  const list = [], nsel = new Set();
+  vCelsAll(true).forEach(o => {
+    if (!o.c.strokes.some(s => out.has(s))) return;
+    const after = []; o.c.strokes.forEach(s => { if (out.has(s)) out.get(s).forEach(n => { after.push(n); nsel.add(n); }); else if (!(s.mir && [...out.keys()].some(t => t.id === s.mir.src))) after.push(s); });
+    list.push({ c: o.c, li: o.li, before: o.c.strokes, after });
+  });
+  vCommitMulti(list); vsel = nsel; syncVecUI(); render();
+  flash(perLetter ? 'Text turned into shapes — one per letter. Edit the points with A' : 'Text turned into one shape. Edit the points with A');
+}
+(() => {
+  const f = $('#vTextSet'); if (!f) return;
+  const row = document.createElement('div'); row.className = 'arow vbtns';
+  row.innerHTML = '<button type="button" class="pb" id="vTxShapes" title="Every letter becomes a shape with points you can edit (A)">To shapes (letters)</button><button type="button" class="pb" id="vTxShape1" title="The whole text becomes one shape">To one shape</button>';
+  const corner = document.createElement('div'); corner.className = 'arow';
+  corner.innerHTML = 'Outline corners <select id="vTxJoin"><option value="round">Round</option><option value="miter">Sharp</option><option value="bevel">Cut</option></select>';
+  const info = f.querySelector('.ainfo'); f.insertBefore(corner, info); f.insertBefore(row, info);
+  row.querySelector('#vTxShapes').onclick = () => vTextToShapes(true);
+  row.querySelector('#vTxShape1').onclick = () => vTextToShapes(false);
+  corner.querySelector('select').addEventListener('change', e => { VSH.join = e.target.value; vshSave(); const j = $('#vJoin'); if (j) j.value = VSH.join; vApplyStyle(['join']); e.target.blur(); });
+})();
+const _syncTextUI30 = syncTextUI;
+syncTextUI = function () { _syncTextUI30.apply(this, arguments); const j = $('#vTxJoin'); if (j) { const one = vSelList().find(s => s.shape === 'text'); j.value = one ? (one.ljoin || 'round') : (VSH.join || 'round'); } };
+window.__t2s = { run: vTextToShapes, tt: ttFont };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
