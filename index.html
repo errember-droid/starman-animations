@@ -5797,9 +5797,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.55.1';
+const APP_VERSION = '1.56.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.56.0', date: '2026-11-12', items: ['Trace to vector (Shift+I, or “Trace…” in the Shape window): a picture, a pasted picture, this frame, or picked shapes with effects become plain vector shapes on a new layer “Traced”. Set Colors, Smooth, Detail, Skip specks and Leave out the background', 'Thick outlines are clean now: no more spikes and cut-off corners on fat outlines of shapes and text, and thick brush lines with thin ends no longer fold over in tight bends'] },
   { v: '1.55.1', date: '2026-11-12', items: ['Outlines now follow the shape by default: a square’s outline has square corners, a star’s outline has sharp points (Corners: “Sharp — follows the shape”). Round and Cut are still there; shapes you already drew keep their look'] },
   { v: '1.55.0', date: '2026-11-12', items: ['Text outline corners: Round, Sharp or Cut (Text section, or Corners / Ends / dashes in Fill & stroke)', 'Text → shapes: “To shapes (letters)” makes every letter a shape with points you can edit with A; “To one shape” makes the whole text one shape. Keeps the fill, gradient, outline and effects. Works with TrueType fonts (.ttf — most fonts)'] },
   { v: '1.54.0', date: '2026-11-12', items: ['Text (T) in vector animations: click to write, click a text to change it. Font, size, weight, italic, underline, align, letter spacing, line height, UPPER/lower/Title case, bend on an arc, outline behind the letters — plus fill, gradient, outline, shadow, glow and blur like other shapes. Resize, turn, lean, mirror and animate it with keys ◆', 'All fonts installed on your computer are in the font list (shown in their own look, with search)', 'Font sync: a font you use is copied into the desktop Fonts folder and syncs, so the text looks the same on your phone and other computers. You can also drop .ttf / .otf files into the Fonts folder'] },
@@ -6403,7 +6404,7 @@ function vSamplePts(st) {   // points on the outline (for the real bounds of cur
   return out;
 }
 function vBounds(st) { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (const q of vSamplePts(st)) { x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]); } return { x0, y0, x1, y1 }; }
-function vBoxStroke(st) { const b = vBounds(st), f = st.fx || {}; let h = st.ol ? (st.pts[0][2] || 0) * (st.ljoin === 'miter' ? 2 : (st.sal === 'outside' ? 1.2 : 0.6)) + (st.a0 || st.a1 ? (st.pts[0][2] || 0) * 3 + 6 : 0) + 1 : 1; if (f.shadow && f.shadow.on) h += Math.max(Math.abs(f.shadow.x || 0), Math.abs(f.shadow.y || 0)) + (f.shadow.b || 0) * 1.5; if (f.glow && f.glow.on) h += (f.glow.b || 0) * 1.5; if (f.blur > 0) h += f.blur * 3; return { x0: b.x0 - h, y0: b.y0 - h, x1: b.x1 + h, y1: b.y1 + h }; }
+function vBoxStroke(st) { const b = vBounds(st), f = st.fx || {}; let h = st.ol ? (st.pts[0][2] || 0) * (st.ljoin === 'miter' ? 2.2 : (st.sal === 'outside' ? 1.2 : 0.6)) + (st.a0 || st.a1 ? (st.pts[0][2] || 0) * 3 + 6 : 0) + 1 : 1; if (f.shadow && f.shadow.on) h += Math.max(Math.abs(f.shadow.x || 0), Math.abs(f.shadow.y || 0)) + (f.shadow.b || 0) * 1.5; if (f.glow && f.glow.on) h += (f.glow.b || 0) * 1.5; if (f.blur > 0) h += f.blur * 3; return { x0: b.x0 - h, y0: b.y0 - h, x1: b.x1 + h, y1: b.y1 + h }; }
 function vUnion(list) { let b = null; for (const st of list) { const q = vBounds(st); b = b ? { x0: Math.min(b.x0, q.x0), y0: Math.min(b.y0, q.y0), x1: Math.max(b.x1, q.x1), y1: Math.max(b.y1, q.y1) } : q; } return b; }
 function vToPath(st) {
   if (st.shape === 'path' || st.shape === 'compound') return st;
@@ -7010,7 +7011,7 @@ function vFillStyle(ctx, st) { return st.fg ? vGradient(ctx, st) : st.fc; }
 function vStrokeAll(ctx, st) {
   const lw = st.pts[0] ? st.pts[0][2] : 0; if (!st.ol || !(lw > 0)) return;
   const dash = st.dash === 'custom' && st.dl ? [lw * st.dl[0], lw * st.dl[1]] : vDash(st, lw);
-  ctx.lineJoin = st.ljoin || 'round'; ctx.lineCap = st.dash === 'dot' ? 'round' : (st.lcap || 'round'); ctx.miterLimit = 10; ctx.strokeStyle = st.color; ctx.setLineDash(dash);
+  ctx.lineJoin = st.ljoin || 'round'; ctx.lineCap = st.dash === 'dot' ? 'round' : (st.lcap || 'round'); ctx.miterLimit = 4; ctx.strokeStyle = st.color; ctx.setLineDash(dash);
   if (st.shape === 'compound') { ctx.lineWidth = lw; ctx.stroke(vEdge(st));
   } else if (st.sal === 'inside' || st.sal === 'outside') {
     ctx.save(); const p = vGeom(st); if (st.sal === 'inside') ctx.clip(p); else ctx.clip(vOutside(p), 'evenodd'); ctx.lineWidth = lw * 2; ctx.stroke(p); ctx.restore();
@@ -9019,7 +9020,7 @@ window.__dbgF = { draw: () => draw(), json: () => { const t = performance.now(),
 const fxHeavy = st => { const fx = st.fx; if (!fx || (fx.blend && fx.blend !== 'normal')) return false;
   const L = fx.light || {};
   return !!((fx.shadow && fx.shadow.on) || (fx.glow && fx.glow.on) || fx.blur > 0 || (fx.inner && fx.inner.on) || (fx.iglow && fx.iglow.on) || L.on || (fx.mat && fx.mat !== 'none') || (fx.tex && fx.tex.k && fx.tex.k !== 'none')); };
-const fxPad = st => { const fx = st.fx || {}, lw = st.ol && st.pts[0] ? st.pts[0][2] || 0 : 0;
+const fxPad = st => { const fx = st.fx || {}, lw = (st.ol && st.pts[0] ? st.pts[0][2] || 0 : 0) * (st.ljoin === 'miter' ? 2.2 : 1) * (st.shape === 'text' ? 2 : 1);   // sharp corners reach further
   let p = lw + 2 + (fx.blur || 0) * 3;
   if (fx.shadow && fx.shadow.on) p = Math.max(p, (fx.shadow.b || 0) * 1.5 + Math.hypot(fx.shadow.x || 0, fx.shadow.y || 0) + lw);
   if (fx.glow && fx.glow.on) p = Math.max(p, (fx.glow.b || 0) * 1.5 + lw);
@@ -9365,8 +9366,22 @@ function vRibbon(st) {   // the outline of a variable-width open path, as a Path
     if (ts > 0) f = Math.min(f, mn + (1 - mn) * ez(s / ts));
     if (te > 0) f = Math.min(f, mn + (1 - mn) * ez((1 - s) / te));
     const p = S_[Math.max(0, i - 1)], n = S_[Math.min(S_.length - 1, i + 1)]; let dx = n[0] - p[0], dy = n[1] - p[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
-    const h = S_[i][2] * f / 2; L_.push([S_[i][0] - dy * h, S_[i][1] + dx * h]); R_.push([S_[i][0] + dy * h, S_[i][1] - dx * h]);
+    const h = S_[i][2] * f / 2, l = [S_[i][0] - dy * h, S_[i][1] + dx * h], r = [S_[i][0] + dy * h, S_[i][1] - dx * h];
+    // on the inside of a tight bend the edge would run backwards and fold over: hold it still instead
+    const back = (A, q) => A.length && ((q[0] - A[A.length - 1][0]) * dx + (q[1] - A[A.length - 1][1]) * dy) < 0 && i < S_.length - 1;
+    L_.push(l); R_.push(r);
   }
+  const unloop = A => {   // cut out the little loops an edge makes on the inside of a tight bend
+    const out = [];
+    const X = (p, q, r, s2) => { const d = (q[0] - p[0]) * (s2[1] - r[1]) - (q[1] - p[1]) * (s2[0] - r[0]); if (Math.abs(d) < 1e-9) return null; const t = ((r[0] - p[0]) * (s2[1] - r[1]) - (r[1] - p[1]) * (s2[0] - r[0])) / d, u = ((r[0] - p[0]) * (q[1] - p[1]) - (r[1] - p[1]) * (q[0] - p[0])) / d; return t > 0 && t < 1 && u > 0 && u < 1 ? [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t] : null; };
+    for (const q of A) {
+      out.push(q); const n = out.length; if (n < 4) continue;
+      const a = out[n - 2], b = out[n - 1];
+      for (let j = n - 4; j >= Math.max(0, n - 60); j--) { const hit = X(out[j], out[j + 1], a, b); if (hit) { out.splice(j + 1, n - (j + 1), hit, b); break; } }
+    }
+    return out;
+  };
+  L_.splice(0, L_.length, ...unloop(L_)); R_.splice(0, R_.length, ...unloop(R_));
   const P = new Path2D(); P.moveTo(L_[0][0], L_[0][1]); for (let i = 1; i < L_.length; i++) P.lineTo(L_[i][0], L_[i][1]);
   for (let i = R_.length - 1; i >= 0; i--) P.lineTo(R_[i][0], R_[i][1]); P.closePath();
   return P;
@@ -9885,6 +9900,209 @@ if (!VSH.joinV2) { if (VSH.join === 'round') VSH.join = 'miter'; VSH.joinV2 = 1;
   ['#vJoin', '#vTxJoin'].forEach(id => { const s = $(id); if (s) [...s.options].forEach(o => { if (lab[o.value]) o.textContent = lab[o.value]; }); });
   const j = $('#vJoin'); if (j) j.value = VSH.join;
 })();
+/* ================= v56: image trace — a picture (or the frame, or shapes with effects) becomes plain vector shapes ================= */
+function traceImage(img, opt) {   // img: ImageData → [{ color, loops:[[ [x,y],… ],…] }] bottom first
+  const w = img.width, h = img.height, d = img.data, n = w * h;
+  const pal = quantizeColors(d, opt.colors).map(hx => [parseInt(hx.slice(1, 3), 16), parseInt(hx.slice(3, 5), 16), parseInt(hx.slice(5, 7), 16), hx]);
+  if (!pal.length) return [];
+  const idx = new Int16Array(n).fill(-1), count = new Int32Array(pal.length);
+  for (let i = 0; i < n; i++) {
+    if (d[i * 4 + 3] < 128) continue; const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2]; let best = 0, bd = 1e9;
+    for (let k = 0; k < pal.length; k++) { const p = pal[k], dd = (p[0] - r) * (p[0] - r) * 0.3 + (p[1] - g) * (p[1] - g) * 0.59 + (p[2] - b) * (p[2] - b) * 0.11; if (dd < bd) { bd = dd; best = k; } }
+    idx[i] = best; count[best]++;
+  }
+  if (opt.smooth > 0) {   // colors that only live on the soft edges between two others (anti-aliasing rims) are not real colors: give them to their neighbors
+    const edgeN = new Int32Array(pal.length);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x, me = idx[i]; if (me < 0) continue;
+      if ((x > 0 && idx[i - 1] !== me) || (x < w - 1 && idx[i + 1] !== me) || (y > 0 && idx[i - w] !== me) || (y < h - 1 && idx[i + w] !== me)) edgeN[me]++; }
+    const between = k => { const c = pal[k], big = pal.map((p, j) => j).filter(j => j !== k && count[j] > count[k]);   // is it a mix of two bigger colors? (a real thin line is not)
+      for (const a of big) for (const b of big) { if (a >= b) continue; const A = pal[a], B = pal[b], d = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], L2 = d[0] ** 2 + d[1] ** 2 + d[2] ** 2 || 1, t = ((c[0] - A[0]) * d[0] + (c[1] - A[1]) * d[1] + (c[2] - A[2]) * d[2]) / L2;
+        if (t < 0.05 || t > 0.95) continue; if (Math.hypot(A[0] + d[0] * t - c[0], A[1] + d[1] * t - c[1], A[2] + d[2] * t - c[2]) < 28) return true; }
+      return false; };
+    const rim = pal.map((p, k) => count[k] > 0 && edgeN[k] / count[k] > 0.45 && between(k));
+    for (let pass = 0; pass < 6; pass++) { let left = 0; const src = idx.slice();
+      for (let i = 0; i < n; i++) { const me = src[i]; if (me < 0 || !rim[me]) continue; const x = i % w;
+        let best = -2, bd = 1e9; const try_ = j => { const v = src[j]; if (v < 0 || rim[v]) return; const a = pal[v], b = pal[me], dd = (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2; if (dd < bd) { bd = dd; best = v; } };
+        if (x > 0) try_(i - 1); if (x < w - 1) try_(i + 1); if (i >= w) try_(i - w); if (i < n - w) try_(i + w);
+        if (best >= 0) { idx[i] = best; count[me]--; count[best]++; } else left++; }
+      if (!left) break; }
+  }
+  if (opt.smooth > 0) {   // thin slivers of in-between colors (soft edges) join their neighbors
+    const src = idx.slice(), cnt = new Map();
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const i = y * w + x, me = src[i]; let same = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (src[i + dy * w + dx] === me) same++;
+      if (same > 3) continue; cnt.clear(); let best = me, bc = 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const v = src[i + dy * w + dx], c2 = (cnt.get(v) || 0) + 1; cnt.set(v, c2); if (c2 > bc) { bc = c2; best = v; } }
+      if (best !== me) { if (me >= 0) count[me]--; if (best >= 0) count[best]++; idx[i] = best; }
+    }
+  }
+  if (opt.noBg) {   // the color that fills most of the border is the background: leave it out
+    const edge = new Int32Array(pal.length); for (let x = 0; x < w; x++) { if (idx[x] >= 0) edge[idx[x]]++; if (idx[n - w + x] >= 0) edge[idx[n - w + x]]++; } for (let y = 0; y < h; y++) { if (idx[y * w] >= 0) edge[idx[y * w]]++; if (idx[y * w + w - 1] >= 0) edge[idx[y * w + w - 1]]++; }
+    let bg = -1, bm = 0; edge.forEach((v, k) => { if (v > bm) { bm = v; bg = k; } }); if (bg >= 0 && bm > (w + h)) for (let i = 0; i < n; i++) if (idx[i] === bg) idx[i] = -1;
+  }
+  const order = pal.map((p, k) => k).filter(k => count[k] > 0).sort((a, b) => count[b] - count[a]);   // big colors at the bottom
+  const rank = new Int16Array(pal.length); order.forEach((k, r) => { rank[k] = r; });
+  const out = [];
+  order.forEach((k, r) => {
+    const m = new Uint8Array(n); let any = 0; for (let i = 0; i < n; i++) if (idx[i] >= 0 && rank[idx[i]] >= r) { m[i] = 1; any++; }   // this color + everything drawn on top of it (no gaps)
+    if (!any) return;
+    const loops = traceMask(m, w, h, opt).filter(L => Math.abs(polyArea(L)) >= opt.speck);
+    if (loops.length) out.push({ color: pal[k][3], loops });
+  });
+  return out;
+}
+const polyArea = L => { let a = 0; for (let i = 0; i < L.length; i++) { const p = L[i], q = L[(i + 1) % L.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; };
+function traceMask(m, w, h, opt) {   // the edges around the filled pixels → closed loops
+  const at = (x, y) => x >= 0 && y >= 0 && x < w && y < h && m[y * w + x] === 1;
+  const W1 = w + 1, next = new Map();   // vertex -> outgoing edges (clockwise around filled pixels)
+  const add = (x0, y0, x1, y1) => { const k = y0 * W1 + x0; let a = next.get(k); if (!a) next.set(k, a = []); a.push(y1 * W1 + x1); };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!m[y * w + x]) continue;
+    if (!at(x, y - 1)) add(x, y, x + 1, y); if (!at(x + 1, y)) add(x + 1, y, x + 1, y + 1);
+    if (!at(x, y + 1)) add(x + 1, y + 1, x, y + 1); if (!at(x - 1, y)) add(x, y + 1, x, y);
+  }
+  const loops = [];
+  for (const [start] of next) {
+    while (next.has(start) && next.get(start).length) {
+      const L = []; let v = start, pd = null, guard = 0;
+      do {
+        const a = next.get(v); if (!a || !a.length) break;
+        let j = 0;
+        if (a.length > 1 && pd) {   // two ways on: keep turning the same way, so touching corners stay apart
+          const vx = v % W1, vy = (v / W1) | 0; let bestS = -9;
+          a.forEach((t, i) => { const dx = t % W1 - vx, dy = ((t / W1) | 0) - vy, cr = pd[0] * dy - pd[1] * dx; if (cr > bestS) { bestS = cr; j = i; } });
+        }
+        const t = a.splice(j, 1)[0]; if (!a.length) next.delete(v);
+        const vx = v % W1, vy = (v / W1) | 0; L.push([vx, vy]); pd = [t % W1 - vx, ((t / W1) | 0) - vy]; v = t;
+      } while (v !== start && ++guard < 4e6);
+      if (L.length >= 4) loops.push(simplifyLoop(L, opt));
+    }
+  }
+  return loops.filter(L => L && L.length >= 3);
+}
+function simplifyLoop(L, opt) {
+  // corners only (drop the points in the middle of straight runs)
+  const C = L.filter((p, i) => { const a = L[(i - 1 + L.length) % L.length], b = L[(i + 1) % L.length]; return (p[0] - a[0]) * (b[1] - p[1]) - (p[1] - a[1]) * (b[0] - p[0]) !== 0; });
+  if (opt.smooth <= 0) return C;   // pixel-exact
+  // the middles of the little steps give soft edges instead of stairs
+  // (long straight edges keep their real ends, so boxes stay boxes)
+  const M = [];
+  C.forEach((p, i) => { const q = C[(i + 1) % C.length], len = Math.abs(q[0] - p[0]) + Math.abs(q[1] - p[1]);
+    if (len <= 2) M.push([(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]);
+    else { const l = M[M.length - 1]; if (!l || l[0] !== p[0] || l[1] !== p[1]) M.push(p.slice()); M.push(q.slice()); } });
+  if (M.length > 1 && M[0][0] === M[M.length - 1][0] && M[0][1] === M[M.length - 1][1]) M.pop();
+  const eps = 0.35 + opt.smooth / 100 * 1.6;
+  const closedRdp = P => { if (P.length < 4) return P; let far = 0, fd = -1; for (let i = 1; i < P.length; i++) { const d2 = (P[i][0] - P[0][0]) ** 2 + (P[i][1] - P[0][1]) ** 2; if (d2 > fd) { fd = d2; far = i; } } const a = rdp(P.slice(0, far + 1), eps), b = rdp(P.slice(far).concat([P[0]]), eps); return a.concat(b.slice(1, -1)); };
+  return closedRdp(M);
+}
+function loopToNodes(A, smooth, map) {   // points → curve nodes (sharp where it turns hard)
+  const n = A.length, k = smooth / 100 * 0.42, out = [];
+  for (let i = 0; i < n; i++) {
+    const p = A[i], a = A[(i - 1 + n) % n], b = A[(i + 1) % n];
+    const v1 = [p[0] - a[0], p[1] - a[1]], v2 = [b[0] - p[0], b[1] - p[1]], l1 = Math.hypot(...v1) || 1, l2 = Math.hypot(...v2) || 1;
+    const cos = (v1[0] * v2[0] + v1[1] * v2[1]) / (l1 * l2), P = map(p[0], p[1]);
+    if (smooth <= 0 || cos < 0.25) { out.push([P, P.slice(), P.slice()]); continue; }   // a corner
+    const tx = (b[0] - a[0]), ty = (b[1] - a[1]), tl = Math.hypot(tx, ty) || 1, ux = tx / tl, uy = ty / tl;
+    const I = map(p[0] - ux * l1 * k, p[1] - uy * l1 * k), O = map(p[0] + ux * l2 * k, p[1] + uy * l2 * k);
+    out.push([P, I, O]);
+  }
+  return out;
+}
+function traceToShapes(layers, map, smooth) {
+  return layers.map(Ly => {
+    const parts = Ly.loops.map(L => loopToNodes(L, smooth, map));
+    const pts = parts.flatMap(N => N.flatMap(nd => nd.map(q => [q[0], q[1], 1])));
+    const base = { fc: Ly.color, ol: false, color: Ly.color, opacity: 1, id: vNewId() };
+    return parts.length === 1 ? Object.assign(base, { shape: 'path', cl: true, pts }) : Object.assign(base, { shape: 'compound', op: 'exclude', pts, ns: parts.map(N => N.length), cls: parts.map(() => true) });
+  });
+}
+/* ---------- the Trace window ---------- */
+function openTrace() {
+  if (MODE !== 'vector') { flash('Tracing makes vector shapes — open or make a vector animation'); return; }
+  const d = document.createElement('dialog'); d.className = 'fdlg wnew tracewin';
+  const rng = (id, label, min, max, val) => '<div class="bopt"><label for="' + id + '">' + label + '</label><output id="' + id + 'Out"></output><input type="range" id="' + id + '" min="' + min + '" max="' + max + '" value="' + val + '"></div>';
+  d.innerHTML = '<form method="dialog" class="dlg"><h2>Trace to vector</h2>' +
+    '<div class="arow vbtns"><button type="button" class="pb" data-src="file">Picture…</button><button type="button" class="pb" data-src="paste">Pasted picture</button><button type="button" class="pb" data-src="frame">This frame</button><button type="button" class="pb" data-src="sel">Picked shapes (with effects)</button></div>' +
+    '<div class="tr-prev"><canvas class="tr-a"></canvas><canvas class="tr-b"></canvas></div><p class="ainfo tr-info">Pick what to trace.</p>' +
+    rng('trCol', 'Colors', 2, 48, 10) + rng('trSm', 'Smooth (0 = exact pixels)', 0, 100, 60) + rng('trDet', 'Detail', 20, 100, 70) + rng('trSp', 'Skip specks', 0, 300, 12) +
+    '<label class="toggle"><input type="checkbox" id="trBg"> Leave out the background</label><label class="toggle"><input type="checkbox" id="trHide" checked> Hide the original (picked shapes)</label>' +
+    '<div class="dlgbtns"><button type="button" class="txtbtn" data-x>Cancel</button><button type="button" class="txtbtn primary" data-go disabled>Make shapes</button></div></form>';
+  document.body.appendChild(d); d.showModal();
+  const q = s => d.querySelector(s), A = q('.tr-a'), B = q('.tr-b');
+  let src = null, res = null, tmr = 0;   // src: { canvas, map(x,y)->world, kind, sel }
+  const opt = () => ({ colors: +q('#trCol').value, smooth: +q('#trSm').value, speck: +q('#trSp').value, noBg: q('#trBg').checked, detail: +q('#trDet').value });
+  const outs = () => { ['trCol', 'trSm', 'trDet', 'trSp'].forEach(id => { q('#' + id + 'Out').textContent = q('#' + id).value + (id === 'trSp' ? ' px' : id === 'trCol' ? '' : '%'); }); q('#trHide').closest('label').hidden = !src || src.kind !== 'sel'; };
+  const run = () => {
+    if (!src) return; outs(); const o = opt();
+    const maxSide = Math.round(200 + o.detail / 100 * 900), s = Math.min(3, maxSide / Math.max(src.canvas.width, src.canvas.height));   // small pictures are enlarged first: smoother curves
+    const tw = Math.max(1, Math.round(src.canvas.width * s)), th = Math.max(1, Math.round(src.canvas.height * s)), c = mk(tw, th), g = c.getContext('2d', { willReadFrequently: true });
+    g.imageSmoothingEnabled = o.smooth > 0; g.drawImage(src.canvas, 0, 0, tw, th);
+    const t0 = performance.now(); res = { layers: traceImage(g.getImageData(0, 0, tw, th), o), tw, th, sx: src.canvas.width / tw };
+    // preview
+    const pw = 300, ph = Math.max(40, Math.round(pw * th / tw)); [A, B].forEach(cv => { cv.width = pw; cv.height = ph; });
+    const ga = A.getContext('2d'); ga.clearRect(0, 0, pw, ph); ga.drawImage(src.canvas, 0, 0, pw, ph);
+    const gb = B.getContext('2d'); gb.clearRect(0, 0, pw, ph); const k = pw / tw;
+    const shapes = traceToShapes(res.layers, (x, y) => [x * k, y * k], o.smooth);
+    shapes.forEach(st => { gb.fillStyle = st.fc; gb.fill(vGeom(st), 'evenodd'); });
+    const nPts = shapes.reduce((a, s2) => a + s2.pts.length / 3, 0);
+    q('.tr-info').textContent = res.layers.length + ' colors → ' + shapes.length + ' shapes, ' + nPts + ' points (' + Math.round(performance.now() - t0) + ' ms)';
+    q('[data-go]').disabled = !shapes.length;
+  };
+  const later = () => { clearTimeout(tmr); tmr = setTimeout(run, 180); };
+  ['#trCol', '#trSm', '#trDet', '#trSp'].forEach(id => { q(id).addEventListener('input', () => { outs(); later(); }); });
+  q('#trBg').addEventListener('change', run);
+  const fromImage = img => {   // a picture: placed in the middle of the camera, fitting it
+    const c = mk(img.naturalWidth || img.width, img.naturalHeight || img.height); c.getContext('2d').drawImage(img, 0, 0);
+    const cr = camRect(S.cur), fit = Math.min(cr.w * 0.9 / c.width, cr.h * 0.9 / c.height, 1e9), x0 = cr.cx - c.width * fit / 2, y0 = cr.cy - c.height * fit / 2;
+    src = { canvas: c, kind: 'pic', map: (x, y) => [x0 + x * fit, y0 + y * fit] }; run();
+  };
+  d.addEventListener('click', async e => {
+    const b = e.target.closest('[data-src]'); if (!b) return; const k = b.dataset.src;
+    if (k === 'file') { const f = await pickFile('image/*,.png,.jpg,.jpeg,.gif,.bmp,.webp'); if (f) fromImage(await loadImg(await fileToDataURL(f))); }
+    else if (k === 'paste') { try { for (const it of await navigator.clipboard.read()) { const t = it.types.find(x => x.startsWith('image/')); if (t) { fromImage(await loadImg(URL.createObjectURL(await it.getType(t)))); return; } } flash('No picture copied'); } catch (er) { flash('Press Ctrl+V in this window to paste a picture'); } }
+    else if (k === 'frame') {   // what the camera sees now, with every effect
+      const cr = camRect(S.cur), sc = Math.min(2, 1600 / Math.max(W, H)), c = exportFrame(curFrame(), sc, false), a = (cr.r || 0) * Math.PI / 180, ca = Math.cos(a), sa = Math.sin(a);
+      src = { canvas: c, kind: 'frame', map: (x, y) => { const lx = (x / c.width - 0.5) * cr.w, ly = (y / c.height - 0.5) * cr.h; return [cr.cx + lx * ca - ly * sa, cr.cy + lx * sa + ly * ca]; } }; run();
+    } else if (k === 'sel') {   // the picked shapes drawn with their effects, at a good size
+      const sel = vSelList().filter(s2 => s2.shape); if (!sel.length) { flash('Pick shapes first (V), then trace them'); return; }
+      const b0 = vUnion(sel), pad = Math.max(...sel.map(s2 => fxPad(s2))) + 4, bx = { x0: b0.x0 - pad, y0: b0.y0 - pad, x1: b0.x1 + pad, y1: b0.y1 + pad };
+      const s = Math.min(4, 1400 / Math.max(bx.x1 - bx.x0, bx.y1 - bx.y0)), c = mk(Math.ceil((bx.x1 - bx.x0) * s), Math.ceil((bx.y1 - bx.y0) * s)), g = c.getContext('2d');
+      g.setTransform(s, 0, 0, s, -bx.x0 * s, -bx.y0 * s); sel.forEach(st => drawVShape(g, st));
+      src = { canvas: c, kind: 'sel', sel, map: (x, y) => [bx.x0 + x / s, bx.y0 + y / s] }; run();
+    }
+  });
+  d.addEventListener('paste', async e => { const it = [...(e.clipboardData || {}).items || []].find(x => x.type.startsWith('image/')); if (it) { e.preventDefault(); fromImage(await loadImg(URL.createObjectURL(it.getAsFile()))); } });
+  q('[data-x]').onclick = () => d.close();
+  q('[data-go]').onclick = () => {
+    if (!res || !src) return; const o = opt(), sx = res.sx;
+    const shapes = traceToShapes(res.layers, (x, y) => src.map(x * sx, y * sx), o.smooth);
+    const hideSel = src.kind === 'sel' && q('#trHide').checked ? new Set(src.sel) : null;
+    stopPlay();
+    layerOp(() => {
+      const l = newLayer(layerName('Traced')), at = S.layer + 1; l.lv = (S.layers[S.layer] && S.layers[S.layer].lv) || 0;
+      S.layers.splice(at, 0, l); S.frames.forEach(f => f.cels.splice(at, 0, newCel()));
+      const f = curFrame(); f.cels[at] = Object.assign({}, f.cels[at], { strokes: shapes, dirty: true });
+      if (hideSel) f.cels.forEach((c, li) => { if (c && c.strokes && c.strokes.some(st => hideSel.has(st))) f.cels[li] = Object.assign({}, c, { strokes: c.strokes.filter(st => !hideSel.has(st)), dirty: true }); });
+      S.layer = at;
+    });
+    vsel = new Set(curFrame().cels[S.layer].strokes); invComp(); vRefresh(); syncVecUI(true);
+    flash('Traced: ' + shapes.length + ' shapes on the new layer “' + S.layers[S.layer].name + '”'); d.close();
+  };
+  d.addEventListener('close', () => d.remove());
+  outs();
+  if (vSelList().some(s2 => s2.shape)) q('[data-src="sel"]').click();
+}
+// where to find it: the shape right-click menu, the Shape window, Shift+I
+(() => {
+  const fs = $('#vecShapeSet'), d = fs && fs.querySelector('[data-vc="del"]'); if (!d) return;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pb'; b.textContent = 'Trace…'; b.title = 'Turn a picture, the frame or the picked shapes with effects into plain vector shapes (Shift+I)'; b.onclick = openTrace;
+  d.closest('.arow').appendChild(b);
+})();
+window.addEventListener('keydown', e => {
+  if (MODE !== 'vector' || !S.inEditor || !e.shiftKey || e.ctrlKey || e.altKey || e.code !== 'KeyI' || document.querySelector('dialog[open]')) return;
+  const t = e.target; if (t.closest && t.closest('input,textarea,select')) return; e.preventDefault(); e.stopImmediatePropagation(); openTrace();
+}, true);
+window.__trace = { open: openTrace, img: traceImage, shapes: traceToShapes };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {

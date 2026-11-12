@@ -1,6 +1,14 @@
 {
- "version": "1.55.1",
+ "version": "1.56.0",
  "changelog": [
+  {
+   "v": "1.56.0",
+   "date": "2026-11-12",
+   "items": [
+    "Trace to vector (Shift+I, or “Trace…” in the Shape window): a picture, a pasted picture, this frame, or picked shapes with effects become plain vector shapes on a new layer “Traced”. Set Colors, Smooth, Detail, Skip specks and Leave out the background",
+    "Thick outlines are clean now: no more spikes and cut-off corners on fat outlines of shapes and text, and thick brush lines with thin ends no longer fold over in tight bends"
+   ]
+  },
   {
    "v": "1.55.1",
    "date": "2026-11-12",
