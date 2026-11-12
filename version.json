@@ -1,6 +1,13 @@
 {
- "version": "1.55.0",
+ "version": "1.55.1",
  "changelog": [
+  {
+   "v": "1.55.1",
+   "date": "2026-11-12",
+   "items": [
+    "Outlines now follow the shape by default: a square’s outline has square corners, a star’s outline has sharp points (Corners: “Sharp — follows the shape”). Round and Cut are still there; shapes you already drew keep their look"
+   ]
+  },
   {
    "v": "1.55.0",
    "date": "2026-11-12",

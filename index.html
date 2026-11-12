@@ -5797,9 +5797,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.55.0';
+const APP_VERSION = '1.55.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.55.1', date: '2026-11-12', items: ['Outlines now follow the shape by default: a square’s outline has square corners, a star’s outline has sharp points (Corners: “Sharp — follows the shape”). Round and Cut are still there; shapes you already drew keep their look'] },
   { v: '1.55.0', date: '2026-11-12', items: ['Text outline corners: Round, Sharp or Cut (Text section, or Corners / Ends / dashes in Fill & stroke)', 'Text → shapes: “To shapes (letters)” makes every letter a shape with points you can edit with A; “To one shape” makes the whole text one shape. Keeps the fill, gradient, outline and effects. Works with TrueType fonts (.ttf — most fonts)'] },
   { v: '1.54.0', date: '2026-11-12', items: ['Text (T) in vector animations: click to write, click a text to change it. Font, size, weight, italic, underline, align, letter spacing, line height, UPPER/lower/Title case, bend on an arc, outline behind the letters — plus fill, gradient, outline, shadow, glow and blur like other shapes. Resize, turn, lean, mirror and animate it with keys ◆', 'All fonts installed on your computer are in the font list (shown in their own look, with search)', 'Font sync: a font you use is copied into the desktop Fonts folder and syncs, so the text looks the same on your phone and other computers. You can also drop .ttf / .otf files into the Fonts folder'] },
   { v: '1.53.0', date: '2026-11-12', items: ['Vector brush (B): lines now fade to a thin point at the ends — “Thin start” and “Thin end” in the Vector brush settings (0 = blunt). Pick drawn lines and move the sliders to change them too', 'Pen pressure: with a drawing tablet the vector line gets thinner where you press lightly (can be turned off)', 'The line keeps its points: you can still bend and move them with A, and the thin ends follow'] },
@@ -7009,7 +7010,7 @@ function vFillStyle(ctx, st) { return st.fg ? vGradient(ctx, st) : st.fc; }
 function vStrokeAll(ctx, st) {
   const lw = st.pts[0] ? st.pts[0][2] : 0; if (!st.ol || !(lw > 0)) return;
   const dash = st.dash === 'custom' && st.dl ? [lw * st.dl[0], lw * st.dl[1]] : vDash(st, lw);
-  ctx.lineJoin = st.ljoin || 'round'; ctx.lineCap = st.dash === 'dot' ? 'round' : (st.lcap || 'round'); ctx.miterLimit = 6; ctx.strokeStyle = st.color; ctx.setLineDash(dash);
+  ctx.lineJoin = st.ljoin || 'round'; ctx.lineCap = st.dash === 'dot' ? 'round' : (st.lcap || 'round'); ctx.miterLimit = 10; ctx.strokeStyle = st.color; ctx.setLineDash(dash);
   if (st.shape === 'compound') { ctx.lineWidth = lw; ctx.stroke(vEdge(st));
   } else if (st.sal === 'inside' || st.sal === 'outside') {
     ctx.save(); const p = vGeom(st); if (st.sal === 'inside') ctx.clip(p); else ctx.clip(vOutside(p), 'evenodd'); ctx.lineWidth = lw * 2; ctx.stroke(p); ctx.restore();
@@ -9733,7 +9734,7 @@ textPaint = function (ctx, st, how) {
   const orig = ctx.strokeText;
   // strokeText inside uses the context state; set it through a wrapper on this context only
   const m = st.tm || ID_M, s = Math.sqrt(Math.abs(m[0] * m[3] - m[1] * m[2])) || 1, w = lw * (st.tx.pob !== false && st.fc ? 2 : 1) / s;
-  ctx.strokeText = function () { this.lineJoin = lj; this.lineCap = lc; this.miterLimit = lj === 'miter' ? 10 : 4; this.lineWidth = w; if (st.dash && st.dash !== 'solid') this.setLineDash(st.dash === 'custom' && st.dl ? [w * st.dl[0], w * st.dl[1]] : vDash(st, w)); return orig.apply(this, arguments); };
+  ctx.strokeText = function () { this.lineJoin = lj; this.lineCap = lc; this.miterLimit = lj === 'miter' ? 3 : 4; this.lineWidth = w; if (st.dash && st.dash !== 'solid') this.setLineDash(st.dash === 'custom' && st.dl ? [w * st.dl[0], w * st.dl[1]] : vDash(st, w)); return orig.apply(this, arguments); };
   try { return _textPaint30.apply(this, arguments); } finally { ctx.strokeText = orig; }
 };
 
@@ -9875,8 +9876,15 @@ async function vTextToShapes(perLetter) {
   corner.querySelector('select').addEventListener('change', e => { VSH.join = e.target.value; vshSave(); const j = $('#vJoin'); if (j) j.value = VSH.join; vApplyStyle(['join']); e.target.blur(); });
 })();
 const _syncTextUI30 = syncTextUI;
-syncTextUI = function () { _syncTextUI30.apply(this, arguments); const j = $('#vTxJoin'); if (j) { const one = vSelList().find(s => s.shape === 'text'); j.value = one ? (one.ljoin || 'round') : (VSH.join || 'round'); } };
+syncTextUI = function () { _syncTextUI30.apply(this, arguments); const j = $('#vTxJoin'); if (j) { const one = vSelList().find(s => s.shape === 'text'); j.value = one ? (one.ljoin || 'round') : (VSH.join || 'miter'); } };
 window.__t2s = { run: vTextToShapes, tt: ttFont };
+// corners of outlines follow the shape (a square's outline has square corners) — the new default
+if (!VSH.joinV2) { if (VSH.join === 'round') VSH.join = 'miter'; VSH.joinV2 = 1; try { vshSave(); } catch (e) {} }
+(() => {
+  const lab = { round: 'Round', miter: 'Sharp — follows the shape', bevel: 'Cut' };
+  ['#vJoin', '#vTxJoin'].forEach(id => { const s = $(id); if (s) [...s.options].forEach(o => { if (lab[o.value]) o.textContent = lab[o.value]; }); });
+  const j = $('#vJoin'); if (j) j.value = VSH.join;
+})();
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
