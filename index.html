@@ -960,7 +960,7 @@ body.filedrag #stage,body.filedrag #icons{outline:3px dashed var(--accent);outli
   <div class="sm-sep desk-only" hidden></div>
   <button class="sm-item desk-only" role="menuitem" id="smExit" hidden><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAAq0lEQVR4XmNgGOmAET0ATEzC/1MSKGfOrMQwEx9gosQyagAWXIacjllJkvmmS8JJUg8DAx4Cow6gWwiAche2HEY3B+ACdHcAekjQ3QHoAGc5QBDkQ/P9RNTyAldJulHkG4qR/tASdwiHAJrPYQDdp4TAEA4BHMD/DRdWGVwhM/xCAFd7AJbqYQCmbviFACGAHkIjJwTQfT5oWkQ46wJy23ikggFPA6NgFIwCAKq9J5BoDWwmAAAAAElFTkSuQmCC" alt=""><span>Exit</span></button>
 </div>
-<input type="file" id="importInput" accept=".sdt,.sdv,.sdp,.sda,.lbx,.ase,.aseprite,.sdz,.xml,.png,.gif,.jpg,.jpeg,.webp,.bmp" multiple hidden>
+<input type="file" id="importInput" accept=".sdt,.sdv,.sdp,.sda,.lbx,.ase,.aseprite,.sdz,.xml,.png,.gif,.jpg,.jpeg,.webp,.bmp,.mp4,.m4v,.webm,video/mp4,video/webm" multiple hidden>
 <div id="menuLayer"></div>
 <div class="toast box" id="toast" role="status" hidden></div>
 <img id="icoT" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA1klEQVR4XmNgGGDAiG6/iUn4f2q46cyZlRhmEwVADqAUgMwg1iMsuFz18eNvohyMC8TEhIKk/hMKCSaKbCEAQI4gFBI0dQAIEHIEzR1AyBF0cQA+R+BMhJSCJUtWYzUClCaQEyZNHLBnz2Kslt+48YQhJ6cSRQ6vA3R0LCkNCDC4cuU4TnPolgZwgVEHjIbAaAiMhsBoCOCtC/CV4dQCAx4FWEPgY7cPtTyIAjTAPB4UsQEPgVEHYE0DC1ZtpUkagIBwwk0yiyn3aOaAJcS0CdEbjsMaAAA4Z3XVpnZzIwAAAABJRU5ErkJggg==" alt="" hidden><img id="icoV" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA1klEQVR4XmNgGGDAiG6/iUn4f2q46cyZlRhmEwVADqAUgMwg1iMsuFz18eNvohyMC8TEhIKk/hMKCSaKbCEAQI4gFBI0dQAIEHIEzR1AyBF0cQA+R+BMhJSCJUtWYzUClCaQEyZNHLBnz2Kslt+48YQhJ6cSRQ6vA3R0LCkNCDC4cuU4TnPolgZwgVEHjIbAaAiMhsBoCOCtC/CV4dQCAx4FWEPAYO5DankQDTAxsGKIDDAY8CgYcAdgTQNPVy2iWcQooJmM1QFbmmJo5gCi2oToioY1AADcE3U5t9KyDQAAAABJRU5ErkJggg==" alt="" hidden><img id="icoP" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAA0klEQVR4XmNgGGDAiG6/iUn4f2q46cyZlRhmEwVADqAUgMwg1iMsuFz18eNvohyMC8TEhIKk/hMKCSaKbCEAQI4gFBI0dQAIEHIEzR1AyBF0cQA+R+BMhJSCJUtWYzUClCaQEyZNHLBnz2Kslt+48YQhJ6cSRQ6vA3R0LCkNCDC4cuU4TnPolgZwgVEHjIbAaAiMhsBoCOCtC/CV4dQCAx4FWEPAYX02tTxIEAx4CIw6AGsauLrmBMG4IxcoMKgSbpJtyVtDrvkEAVFtQnRFwxoAADVXdVeWmn+zAAAAAElFTkSuQmCC" alt="" hidden>
@@ -5794,9 +5794,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.52.0';
+const APP_VERSION = '1.52.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.52.1', date: '2026-11-12', items: ['Add your own videos to the program desktop: drag .mp4 / .webm files from your computer onto the desktop (or into a folder window), or Start → Open a file…. They sync to your other devices like everything else'] },
   { v: '1.52.0', date: '2026-11-12', items: ['Finished videos on the desktop: in Export (MP4, WebM, GIF) choose Save to → The program desktop (or Both). The video appears on the desktop next to your animations and, with sync on, on your phone and other computers too', 'Double-click a video on the desktop to watch it; “Save to this device…” saves it as a normal file (on the phone too). On the computer the videos are real .mp4 files in Documents\\Starman Does Animations'] },
   { v: '1.51.0', date: '2026-11-12', items: ['Auto masks: right-click a layer → Auto mask from layer… → pick the layer with the shapes. The layer then shows only inside those shapes (the rest is hidden) — on every frame by itself, and it follows when the shapes move or change. Right-click the auto mask to show only outside instead', 'Right-click a shape → Show a layer only inside these shapes: the shape goes on its own layer and becomes the auto mask for the layer you pick'] },
   { v: '1.50.0', date: '2026-11-12', items: ['Join / Cut / Overlap / Exclude now work with shapes on different layers (Shift+click them on any layer) — the result goes on the front shape’s layer (Cut: the back shape’s)', 'Move shapes to another layer: right-click a shape → Move to a new layer / Move to layer, or the buttons in the Shape window, or Ctrl+Shift+L for a new layer', 'Right-click on shapes (V or A) opens a menu: Join, Cut, Move to layer, Duplicate, Delete'] },
@@ -9279,7 +9280,19 @@ async function openVideo(p) {
   d.addEventListener('close', () => { try { m.pause && m.pause(); } catch (e) {} URL.revokeObjectURL(url); d.remove(); });
   document.body.appendChild(d); d.showModal();
 }
-window.__vid = { put: putOnDesk, open: openVideo };
+const isVideoFile = f => /\.(mp4|m4v|webm)$/i.test(f.name || '') || /^video\/(mp4|webm)/.test(f.type || '');
+async function importVideos(vids, dir) {   // video files from the computer or phone → the program desktop (they sync)
+  const out = [];
+  for (const f of vids) {
+    if (f.size > 300e6) { toast(f.name + ' is too big (over 300 MB)'); continue; }
+    const ext = /\.webm$/i.test(f.name) || /webm/.test(f.type) ? 'webm' : 'mp4';
+    try { const p = await freeDeskPath(dir || '', cleanName(f.name.replace(/\.[^.]+$/, '')) || 'Video', ext); await store.write(p, await blobToB64(f)); out.push(p); }
+    catch (e) { toast(desk && !desk.appVersion4 ? 'Restart the program once to finish the update, then try again' : 'Could not add ' + f.name); }
+  }
+  if (out.length) { selected = out[out.length - 1]; refreshAll(); try { if (typeof syncSoon === 'function') syncSoon(); } catch (e) {} toast(out.length === 1 ? 'Video added: ' + baseName(out[0]) : out.length + ' videos added'); }
+  return out;
+}
+window.__vid = { importVideos, put: putOnDesk, open: openVideo };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {
@@ -10359,6 +10372,8 @@ async function xmlPairs(files) {
 const isProjFile = f => /\.(sdt|sdp|sdv|sda|lbx|ase|aseprite|json|sdz)$/i.test(f.name || '');
 async function importFiles(files, dir) {
     if (!files.length) return;
+    const vids = files.filter(isVideoFile); files = files.filter(f => !isVideoFile(f));   // videos are kept on the desktop as they are
+    if (vids.length) { const done = await importVideos(vids, dir); if (!files.length) return done; }
     files = await Promise.all(files.map(f => sniffFile(f).catch(() => f)));
     const packs = files.filter(f => /\.sdz$/i.test(f.name || '')); files = files.filter(f => !/\.sdz$/i.test(f.name || ''));
     let fromPacks = []; for (const pk of packs) { try { fromPacks = fromPacks.concat(await unpackSdz(pk, dir)); } catch (err) { toast(pk.name + ': ' + (err && err.message || 'cannot read')); } }

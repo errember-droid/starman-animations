@@ -1,6 +1,13 @@
 {
- "version": "1.52.0",
+ "version": "1.52.1",
  "changelog": [
+  {
+   "v": "1.52.1",
+   "date": "2026-11-12",
+   "items": [
+    "Add your own videos to the program desktop: drag .mp4 / .webm files from your computer onto the desktop (or into a folder window), or Start → Open a file…. They sync to your other devices like everything else"
+   ]
+  },
   {
    "v": "1.52.0",
    "date": "2026-11-12",
