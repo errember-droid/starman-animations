@@ -1,6 +1,15 @@
 {
- "version": "1.57.0",
+ "version": "1.58.0",
  "changelog": [
+  {
+   "v": "1.58.0",
+   "date": "2026-11-13",
+   "items": [
+    "Physics for pixel art (Shift+P, or the Animation window): swinging chains and ropes, falling and bouncing pieces, wind — simulated in their own window, then “Apply” turns it into frames on the canvas at the right place (starting at the current frame, new frames are added when needed; Ctrl+Z undoes)",
+    "⚓ Anchor brush: the parts it covers stay fixed. ✥ Move anchor on any frame makes a key — the anchor glides between keys and drags the chain with it. ▦ Collision brush paints solid ground and walls",
+    "Node editor like Blender: Layer → Physics object (rope / chain, one solid piece or separate pieces; link length, stiffness, weight, friction, bounce, air drag) → Simulation, plus Collision brush, Layer is solid, Canvas edges, Gravity, Wind and Start push. Right-click to add nodes, drag between the dots to connect. The setup is saved with the animation"
+   ]
+  },
   {
    "v": "1.57.0",
    "date": "2026-11-13",
