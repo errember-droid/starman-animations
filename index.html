@@ -5797,9 +5797,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.56.1';
+const APP_VERSION = '1.57.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.57.0', date: '2026-11-13', items: ['Export → “Adobe Illustrator / SVG (vector)”: your animation opens in Illustrator (File → Open) with every shape as a real editable path — outlines, gradients, text, masks, layer names and opacity come along; shadows, glow and blur come as SVG effects; pixel layers and pictures as embedded images', 'Choose this frame, all frames in one file (each frame a group, only the first shown) or one SVG per frame in a .zip. In Illustrator use File → Save As to keep it as .ai'] },
   { v: '1.56.1', date: '2026-11-12', items: ['Fix: text turned into shapes no longer gets its outline inside the letters — the outline stays outside (behind the letters) like on the text, and parts of letters that overlap stay filled instead of becoming holes with lines through them', 'Already converted letters: right-click them (V) → “Fix letters: fill overlaps, outline outside”', 'Stroke “Outside” now works on combined shapes too and never leaks into the fill'] },
   { v: '1.56.0', date: '2026-11-12', items: ['Trace to vector (Shift+I, or “Trace…” in the Shape window): a picture, a pasted picture, this frame, or picked shapes with effects become plain vector shapes on a new layer “Traced”. Set Colors, Smooth, Detail, Skip specks and Leave out the background', 'Thick outlines are clean now: no more spikes and cut-off corners on fat outlines of shapes and text, and thick brush lines with thin ends no longer fold over in tight bends'] },
   { v: '1.55.1', date: '2026-11-12', items: ['Outlines now follow the shape by default: a square’s outline has square corners, a star’s outline has sharp points (Corners: “Sharp — follows the shape”). Round and Cut are still there; shapes you already drew keep their look'] },
@@ -10114,6 +10115,301 @@ window.addEventListener('keydown', e => {
   const t = e.target; if (t.closest && t.closest('input,textarea,select')) return; e.preventDefault(); e.stopImmediatePropagation(); openTrace();
 }, true);
 window.__trace = { open: openTrace, img: traceImage, shapes: traceToShapes };
+/* ================= v57: export for Adobe Illustrator (SVG): real paths, layers as groups, gradients, outlines, masks, text ================= */
+// the drawing code is run on a pretend canvas that writes SVG instead of pixels
+const SVG_NUM = v => { const r = Math.round(v * 1000) / 1000; return Object.is(r, -0) ? '0' : String(r); };
+const svgEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+function svgArcOps(o, cx, cy, rx, ry, rot, a0, a1, ccw, hasPt) {   // an arc → curves (so every path is M/L/C/Z)
+  let d = a1 - a0; const TAU = Math.PI * 2;
+  if (!ccw && d < 0) d = d % TAU + TAU; if (ccw && d > 0) d = d % TAU - TAU;
+  if (!ccw && a1 - a0 >= TAU) d = TAU; if (ccw && a0 - a1 >= TAU) d = -TAU;
+  const cr = Math.cos(rot), sr = Math.sin(rot), P = a => { const x = rx * Math.cos(a), y = ry * Math.sin(a); return [cx + x * cr - y * sr, cy + x * sr + y * cr]; }, D = a => { const x = -rx * Math.sin(a), y = ry * Math.cos(a); return [x * cr - y * sr, x * sr + y * cr]; };
+  const p0 = P(a0); o.push([hasPt ? 'L' : 'M', p0[0], p0[1]]);
+  const n = Math.max(1, Math.ceil(Math.abs(d) / (Math.PI / 2))), s = d / n, k = 4 / 3 * Math.tan(s / 4);
+  for (let i = 0; i < n; i++) { const t0 = a0 + s * i, t1 = t0 + s, q0 = P(t0), q1 = P(t1), d0 = D(t0), d1 = D(t1); o.push(['C', q0[0] + d0[0] * k, q0[1] + d0[1] * k, q1[0] - d1[0] * k, q1[1] - d1[1] * k, q1[0], q1[1]]); }
+}
+const PathOps = {   // shared by the recording Path2D and the pretend canvas' own path
+  _o() { return this.o || (this.o = []); },
+  moveTo(x, y) { this._o().push(['M', x, y]); this.hp = true; },
+  lineTo(x, y) { this._o().push([this.hp ? 'L' : 'M', x, y]); this.hp = true; },
+  bezierCurveTo(a, b, c, d, e, f) { if (!this.hp) this._o().push(['M', a, b]); this._o().push(['C', a, b, c, d, e, f]); this.hp = true; },
+  quadraticCurveTo(a, b, c, d) { if (!this.hp) this._o().push(['M', a, b]); this._o().push(['Q', a, b, c, d]); this.hp = true; },
+  arc(x, y, r, a0, a1, ccw) { svgArcOps(this._o(), x, y, r, r, 0, a0, a1, !!ccw, this.hp); this.hp = true; },
+  ellipse(x, y, rx, ry, rot, a0, a1, ccw) { svgArcOps(this._o(), x, y, rx, ry, rot, a0, a1, !!ccw, this.hp); this.hp = true; },
+  arcTo(x1, y1) { this.lineTo(x1, y1); },
+  rect(x, y, w, h) { this._o().push(['M', x, y], ['L', x + w, y], ['L', x + w, y + h], ['L', x, y + h], ['Z']); this.hp = true; },
+  roundRect(x, y, w, h) { PathOps.rect.call(this, x, y, w, h); },
+  closePath() { this._o().push(['Z']); },
+  addPath(p, m) {
+    if (!p || !p.o) return; const o = this._o();
+    if (!m) { p.o.forEach(c => o.push(c)); } else { const M = (x, y) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f];
+      p.o.forEach(c => { if (c[0] === 'Z') { o.push(c); return; } const r = [c[0]]; for (let i = 1; i < c.length; i += 2) r.push(...M(c[i], c[i + 1])); o.push(r); }); }
+    this.hp = true;
+  }
+};
+const svgD = o => (o || []).map(c => c[0] + (c.length > 1 ? c.slice(1).map(SVG_NUM).join(' ') : '')).join('');
+let RealPath2D = null;
+function svgRecPaths(on) {   // while exporting, every new Path2D also remembers what it was made of
+  if (on && !RealPath2D) {
+    RealPath2D = window.Path2D; const B = RealPath2D;
+    class RecPath extends B {
+      constructor(a) { super(a); this.o = a && a.o ? a.o.slice() : []; this.hp = this.o.length > 0; }
+    }
+    for (const k of Object.keys(PathOps)) { if (k === '_o') { RecPath.prototype._o = PathOps._o; continue; } const real = B.prototype[k];
+      RecPath.prototype[k] = function () { if (real) try { real.apply(this, arguments); } catch (e) {} return PathOps[k].apply(this, arguments); }; }
+    window.Path2D = RecPath;
+  } else if (!on && RealPath2D) { window.Path2D = RealPath2D; RealPath2D = null; }
+}
+const svgColN = document.createElement('canvas').getContext('2d');
+function svgCol(c) {   // any CSS color → ['#rrggbb', alpha]
+  if (!c || typeof c !== 'string') return ['#000000', 1];
+  svgColN.fillStyle = '#000000'; svgColN.fillStyle = c; const v = svgColN.fillStyle;
+  if (v[0] === '#') return [v, 1];
+  const m = v.match(/rgba?\(([^)]+)\)/); if (!m) return ['#000000', 1];
+  const p = m[1].split(',').map(s => parseFloat(s)); return ['#' + p.slice(0, 3).map(n => clamp(Math.round(n), 0, 255).toString(16).padStart(2, '0')).join(''), p[3] == null ? 1 : p[3]];
+}
+function svgPic(img, sx, sy, sw, sh) {   // a picture → a PNG data URL (cropped when asked)
+  try {
+    const w = img.naturalWidth || img.videoWidth || img.width, h = img.naturalHeight || img.videoHeight || img.height; if (!(w > 0 && h > 0)) return null;
+    if (sx == null && img.toDataURL) return img.toDataURL('image/png');
+    const c = mk(Math.max(1, Math.round(sw == null ? w : sw)), Math.max(1, Math.round(sh == null ? h : sh))); c.getContext('2d').drawImage(img, sx || 0, sy || 0, sw == null ? w : sw, sh == null ? h : sh, 0, 0, c.width, c.height); return c.toDataURL('image/png');
+  } catch (e) { return null; }
+}
+const SVG_BLEND = { multiply: 1, screen: 1, overlay: 1, darken: 1, lighten: 1, 'color-dodge': 1, 'color-burn': 1, 'hard-light': 1, 'soft-light': 1, difference: 1, exclusion: 1, hue: 1, saturation: 1, color: 1, luminosity: 1 };
+class SvgCtx {
+  constructor(w, h, doc) {
+    this.__svg = true; this.canvas = { width: w, height: h }; this.doc = doc; this.out = [];
+    this.s = { T: [1, 0, 0, 1, 0, 0], fillStyle: '#000000', strokeStyle: '#000000', lineWidth: 1, lineJoin: 'miter', lineCap: 'butt', miterLimit: 10, dash: [], lineDashOffset: 0,
+      globalAlpha: 1, globalCompositeOperation: 'source-over', filter: 'none', shadowColor: 'rgba(0,0,0,0)', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0,
+      font: '10px sans-serif', textAlign: 'start', textBaseline: 'alphabetic', letterSpacing: '0px', clip: null, imageSmoothingEnabled: true, imageSmoothingQuality: 'low' };
+    this.stack = []; this.o = []; this.hp = false; this.mono = null;
+    const self = this;
+    return new Proxy(this, { get(t, k) { if (k in t) return t[k]; if (typeof k === 'string' && k in t.s) return t.s[k]; return typeof k === 'string' ? (() => undefined) : undefined; },
+      set(t, k, v) { if (k in t.s) t.s[k] = v; else t[k] = v; return true; } });
+  }
+  save() { this.stack.push(Object.assign({}, this.s, { T: this.s.T.slice(), dash: this.s.dash.slice() })); }
+  restore() { if (this.stack.length) this.s = this.stack.pop(); }
+  setTransform(a, b, c, d, e, f) { if (a && typeof a === 'object') { const m = a; this.s.T = [m.a, m.b, m.c, m.d, m.e, m.f]; } else if (a == null) this.s.T = [1, 0, 0, 1, 0, 0]; else this.s.T = [a, b, c, d, e, f]; }
+  resetTransform() { this.s.T = [1, 0, 0, 1, 0, 0]; }
+  getTransform() { return new DOMMatrix(this.s.T); }
+  transform(a, b, c, d, e, f) { const T = this.s.T; this.s.T = [T[0] * a + T[2] * b, T[1] * a + T[3] * b, T[0] * c + T[2] * d, T[1] * c + T[3] * d, T[0] * e + T[2] * f + T[4], T[1] * e + T[3] * f + T[5]]; }
+  translate(x, y) { this.transform(1, 0, 0, 1, x, y); }
+  scale(x, y) { this.transform(x, 0, 0, y, 0, 0); }
+  rotate(a) { const c = Math.cos(a), s = Math.sin(a); this.transform(c, s, -s, c, 0, 0); }
+  setLineDash(d) { this.s.dash = (d || []).slice(); }
+  getLineDash() { return this.s.dash.slice(); }
+  beginPath() { this.o = []; this.hp = false; }
+  measureText(t) { svgColN.font = this.s.font; return svgColN.measureText(t); }
+  isPointInPath() { return false; } isPointInStroke() { return false; }
+  clearRect() {} getImageData(x, y, w, h) { return new ImageData(Math.max(1, w | 0), Math.max(1, h | 0)); } putImageData() {}
+  createLinearGradient(x0, y0, x1, y1) { return { k: 'linear', a: [x0, y0, x1, y1], stops: [], addColorStop(p, c) { this.stops.push([p, c]); } }; }
+  createRadialGradient(x0, y0, r0, x1, y1, r1) { return { k: 'radial', a: [x0, y0, r0, x1, y1, r1], stops: [], addColorStop(p, c) { this.stops.push([p, c]); } }; }
+  createConicGradient(a, x, y) { return { k: 'conic', a: [a, x, y], stops: [], addColorStop(p, c) { this.stops.push([p, c]); } }; }
+  createPattern(img, rep) { return { k: 'pattern', img, m: null, setTransform(m) { this.m = m; } }; }
+  // ---- what gets written
+  _k() { const T = this.s.T; return Math.sqrt(Math.abs(T[0] * T[3] - T[1] * T[2])) || 1; }
+  _tf() { const T = this.s.T; return T[0] === 1 && T[1] === 0 && T[2] === 0 && T[3] === 1 && T[4] === 0 && T[5] === 0 ? '' : ' transform="matrix(' + T.map(SVG_NUM).join(' ') + ')"'; }
+  _paint(p, kind) {   // fill/stroke attributes
+    if (this.mono) return ' ' + kind + '="' + this.mono + '"';
+    if (typeof p === 'string') { const [c, a] = svgCol(p); return ' ' + kind + '="' + c + '"' + (a < 1 ? ' ' + kind + '-opacity="' + SVG_NUM(a) + '"' : ''); }
+    if (p && p.stops) return ' ' + kind + '="url(#' + this.doc.grad(p) + ')"';
+    if (p && p.k === 'pattern') { const id = this.doc.pattern(p); return id ? ' ' + kind + '="url(#' + id + ')"' : ' ' + kind + '="none"'; }
+    return ' ' + kind + '="none"';
+  }
+  _fx() {   // opacity, blend, blur and shadow of the element being written
+    const s = this.s; let a = '';
+    if (s.globalAlpha < 1 && !this.mono) a += ' opacity="' + SVG_NUM(s.globalAlpha) + '"';
+    const g = s.globalCompositeOperation; if (SVG_BLEND[g] && !this.mono) a += ' style="mix-blend-mode:' + g + '"'; else if (g === 'lighter' && !this.mono) a += ' style="mix-blend-mode:screen"';
+    if (this.mono) return a;
+    const k = this._k(), bm = /blur\(([\d.]+)px\)/.exec(s.filter || ''), blur = bm ? +bm[1] / k : 0;
+    const [sc, sa] = svgCol(s.shadowColor), shOn = sa > 0 && (s.shadowBlur > 0 || s.shadowOffsetX || s.shadowOffsetY);
+    if (blur > 0 || shOn) {
+      let sx = 0, sy = 0; if (shOn) { const T = s.T, det = T[0] * T[3] - T[1] * T[2] || 1; sx = (T[3] * s.shadowOffsetX - T[2] * s.shadowOffsetY) / det; sy = (-T[1] * s.shadowOffsetX + T[0] * s.shadowOffsetY) / det; }
+      a += ' filter="url(#' + this.doc.filter(blur, shOn ? { c: sc, a: sa, b: s.shadowBlur / 2 / k, x: sx, y: sy } : null) + ')"';
+    }
+    return a;
+  }
+  _skip() { const g = this.s.globalCompositeOperation; return g === 'destination-out' || g === 'destination-in' || g === 'copy' || g === 'xor' || (this.s.globalAlpha <= 0); }
+  _put(el) { this.out.push(this.s.clip ? '<g clip-path="url(#' + this.s.clip + ')">' + el + '</g>' : el); }
+  _stroke(d, extra) {
+    const s = this.s, lw = s.lineWidth;
+    let a = this._paint(s.strokeStyle, 'stroke') + ' fill="none" stroke-width="' + SVG_NUM(lw) + '"';
+    if (s.lineJoin !== 'miter') a += ' stroke-linejoin="' + s.lineJoin + '"'; else a += ' stroke-miterlimit="' + SVG_NUM(s.miterLimit) + '"';
+    if (s.lineCap !== 'butt') a += ' stroke-linecap="' + s.lineCap + '"';
+    if (s.dash.length && s.dash.some(v => v > 0.01)) a += ' stroke-dasharray="' + s.dash.map(SVG_NUM).join(' ') + '"' + (s.lineDashOffset ? ' stroke-dashoffset="' + SVG_NUM(s.lineDashOffset) + '"' : '');
+    return a + (extra || '');
+  }
+  fill(p, rule) { if (typeof p === 'string') { rule = p; p = null; } if (this._skip()) return; const d = svgD(p ? p.o : this.o); if (!d) return;
+    this._put('<path d="' + d + '"' + this._paint(this.s.fillStyle, 'fill') + (rule === 'evenodd' ? ' fill-rule="evenodd"' : '') + this._fx() + this._tf() + '/>'); }
+  stroke(p) { if (this._skip()) return; const d = svgD(p ? p.o : this.o); if (!d || !(this.s.lineWidth > 0)) return; this._put('<path d="' + d + '"' + this._stroke() + this._fx() + this._tf() + '/>'); }
+  clip(p, rule) { if (typeof p === 'string') { rule = p; p = null; } const d = svgD(p ? p.o : this.o); if (!d) return; this.s.clip = this.doc.clip(d, rule, this._tf(), this.s.clip); }
+  fillRect(x, y, w, h) { const t = { o: [], _o: PathOps._o }; PathOps.rect.call(t, x, y, w, h); this.fill(t); }
+  strokeRect(x, y, w, h) { const t = { o: [], _o: PathOps._o }; PathOps.rect.call(t, x, y, w, h); this.stroke(t); }
+  drawImage(img, a, b, c, d, e, f, g, h) {
+    if (this._skip() || this.mono) return; let url, x, y, w, hh;
+    if (e === undefined) { url = svgPic(img); x = a; y = b; w = c == null ? (img.naturalWidth || img.width) : c; hh = d == null ? (img.naturalHeight || img.height) : d; }
+    else { url = svgPic(img, a, b, c, d); x = e; y = f; w = g; hh = h; }
+    if (!url) return;
+    this._put('<image x="' + SVG_NUM(x) + '" y="' + SVG_NUM(y) + '" width="' + SVG_NUM(w) + '" height="' + SVG_NUM(hh) + '" preserveAspectRatio="none" xlink:href="' + url + '"' + this._fx() + this._tf() + '/>');
+  }
+  _text(t, x, y, how) {
+    if (this._skip() || !t) return; const s = this.s, m = /^\s*(italic\s+|oblique\s+)?(?:(normal|bold|\d{3})\s+)?([\d.]+)px\s+(.+)$/.exec(s.font) || [];
+    const fam = (m[4] || 'sans-serif').replace(/"/g, "'"), anchor = { center: 'middle', right: 'end', end: 'end' }[s.textAlign] || 'start';
+    const base = { top: 'text-before-edge', hanging: 'hanging', middle: 'central', bottom: 'text-after-edge', ideographic: 'ideographic' }[s.textBaseline];
+    let a = ' x="' + SVG_NUM(x) + '" y="' + SVG_NUM(y) + '" font-family="' + svgEsc(fam) + '" font-size="' + SVG_NUM(+m[3] || 10) + '"' + (m[2] && m[2] !== 'normal' && m[2] !== '400' ? ' font-weight="' + m[2] + '"' : '') + (m[1] ? ' font-style="italic"' : '');
+    const ls = parseFloat(s.letterSpacing) || 0; if (ls) a += ' letter-spacing="' + SVG_NUM(ls) + '"';
+    if (anchor !== 'start') a += ' text-anchor="' + anchor + '"'; if (base) a += ' dominant-baseline="' + base + '"';
+    a += how === 'stroke' ? this._stroke() : this._paint(s.fillStyle, 'fill');
+    this._put('<text xml:space="preserve"' + a + this._fx() + this._tf() + '>' + svgEsc(t) + '</text>');
+  }
+  fillText(t, x, y) { this._text(t, x, y, 'fill'); }
+  strokeText(t, x, y) { this._text(t, x, y, 'stroke'); }
+}
+for (const k of Object.keys(PathOps)) if (!(k in SvgCtx.prototype)) SvgCtx.prototype[k] = PathOps[k];
+class SvgDoc {   // the shared <defs>: gradients, clips, filters, masks
+  constructor() { this.defs = []; this.n = 0; this.ids = new Set(); this.fcache = new Map(); }
+  id(p) { return p + (++this.n); }
+  name(s) {   // a layer/frame name → a unique id that Illustrator shows as the name
+    let b = String(s || 'Layer').trim().replace(/\s+/g, '_').replace(/[^\w\-.]/g, '_'); if (!/^[A-Za-z_]/.test(b)) b = '_' + b; let n = b, k = 2; while (this.ids.has(n)) n = b + '_' + k++; this.ids.add(n); return n;
+  }
+  grad(g) {
+    const id = this.id('g'), st = (g.stops.length ? g.stops : [[0, '#000'], [1, '#000']]).slice().sort((a, b) => a[0] - b[0]).map(([p, c]) => { const [h, a] = svgCol(c); return '<stop offset="' + SVG_NUM(clamp(p, 0, 1)) + '" stop-color="' + h + '"' + (a < 1 ? ' stop-opacity="' + SVG_NUM(a) + '"' : '') + '/>'; }).join('');
+    if (g.k === 'radial') { const [x0, y0, r0, x1, y1, r1] = g.a; this.defs.push('<radialGradient id="' + id + '" gradientUnits="userSpaceOnUse" cx="' + SVG_NUM(x1) + '" cy="' + SVG_NUM(y1) + '" r="' + SVG_NUM(r1) + '" fx="' + SVG_NUM(x0) + '" fy="' + SVG_NUM(y0) + '"' + (r0 ? ' fr="' + SVG_NUM(r0) + '"' : '') + '>' + st + '</radialGradient>'); }
+    else if (g.k === 'conic') { const [a, x, y] = g.a, R = 1000; this.defs.push('<linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="' + SVG_NUM(x - Math.cos(a) * R) + '" y1="' + SVG_NUM(y - Math.sin(a) * R) + '" x2="' + SVG_NUM(x + Math.cos(a) * R) + '" y2="' + SVG_NUM(y + Math.sin(a) * R) + '">' + st + '</linearGradient>'); }
+    else { const [x1, y1, x2, y2] = g.a; this.defs.push('<linearGradient id="' + id + '" gradientUnits="userSpaceOnUse" x1="' + SVG_NUM(x1) + '" y1="' + SVG_NUM(y1) + '" x2="' + SVG_NUM(x2) + '" y2="' + SVG_NUM(y2) + '">' + st + '</linearGradient>'); }
+    return id;
+  }
+  pattern(p) {
+    const url = svgPic(p.img); if (!url) return null; const id = this.id('p'), w = p.img.width, h = p.img.height, m = p.m;
+    this.defs.push('<pattern id="' + id + '" patternUnits="userSpaceOnUse" width="' + w + '" height="' + h + '"' + (m ? ' patternTransform="matrix(' + [m.a, m.b, m.c, m.d, m.e, m.f].map(SVG_NUM).join(' ') + ')"' : '') + '><image width="' + w + '" height="' + h + '" xlink:href="' + url + '"/></pattern>');
+    return id;
+  }
+  clip(d, rule, tf, parent) {
+    const id = this.id('c');
+    this.defs.push('<clipPath id="' + id + '" clipPathUnits="userSpaceOnUse"' + (parent ? ' clip-path="url(#' + parent + ')"' : '') + '><path d="' + d + '"' + (rule === 'evenodd' ? ' clip-rule="evenodd"' : '') + tf + '/></clipPath>');
+    return id;
+  }
+  filter(blur, sh) {
+    const key = SVG_NUM(blur) + '|' + (sh ? [sh.c, sh.a, sh.b, sh.x, sh.y].map(v => typeof v === 'number' ? SVG_NUM(v) : v).join(',') : '');
+    if (this.fcache.has(key)) return this.fcache.get(key);
+    const id = this.id('f'); let f = '<filter id="' + id + '" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB">';
+    let src = 'SourceGraphic';
+    if (blur > 0) { f += '<feGaussianBlur in="SourceGraphic" stdDeviation="' + SVG_NUM(blur) + '" result="b"/>'; src = 'b'; }
+    if (sh) f += '<feGaussianBlur in="' + (src === 'b' ? 'b' : 'SourceAlpha') + '" stdDeviation="' + SVG_NUM(sh.b) + '"/><feOffset dx="' + SVG_NUM(sh.x) + '" dy="' + SVG_NUM(sh.y) + '" result="o"/><feFlood flood-color="' + sh.c + '" flood-opacity="' + SVG_NUM(sh.a) + '"/><feComposite in2="o" operator="in" result="s"/><feMerge><feMergeNode in="s"/><feMergeNode in="' + src + '"/></feMerge>';
+    f += '</filter>'; this.defs.push(f); this.fcache.set(key, id); return id;
+  }
+}
+// ---- one frame → SVG elements (every layer its own named group)
+const svgCloneCel = c => c && c.strokes ? Object.assign({}, c, { strokes: c.strokes.map(st => Object.assign({}, st)) }) : c;   // fresh shapes = fresh outlines (made with the recording Path2D)
+function svgLayerPic(f, fi, i, sc, cr, opt) {   // a pixel layer (or picture, sprite, filter-heavy part) as one embedded picture, cut to what it covers
+  const cw = Math.round(W * sc), ch = Math.round(H * sc), c = mk(cw, ch), g = c.getContext('2d');
+  camSet(g, cr, sc); _drawLayersRaw(g, f, Object.assign({ exportOnly: true, only: i, r: cr, cam: cr, fi, k: sc, tmp: mk(cw, ch), canvas: c }, opt || {}));
+  const d = g.getImageData(0, 0, cw, ch).data; let x0 = cw, y0 = ch, x1 = -1, y1 = -1;
+  for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (d[(y * cw + x) * 4 + 3]) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return '';
+  const url = svgPic(c, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+  return '<image x="' + x0 + '" y="' + y0 + '" width="' + (x1 - x0 + 1) + '" height="' + (y1 - y0 + 1) + '" xlink:href="' + url + '"/>';
+}
+const _drawLayersRaw = (g, f, o) => drawLayers(g, f, o);
+function svgDrawCel(rec, cel, la) {   // the vector shapes of a cel, each with its own opacity
+  if (cel.op != null) la *= cel.op;
+  for (const st of cel.strokes) {
+    const a = (st.opacity == null ? 1 : st.opacity) * la;
+    if (a <= 0) continue;
+    if (a < 1 && !rec.mono) { const keep = rec.out; rec.out = []; drawStroke(rec, st); const inner = rec.out.join(''); rec.out = keep; if (inner) rec.out.push('<g opacity="' + SVG_NUM(a) + '">' + inner + '</g>'); }
+    else drawStroke(rec, st);
+  }
+}
+function svgFrame(doc, f, fi, sc, opt) {
+  const cw = W * sc, ch = H * sc, cr = camRect(fi), out = [];
+  if (opt.bg) out.push('<rect id="' + doc.name('Background color') + '" width="' + SVG_NUM(cw) + '" height="' + SVG_NUM(ch) + '" fill="' + svgCol(S.paper)[0] + '"/>');
+  const grp = hasGroups(), cels = f.cels.map(svgCloneCel), F = Object.assign({}, f, { cels });
+  const vecOf = i => cels[i] && cels[i].strokes && MODE === 'vector';
+  const drawInto = (i, mat, mono, la) => {   // a layer's vector content, written as SVG text
+    const rec = new SvgCtx(cw, ch, doc); rec.mono = mono || null; camSet(rec, cr, sc); if (mat) rec.transform(mat.a, mat.b, mat.c, mat.d, mat.e, mat.f);
+    svgDrawCel(rec, cels[i], la); return rec.out.join('');
+  };
+  const maskPic = (j, mat, white, srcLi) => {   // a pixel mask: its shape in white or black
+    const cw2 = Math.round(cw), ch2 = Math.round(ch), c = mk(cw2, ch2), g = c.getContext('2d'); camSet(g, cr, sc); if (mat) g.transform(mat.a, mat.b, mat.c, mat.d, mat.e, mat.f);
+    drawOneLayer(g, S.layers[srcLi != null ? srcLi : j], srcLi != null ? srcLi : j, F, { fi, r: null, tmp: mk(cw2, ch2), cam: cr }, 1);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = white ? '#fff' : '#000'; g.fillRect(0, 0, cw2, ch2);
+    return '<image width="' + cw2 + '" height="' + ch2 + '" xlink:href="' + c.toDataURL('image/png') + '"/>';
+  };
+  S.layers.forEach((l, i) => {
+    if (!l.visible || l.type === 'sound' || isGroup(l) || l.type === 'ref' || l.type === 'fx' || l.type === 'mask') return;
+    const ef = grp ? effOf(i) : null; if (ef && !ef.vis) return;
+    const la = (l.opacity == null ? 1 : l.opacity) * (ef ? ef.mul : 1) * motionOp(l, fi), nm = doc.name(l.name);
+    const blend = l.blend && l.blend !== 'source-over' && l.blend !== 'normal' && SVG_BLEND[l.blend] ? ' style="mix-blend-mode:' + l.blend + '"' : '';
+    if (l.type === 'bg') { out.push('<rect id="' + nm + '" data-name="' + svgEsc(l.name) + '" width="' + SVG_NUM(cw) + '" height="' + SVG_NUM(ch) + '" fill="' + svgCol(l.color)[0] + '"' + (la < 1 ? ' opacity="' + SVG_NUM(la) + '"' : '') + blend + '/>'); return; }
+    if (!vecOf(i)) { const pic = svgLayerPic(F, fi, i, sc, cr); if (pic) out.push('<g id="' + nm + '" data-name="' + svgEsc(l.name) + '"' + blend + '>' + pic + '</g>'); return; }   // masks and opacity are already in the picture
+    const M = layerMat(l, fi);
+    // the masks that cut it (as in the app: masks right above it, plus masks linked to it)
+    const masks = [];
+    for (let j = i + 1; j < S.layers.length && S.layers[j].type === 'mask'; j++) { const mj = S.layers[j]; if (maskLinked(mj) && mj.mt !== l.id) continue; if (mj.visible && f.cels[j]) masks.push(j); }
+    if (l.id) S.layers.forEach((mj, j) => { if (mj.type === 'mask' && mj.mt === l.id && mj.visible && f.cels[j] && !masks.includes(j)) masks.push(j); });
+    let body = drawInto(i, M, null, 1);
+    for (const j of masks) {
+      const m = S.layers[j], si = autoMaskSrc(m), show = si >= 0 ? m.invert !== false : m.invert === false;   // show = only inside the mask shapes
+      const src = si >= 0 ? si : j, mat = si >= 0 ? layerMat(S.layers[si], fi) : M;
+      const inner = vecOf(src) ? drawInto(src, mat, show ? '#ffffff' : '#000000', 1) : maskPic(j, mat, show, si >= 0 ? si : null);
+      const id = doc.id('m');
+      doc.defs.push('<mask id="' + id + '" maskUnits="userSpaceOnUse" x="-100000" y="-100000" width="200000" height="200000">' + (show ? '' : '<rect x="-100000" y="-100000" width="200000" height="200000" fill="#ffffff"/>') + inner + '</mask>');
+      body = '<g mask="url(#' + id + ')">' + body + '</g>';
+    }
+    out.push('<g id="' + nm + '" data-name="' + svgEsc(l.name) + '"' + (la < 1 ? ' opacity="' + SVG_NUM(la) + '"' : '') + blend + '>' + body + '</g>');
+  });
+  return out.join('\n');
+}
+function svgDocument(frames, sc, opt) {   // frames: [{ f, fi }] → the whole .svg text
+  const doc = new SvgDoc(), cw = W * sc, ch = H * sc, parts = [];
+  svgRecPaths(true);
+  try {
+    frames.forEach((x, k) => {
+      const body = svgFrame(doc, x.f, x.fi, sc, opt);
+      if (frames.length === 1) parts.push(body);
+      else parts.push('<g id="' + doc.name('Frame ' + (x.fi + 1)) + '" data-name="Frame ' + (x.fi + 1) + '"' + (k ? ' display="none"' : '') + '>\n' + body + '\n</g>');
+    });
+  } finally { svgRecPaths(false); }
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<!-- Made with Starman Does Animations -->\n<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="' + SVG_NUM(cw) + 'px" height="' + SVG_NUM(ch) + 'px" viewBox="0 0 ' + SVG_NUM(cw) + ' ' + SVG_NUM(ch) + '">\n' +
+    (doc.defs.length ? '<defs>\n' + doc.defs.join('\n') + '\n</defs>\n' : '') + parts.join('\n') + '\n</svg>\n';
+}
+// the shapes with effects keep being drawn for real (no ready pictures) on the SVG canvas
+{ const _dv = drawVShape; drawVShape = function (ctx, st) { if (ctx && ctx.__svg) return vDrawFull(ctx, st); return _dv.apply(this, arguments); }; }
+// ---- the Export tab
+(() => {
+  const fmt = $('#exFmt'); if (!fmt) return;
+  const op = document.createElement('option'); op.value = 'svg'; op.textContent = 'Adobe Illustrator / SVG (vector)'; fmt.insertBefore(op, fmt.querySelector('option[value="zip"]'));
+  const row = document.createElement('label'); row.className = 'arow'; row.id = 'exSvgRow';
+  row.innerHTML = 'Frames <select id="exSvgMode"><option value="cur">This frame</option><option value="one">Frames below in one file (each frame a group)</option><option value="zip">Frames below, one file each (.zip)</option></select>';
+  $('#exScale').closest('label').after(row);
+  $('#exSvgMode').addEventListener('change', () => syncExportTab());
+})();
+const _syncExtraExport32 = syncExtraExport;
+syncExtraExport = function (f) {
+  _syncExtraExport32.apply(this, arguments);
+  const r = $('#exSvgRow'); if (r) r.hidden = f !== 'svg';
+  if (f !== 'svg') return;
+  $('#exFmtInfo').textContent = 'Opens in Adobe Illustrator (File → Open), Inkscape, Figma and Affinity: every shape stays a real editable path — outlines, gradients, text, masks and layers (as named groups) come along; shadows, glow and blur become SVG effects. Pixel layers and pictures come in as embedded images. In Illustrator use File → Save As to keep it as .ai.';
+  const cur = $('#exSvgMode').value === 'cur';
+  ['#exTrimRow', '#exColsRow', '#exXmlRow', '#exLoopRow', '#exImgRow', '#exSoundRow', '#exQualRow'].forEach(id => { const e = $(id); if (e) e.hidden = true; });
+  $('#exRangeRow').hidden = cur || exTagSel() !== ''; $('#exTagRow').hidden = cur || !S.ftags.length;
+};
+EXTRA_EX.svg = async (sc, name) => {
+  const mode = $('#exSvgMode').value, opt = { bg: exBg() };
+  const list = mode === 'cur' ? [curFrame()] : exRange(), items = list.map(f => ({ f, fi: S.frames.indexOf(f) }));
+  exStatus('Building SVG…'); await new Promise(r => setTimeout(r, 20));
+  const prev = renderFrame(list[0], Math.min(1, sc), exBg());
+  if (mode === 'zip') {
+    const files = []; const enc = new TextEncoder();
+    for (let k = 0; k < items.length; k++) { if (k % 4 === 0) { exStatus('Building SVG ' + (k + 1) + ' / ' + items.length + '…'); await new Promise(r => setTimeout(r, 0)); } files.push({ name: name + '_' + String(k).padStart(4, '0') + '.svg', data: enc.encode(svgDocument([items[k]], sc, opt)) }); }
+    const z = makeZip(files); showResult(prev, items.length + ' SVG files · ' + Math.round(z.length / 1024) + ' KB'); lastEx = { name };
+    await exSave(name + '_svg.zip', new Blob([z], { type: 'application/zip' })); return;
+  }
+  const text = svgDocument(items, sc, opt);
+  showResult(prev, Math.round(W * sc) + '×' + Math.round(H * sc) + ' · ' + (items.length > 1 ? items.length + ' frames as groups · ' : 'frame ' + (items[0].fi + 1) + ' · ') + Math.round(text.length / 1024) + ' KB SVG');
+  lastEx = { name }; await exSave(name + '.svg', new Blob([text], { type: 'image/svg+xml' }));
+};
+window.__svg = { png: (sc, bg) => exportFrame(curFrame(), sc || 1, !!bg).toDataURL(), doc: (frames, sc, bg) => svgDocument((frames || [curFrame()]).map(f => ({ f, fi: S.frames.indexOf(f) })), sc || 1, { bg: !!bg }) };
 /* ================= v33: MP4 that really works — frames are encoded one by one (WebCodecs) and packed into a normal MP4 file =================
    No more real-time recording: the file gets exact frame times, a proper index (plays and seeks everywhere) and is made faster than real time. */
 const MP4 = (() => {

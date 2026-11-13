@@ -1,6 +1,14 @@
 {
- "version": "1.56.1",
+ "version": "1.57.0",
  "changelog": [
+  {
+   "v": "1.57.0",
+   "date": "2026-11-13",
+   "items": [
+    "Export → “Adobe Illustrator / SVG (vector)”: your animation opens in Illustrator (File → Open) with every shape as a real editable path — outlines, gradients, text, masks, layer names and opacity come along; shadows, glow and blur come as SVG effects; pixel layers and pictures as embedded images",
+    "Choose this frame, all frames in one file (each frame a group, only the first shown) or one SVG per frame in a .zip. In Illustrator use File → Save As to keep it as .ai"
+   ]
+  },
   {
    "v": "1.56.1",
    "date": "2026-11-12",
