@@ -1,6 +1,16 @@
 {
- "version": "1.58.0",
+ "version": "1.58.1",
  "changelog": [
+  {
+   "v": "1.58.1",
+   "date": "2026-11-14",
+   "items": [
+    "Physics window shows exactly what the canvas shows: same camera view and size, every layer (backgrounds, pictures, masks) in its own place — the physics object sits in its layer, not on top of everything",
+    "Other layers play their animation in the physics window: scrubbing shows the matching frame. “Layer is solid” can be animated too: moving ground pushes the objects",
+    "Anchor and collision brushes and the eraser show what you paint right away, while you drag",
+    "Smoother pixels: ropes bend softly at the links, pixels that touched in your drawing stay joined (no more holes in lines), and pin-holes from turning are filled from the drawing"
+   ]
+  },
   {
    "v": "1.58.0",
    "date": "2026-11-13",

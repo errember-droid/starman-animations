@@ -5797,9 +5797,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.58.0';
+const APP_VERSION = '1.58.1';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.58.1', date: '2026-11-14', items: ['Physics window shows exactly what the canvas shows: same camera view and size, every layer (backgrounds, pictures, masks) in its own place — the physics object sits in its layer, not on top of everything', 'Other layers play their animation in the physics window: scrubbing shows the matching frame. “Layer is solid” can be animated too: moving ground pushes the objects', 'Anchor and collision brushes and the eraser show what you paint right away, while you drag', 'Smoother pixels: ropes bend softly at the links, pixels that touched in your drawing stay joined (no more holes in lines), and pin-holes from turning are filled from the drawing'] },
   { v: '1.58.0', date: '2026-11-13', items: ['Physics for pixel art (Shift+P, or the Animation window): swinging chains and ropes, falling and bouncing pieces, wind — simulated in their own window, then “Apply” turns it into frames on the canvas at the right place (starting at the current frame, new frames are added when needed; Ctrl+Z undoes)', '⚓ Anchor brush: the parts it covers stay fixed. ✥ Move anchor on any frame makes a key — the anchor glides between keys and drags the chain with it. ▦ Collision brush paints solid ground and walls', 'Node editor like Blender: Layer → Physics object (rope / chain, one solid piece or separate pieces; link length, stiffness, weight, friction, bounce, air drag) → Simulation, plus Collision brush, Layer is solid, Canvas edges, Gravity, Wind and Start push. Right-click to add nodes, drag between the dots to connect. The setup is saved with the animation'] },
   { v: '1.57.0', date: '2026-11-13', items: ['Export → “Adobe Illustrator / SVG (vector)”: your animation opens in Illustrator (File → Open) with every shape as a real editable path — outlines, gradients, text, masks, layer names and opacity come along; shadows, glow and blur come as SVG effects; pixel layers and pictures as embedded images', 'Choose this frame, all frames in one file (each frame a group, only the first shown) or one SVG per frame in a .zip. In Illustrator use File → Save As to keep it as .ai'] },
   { v: '1.56.1', date: '2026-11-12', items: ['Fix: text turned into shapes no longer gets its outline inside the letters — the outline stays outside (behind the letters) like on the text, and parts of letters that overlap stay filled instead of becoming holes with lines through them', 'Already converted letters: right-click them (V) → “Fix letters: fill overlaps, outline outside”', 'Stroke “Outside” now works on combined shapes too and never leaks into the fill'] },
@@ -10443,8 +10444,8 @@ const phP = (nd, k) => { const d = PH_T[nd.t].ps.find(q => q[0] === k); const v 
 const phLayerId = li => S.layers[li] && S.layers[li].id;
 const phLayerIdx = v => { if (typeof v === 'string' && v[0] === '#') { const i = S.layers.findIndex(l => String(l.id) === v.slice(1)); return i; } return +v; };
 // ---------- the pictures: the layer's pixels, the masks ----------
-function phCelPix(li) {   // the layer's pixels on the current frame, canvas-sized
-  const c = mk(W, H), g = c.getContext('2d', { willReadFrequently: true }), cel = curFrame().cels[li];
+function phCelPix(li, fr) {   // the layer's pixels on a frame (the current one if not said), canvas-sized
+  const c = mk(W, H), g = c.getContext('2d', { willReadFrequently: true }), cel = (fr || curFrame()).cels[li];
   if (cel && cel.s) cel.s.drawTo(g, { x0: 0, y0: 0, x1: W, y1: H });
   return new Uint32Array(g.getImageData(0, 0, W, H).data.buffer.slice(0));
 }
@@ -10501,15 +10502,25 @@ function phScene(P) {
   const anc = phAlpha(phAnc), ac = phComps(anc, W, H);
   // anchors: each painted blob is one, with its own moves over time (kept by a pixel it covers)
   const anchors = ac.out.map(list => { const seed = list.reduce((a, b) => Math.min(a, b)); let keyset = (P.keys || []).find(k => ac.lab[k.sy * W + k.sx] === ac.lab[list[0]]); return { list, seed, keys: keyset ? keyset.k : {} }; });
-  // static ground
-  const solid = new Uint8Array(W * H); let edges = null; const objLis = new Set(G.objs.map(o => o.li));
+  // ground: the collision brush + solid layers (which can be animated: each frame has its own ground)
+  let edges = null, brushM = null; const objLis = new Set(G.objs.map(o => o.li)), solidLis = [];
   G.cols.forEach(c => {
-    if (c.t === 'brush') { const m = phAlpha(phCol); for (let i = 0; i < m.length; i++) if (m[i]) solid[i] = 1; }
-    else if (c.t === 'solid') { const li = phLayerIdx(phP(c, 'layer')); if (S.layers[li] && !objLis.has(li)) { const px = phCelPix(li); for (let i = 0; i < px.length; i++) if (px[i] >>> 24 > 40) solid[i] = 1; } }
+    if (c.t === 'brush') brushM = phAlpha(phCol);
+    else if (c.t === 'solid') { const li = phLayerIdx(phP(c, 'layer')); if (S.layers[li] && !objLis.has(li) && !solidLis.includes(li)) solidLis.push(li); }
     else if (c.t === 'edges') edges = { floor: !!phP(c, 'floor'), walls: !!phP(c, 'walls'), top: !!phP(c, 'top') };
   });
-  const sdf = phSDF(solid, W, H);
-  const ground = (x, y) => { let d = phSample(sdf, W, H, x, y, 1e4); if (edges) { if (edges.floor) d = Math.min(d, H - y); if (edges.walls) d = Math.min(d, x, W - x); if (edges.top) d = Math.min(d, y); } return d; };
+  const nFr = Math.round(phP(G.sim, 'frames')), gcache = new Map(), cid = new WeakMap(); let cidN = 0;
+  const idOf = o => { if (!o) return 0; let v = cid.get(o); if (!v) cid.set(o, v = ++cidN); return v; };
+  const sdfs = [];
+  for (let f = 0; f < nFr; f++) {
+    const fr = S.frames[Math.min(S.cur + f, S.frames.length - 1)], key = solidLis.map(li => idOf(fr.cels[li])).join(',');
+    if (!gcache.has(key)) { const solid = new Uint8Array(W * H); if (brushM) for (let i = 0; i < solid.length; i++) solid[i] = brushM[i];
+      solidLis.forEach(li => { const px = phCelPix(li, fr); for (let i = 0; i < px.length; i++) if (px[i] >>> 24 > 40) solid[i] = 1; });
+      gcache.set(key, phSDF(solid, W, H)); }
+    sdfs.push(gcache.get(key));
+  }
+  const gref = { f: 0 };
+  const ground = (x, y) => { let d = phSample(sdfs[Math.min(gref.f, sdfs.length - 1)], W, H, x, y, 1e4); if (edges) { if (edges.floor) d = Math.min(d, H - y); if (edges.walls) d = Math.min(d, x, W - x); if (edges.top) d = Math.min(d, y); } return d; };
   // bodies
   const bodies = [], joints = [], pins = [];
   G.objs.forEach((O, oi) => {
@@ -10531,7 +10542,7 @@ function phScene(P) {
     const first = bodies.length, owner = new Int32Array(W * H).fill(-1);
     groups.forEach(list => {
       if (!list.length) return; let sx = 0, sy = 0; list.forEach(i => { sx += i % W + 0.5; sy += ((i / W) | 0) + 0.5; });
-      const cx = sx / list.length, cy = sy / list.length, b = { o: oi, li: O.li, mat, cx, cy, x: cx, y: cy, a: 0, vx: 0, vy: 0, w: 0, n: list.length, idx: bodies.length };
+      const cx = sx / list.length, cy = sy / list.length, b = { o: oi, li: O.li, mat, list, rope: mode === 'rope', seg, cx, cy, x: cx, y: cy, a: 0, vx: 0, vy: 0, w: 0, n: list.length, idx: bodies.length };
       let I = 0, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, R = 0;
       list.forEach(i => { const X = i % W, Y = (i / W) | 0, rx = X + 0.5 - cx, ry = Y + 0.5 - cy; I += rx * rx + ry * ry + 1 / 6; x0 = Math.min(x0, X); y0 = Math.min(y0, Y); x1 = Math.max(x1, X); y1 = Math.max(y1, Y); R = Math.max(R, Math.hypot(Math.abs(rx) + 0.5, Math.abs(ry) + 0.5)); owner[i] = b.idx; });
       b.m = list.length * mat.dens; b.im = 1 / b.m; b.I = Math.max(I, 0.5) * mat.dens; b.iI = 1 / b.I; b.R = R;
@@ -10564,8 +10575,24 @@ function phScene(P) {
       });
     });
   });
+  // how each pixel follows its piece — near a link it bends half with the neighbour, so a rope stays smooth
+  const pix = new Map();
+  G.objs.forEach(O => {
+    const px = phCelPix(O.li), list = [], idm = new Int32Array(W * H).fill(-1);
+    bodies.forEach((b, bi) => { if (b.li === O.li) b.list.forEach(i => { idm[i] = list.length; list.push([i, bi]); }); });
+    const n = list.length, X = new Int16Array(n), Y = new Int16Array(n), col = new Uint32Array(n), B0 = new Int32Array(n), B1 = new Int32Array(n).fill(-1), B2 = new Int32Array(n).fill(-1), W0 = new Float32Array(n), W1 = new Float32Array(n), W2 = new Float32Array(n);
+    const jb = new Map(); joints.forEach(j => { [[j.A, j.B, j.ra], [j.B, j.A, j.rb]].forEach(([a, o, r]) => { if (!a.rope) return; let l = jb.get(a.idx); if (!l) jb.set(a.idx, l = []); l.push({ o: o.idx, x: a.cx + r[0], y: a.cy + r[1], L: Math.max(1.5, a.seg * 0.75) }); }); });
+    list.forEach(([i, bi], k) => {
+      X[k] = i % W; Y[k] = (i / W) | 0; col[k] = px[i]; B0[k] = bi;
+      const js = (jb.get(bi) || []).map(j => ({ o: j.o, w: Math.max(0, 1 - Math.hypot(X[k] + 0.5 - j.x, Y[k] + 0.5 - j.y) / j.L) * 0.5 })).filter(j => j.w > 0).sort((a, b) => b.w - a.w).slice(0, 2);
+      let sum = js.reduce((a, j) => a + j.w, 0); const sc2 = sum > 0.9 ? 0.9 / sum : 1;
+      if (js[0]) { B1[k] = js[0].o; W1[k] = js[0].w * sc2; } if (js[1]) { B2[k] = js[1].o; W2[k] = js[1].w * sc2; }
+      W0[k] = 1 - W1[k] - W2[k];
+    });
+    pix.set(O.li, { n, X, Y, col, B0, B1, B2, W0, W1, W2, idm });
+  });
   const sp = G.sim;
-  return { G, bodies, joints, pins, anchors, ground, solid, edges, frames: Math.round(phP(sp, 'frames')), steps: Math.round(phP(sp, 'steps')), out: phP(sp, 'out') };
+  return { G, bodies, joints, pins, anchors, ground, gref, pix, edges, frames: Math.round(phP(sp, 'frames')), steps: Math.round(phP(sp, 'steps')), out: phP(sp, 'out') };
 }
 const phAnchorOff = (an, t) => {   // the anchor's move at frame t (straight between keys)
   const ks = Object.keys(an.keys).map(Number).sort((a, b) => a - b); if (!ks.length) return [0, 0];
@@ -10593,7 +10620,7 @@ function phRun(sc) {
   const save = () => hist.push(B.map(b => [b.x, b.y, b.a]));
   save();
   for (let f = 1; f < frames; f++) {
-    const n = sc.steps, h = hold(f - 1) / S.fps / n;
+    sc.gref.f = f; const n = sc.steps, h = hold(f - 1) / S.fps / n;
     for (let s = 0; s < n; s++) {
       const t = f - 1 + (s + 1) / n, tt = t / S.fps;
       B.forEach(b => {
@@ -10661,16 +10688,38 @@ function phRun(sc) {
   return hist;
 }
 // ---------- pictures of a simulated frame ----------
-function phRender(sc, st, li) {   // the pieces of one layer at a frame → Uint32Array W×H
-  const out = new Uint32Array(W * H);
-  sc.bodies.forEach((b, i) => {
-    if (b.li !== li) return; const [X, Y, a] = st[i], c = Math.cos(a), s = Math.sin(a);
-    const R = b.R + 1, x0 = Math.max(0, Math.floor(X - R)), x1 = Math.min(W - 1, Math.ceil(X + R)), y0 = Math.max(0, Math.floor(Y - R)), y1 = Math.min(H - 1, Math.ceil(Y + R));
-    for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) {
-      const dx = px + 0.5 - X, dy = py + 0.5 - Y, lx = dx * c + dy * s + b.cx - b.ox, ly = -dx * s + dy * c + b.cy - b.oy, ix = Math.floor(lx), iy = Math.floor(ly);
-      if (ix < 0 || iy < 0 || ix >= b.bw || iy >= b.bh) continue; const v = b.col[iy * b.bw + ix]; if (v >>> 24) out[py * W + px] = v;
+function phRender(sc, st, li) {   // the pixels of one layer at a frame → Uint32Array W×H (no holes: neighbours stay joined)
+  const out = new Uint32Array(W * H), P = sc.pix.get(li); if (!P) return out;
+  const tr = sc.bodies.map((b, i) => { const [x, y, a] = st[i]; return [Math.cos(a), Math.sin(a), x, y, b.cx, b.cy]; });
+  const n = P.n, DX = new Int32Array(n), DY = new Int32Array(n), own = new Int32Array(W * H).fill(-1);
+  const add = (k, w, qx, qy, acc) => { if (k < 0 || w <= 0) return; const t = tr[k], dx = qx - t[4], dy = qy - t[5]; acc[0] += w * (t[2] + dx * t[0] - dy * t[1]); acc[1] += w * (t[3] + dx * t[1] + dy * t[0]); };
+  for (let p = 0; p < n; p++) { const qx = P.X[p] + 0.5, qy = P.Y[p] + 0.5, acc = [0, 0]; add(P.B0[p], P.W0[p], qx, qy, acc); add(P.B1[p], P.W1[p], qx, qy, acc); add(P.B2[p], P.W2[p], qx, qy, acc); DX[p] = Math.floor(acc[0]); DY[p] = Math.floor(acc[1]); }
+  const put = (x, y, c, p) => { if (x >= 0 && y >= 0 && x < W && y < H) { out[y * W + x] = c; own[y * W + x] = p; } };
+  // 1) bridges: two pixels that touched in the drawing still touch after moving
+  const OF = [[1, 0], [0, 1], [1, 1], [-1, 1]];
+  for (let p = 0; p < n; p++) {
+    const X = P.X[p], Y = P.Y[p];
+    for (const [ox, oy] of OF) {
+      const nx = X + ox, ny = Y + oy; if (nx < 0 || nx >= W || ny >= H) continue; const q = P.idm[ny * W + nx]; if (q < 0) continue;
+      if (ox && oy && (P.idm[Y * W + nx] >= 0 || P.idm[ny * W + X] >= 0)) continue;   // a diagonal that is already joined around a corner
+      const ddx = DX[q] - DX[p], ddy = DY[q] - DY[p], m = Math.max(Math.abs(ddx), Math.abs(ddy)); if (m <= 1) continue;
+      for (let s2 = 1; s2 < m; s2++) put(Math.round(DX[p] + ddx * s2 / m), Math.round(DY[p] + ddy * s2 / m), s2 * 2 < m ? P.col[p] : P.col[q], s2 * 2 < m ? p : q);
     }
-  });
+  }
+  // 2) the pixels themselves
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let p = 0; p < n; p++) { const x = DX[p], y = DY[p]; put(x, y, P.col[p], p); if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  // 3) pin-holes a turn leaves inside filled areas: look back into the drawing (a hole that is really drawn stays a hole)
+  x0 = Math.max(1, x0); y0 = Math.max(1, y0); x1 = Math.min(W - 2, x1); y1 = Math.min(H - 2, y1);
+  const fill = [];
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const i = y * W + x; if (out[i]) continue; let k = 0, nb = -1;
+    for (const j of [i - 1, i + 1, i - W, i + W]) if (out[j]) { k++; if (nb < 0) nb = own[j]; }
+    if (k < 3 || nb < 0) continue;
+    const t = tr[P.B0[nb]], dx = x + 0.5 - t[2], dy = y + 0.5 - t[3], sx = Math.floor(dx * t[0] + dy * t[1] + t[4]), sy = Math.floor(-dx * t[1] + dy * t[0] + t[5]);
+    const src = sx >= 0 && sy >= 0 && sx < W && sy < H ? P.idm[sy * W + sx] : -1; if (src >= 0) fill.push([i, P.col[src]]);
+  }
+  fill.forEach(([i, c]) => { out[i] = c; });
   return out;
 }
 // ---------- the Physics window ----------
@@ -10691,30 +10740,46 @@ async function openPhysics() {
     '<div class="ph-nodes" id="phNodes"><svg class="ph-wires" id="phWires"></svg><div class="ph-hint">Right-click: add a node · drag from ● to ● to connect · click a wire to cut it · Delete removes a node</div></div></div>';
   document.body.appendChild(d); d.showModal();
   const q = s => d.querySelector(s), cv = q('#phCv'), g = cv.getContext('2d'); cv.width = W; cv.height = H;
-  let tool = 'anchor', size = 2, T = 0, playing = 0, sc = null, hist = null, bg = null, dirty = true, busy = 0;
+  let tool = 'anchor', size = 2, T = 0, playing = 0, sc = null, hist = null, dirty = true, busy = 0, segCache = new Map();
   const save = () => { P.col = phCol.toDataURL(); P.anc = phAnc.toDataURL(); touched(); };
-  // ---- the picture under it: the other layers, faded
-  const makeBg = () => { bg = mk(W, H); const bg2 = bg.getContext('2d'), f = curFrame(); const objs = new Set(sc ? sc.G.objs.map(o => o.li) : []);
-    S.layers.forEach((l, i) => { if (!l.visible || !isDraw(l) || objs.has(i) || l.type === 'mask') return; const c = f.cels[i]; if (c && c.s) { bg2.globalAlpha = (l.opacity == null ? 1 : l.opacity) * 0.45; c.s.drawTo(bg2, { x0: 0, y0: 0, x1: W, y1: H }); } }); bg2.globalAlpha = 1; };
+  // ---- the picture: the same view as the canvas (camera), every layer in its own place, the frame that matches the time
+  const frameAt = () => Math.min(S.cur + T, S.frames.length - 1);
+  const layersPic = fi => {   // the layers between the physics objects, as pictures (kept per frame)
+    if (segCache.has(fi)) return segCache.get(fi);
+    const f = S.frames[fi], objs = new Set(sc ? sc.G.objs.map(o => o.li) : []), cr = camRect(fi), segs = []; let c = null;
+    S.layers.forEach((l, i) => {
+      if (objs.has(i)) { segs.push({ obj: i }); c = null; return; }
+      if (!c) { c = mk(W, H); segs.push({ c }); }
+      const g2 = c.getContext('2d'); g2.imageSmoothingEnabled = false; camSet(g2, cr, 1);
+      try { drawLayers(g2, f, { exportOnly: true, only: i, tmp: mk(W, H), r: cr, cam: cr, canvas: c, fi, k: 1 }); } catch (e) {}
+    });
+    segCache.set(fi, segs); return segs;
+  };
   const tint = (src, color, a) => { const c = mk(W, H), x = c.getContext('2d'); x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = color; x.globalAlpha = a; x.fillRect(0, 0, W, H); return c; };
+  const bufPic = buf => { const c = mk(W, H), id = new ImageData(W, H); new Uint32Array(id.data.buffer).set(buf); c.getContext('2d').putImageData(id, 0, 0); return c; };
   const draw = () => {
-    g.clearRect(0, 0, W, H); g.fillStyle = S.paper || '#fff'; g.fillRect(0, 0, W, H); if (bg) g.drawImage(bg, 0, 0);
+    const fi = frameAt(), cr = camRect(fi);
+    g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false; g.clearRect(0, 0, W, H); g.fillStyle = S.paper || '#fff'; g.fillRect(0, 0, W, H);
+    const st = sc && hist ? hist[Math.min(T, hist.length - 1)] : null;
+    layersPic(fi).forEach(sg => {
+      if (sg.c) { g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(sg.c, 0, 0); return; }
+      if (!st) return; const l = S.layers[sg.obj]; if (!l.visible) return;
+      camSet(g, cr, 1); g.globalAlpha = l.opacity == null ? 1 : l.opacity; g.drawImage(bufPic(phRender(sc, st, sg.obj)), 0, 0); g.globalAlpha = 1;
+    });
+    camSet(g, cr, 1);
     g.drawImage(tint(phCol, '#e0782a', 0.55), 0, 0);
-    if (sc && hist) { const st = hist[Math.min(T, hist.length - 1)], id = new ImageData(W, H); const buf = new Uint32Array(id.data.buffer);
-      sc.G.objs.forEach(o => { const r = phRender(sc, st, o.li); for (let i = 0; i < r.length; i++) if (r[i]) buf[i] = r[i]; });
-      const c = mk(W, H); c.getContext('2d').putImageData(id, 0, 0); g.drawImage(c, 0, 0); }
-    // anchors where they are on this frame
-    const ac = tint(phAnc, '#2ab0ff', 0.75);
-    if (sc && sc.anchors.length) { const comps = sc.anchors; const lay = mk(W, H), lg = lay.getContext('2d'), id = lg.createImageData(W, H), b32 = new Uint32Array(id.data.buffer);
-      comps.forEach(an => { const o = phAnchorOff(an, T), ox = Math.round(o[0]), oy = Math.round(o[1]); an.list.forEach(i => { const x = i % W + ox, y = ((i / W) | 0) + oy; if (x >= 0 && y >= 0 && x < W && y < H) b32[y * W + x] = 0xc0ffb02a; }); });
-      lg.putImageData(id, 0, 0); g.drawImage(lay, 0, 0); } else g.drawImage(ac, 0, 0);
+    // anchors: while painting (or not simulated yet) as painted; otherwise where they are on this frame
+    if (sc && sc.anchors.length && !dirty) { const lay = mk(W, H), lg = lay.getContext('2d'), id = lg.createImageData(W, H), b32 = new Uint32Array(id.data.buffer);
+      sc.anchors.forEach(an => { const o = phAnchorOff(an, T), ox = Math.round(o[0]), oy = Math.round(o[1]); an.list.forEach(i => { const x = i % W + ox, y = ((i / W) | 0) + oy; if (x >= 0 && y >= 0 && x < W && y < H) b32[y * W + x] = 0xc0ffb02a; }); });
+      lg.putImageData(id, 0, 0); g.drawImage(lay, 0, 0); } else g.drawImage(tint(phAnc, '#2ab0ff', 0.75), 0, 0);
+    g.setTransform(1, 0, 0, 1, 0, 0);
   };
   const fitView = () => { const box = q('.ph-view'), k = Math.max(1, Math.floor(Math.min((box.clientWidth - 16) / W, (box.clientHeight - 60) / H))); cv.style.width = W * k + 'px'; cv.style.height = H * k + 'px'; };
   const rebuild = () => {   // read the nodes, run the whole simulation again
     dirty = false; const t0 = performance.now();
     try { sc = phScene(P); hist = sc ? phRun(sc) : null; } catch (e) { console.error(e); sc = null; hist = null; }
     const N = sc ? sc.frames : 1; q('#phT').max = N - 1; if (T > N - 1) T = N - 1;
-    makeBg(); draw(); keysUI();
+    segCache = new Map(); draw(); keysUI();
     q('#phInfo').textContent = !sc ? 'Connect a Simulation node.' : !sc.bodies.length ? 'Nothing to move: connect a Layer with a drawing → Physics object → Simulation.' :
       sc.bodies.length + ' pieces · ' + sc.pins.length + ' anchor points · ' + N + ' frames from frame ' + (S.cur + 1) + ' · ' + Math.round(performance.now() - t0) + ' ms';
     q('#phTOut').textContent = (T + 1) + ' / ' + N;
@@ -10722,7 +10787,9 @@ async function openPhysics() {
   const later = () => { dirty = true; clearTimeout(busy); busy = setTimeout(rebuild, 160); };
   const keysUI = () => { const N = sc ? sc.frames : 1, box = q('#phKeys'); box.innerHTML = ''; (P.keys || []).forEach(k => Object.keys(k.k).forEach(f => { const s = document.createElement('i'); s.style.left = (N > 1 ? f / (N - 1) * 100 : 0) + '%'; s.title = 'Anchor key, frame ' + (+f + 1); box.appendChild(s); })); };
   // ---- painting & moving anchors on the picture
-  const at = e => { const r = cv.getBoundingClientRect(); return [Math.floor((e.clientX - r.left) / r.width * W), Math.floor((e.clientY - r.top) / r.height * H)]; };
+  const at = e => {   // a point on the picture → the drawing's pixel under it (through the camera)
+    const r = cv.getBoundingClientRect(), vx = (e.clientX - r.left) / r.width * W, vy = (e.clientY - r.top) / r.height * H;
+    const t = mk(1, 1).getContext('2d'); camSet(t, camRect(frameAt()), 1); const p = t.getTransform().inverse().transformPoint({ x: vx, y: vy }); return [Math.floor(p.x), Math.floor(p.y)]; };
   const dab = (x, y) => { const s = size, x0 = x - Math.floor(s / 2), y0 = y - Math.floor(s / 2);
     if (tool === 'erase') [phCol, phAnc].forEach(c => c.getContext('2d').clearRect(x0, y0, s, s));
     else { const c = (tool === 'col' ? phCol : phAnc).getContext('2d'); c.fillStyle = tool === 'col' ? '#e0782a' : '#2ab0ff'; c.fillRect(x0, y0, s, s); } };
@@ -10735,7 +10802,7 @@ async function openPhysics() {
       const A = sc.anchors[an]; let ks = (P.keys = P.keys || []).find(k => A.list.includes(k.sy * W + k.sx)); if (!ks) { ks = { sx: A.seed % W, sy: (A.seed / W) | 0, k: {} }; P.keys.push(ks); }
       const o = phAnchorOff(A, T); drag = { ks, x, y, o: [Math.round(o[0]), Math.round(o[1])] }; return;
     }
-    drag = { x, y }; dab(x, y); draw();
+    drag = { x, y }; dirty = true; dab(x, y); draw();
   });
   cv.addEventListener('pointermove', e => {
     if (!drag) return; const [x, y] = at(e);
