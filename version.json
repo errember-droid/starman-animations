@@ -1,6 +1,14 @@
 {
- "version": "1.58.1",
+ "version": "1.59.0",
  "changelog": [
+  {
+   "v": "1.59.0",
+   "date": "2026-11-14",
+   "items": [
+    "Physics: sprites are no longer cut off — the physics area now follows the camera (with room around it), wherever your drawing sits",
+    "New Look nodes (put them between Physics object and Simulation): Smooth turn (vector) — the sprite turns as a smooth shape and becomes clean pixels again on every frame, no sliding pixels; Shadow and Highlight — lit like a 3D object, the light stays put while the object turns, with one color or a darker/lighter tone of each color, and in-between pixels in the corners (or along the whole edge); Outline — outside or on the edge, one color or a darker tone of the neighbour"
+   ]
+  },
   {
    "v": "1.58.1",
    "date": "2026-11-14",

@@ -5797,9 +5797,10 @@ function celMotionItems(fi, li) {
     { label: 'Tip: Move tool (V) → “The whole layer” drags, scales and turns it with ◆ keys', disabled: true }];
 }
 /* ================= v25: phone layout & touch gestures, installable web app, "what's new" and updates ================= */
-const APP_VERSION = '1.58.1';
+const APP_VERSION = '1.59.0';
 const UPDATE_BASE = 'https://errember-droid.github.io/starman-animations/';
 const CHANGELOG = [
+  { v: '1.59.0', date: '2026-11-14', items: ['Physics: sprites are no longer cut off — the physics area now follows the camera (with room around it), wherever your drawing sits', 'New Look nodes (put them between Physics object and Simulation): Smooth turn (vector) — the sprite turns as a smooth shape and becomes clean pixels again on every frame, no sliding pixels; Shadow and Highlight — lit like a 3D object, the light stays put while the object turns, with one color or a darker/lighter tone of each color, and in-between pixels in the corners (or along the whole edge); Outline — outside or on the edge, one color or a darker tone of the neighbour'] },
   { v: '1.58.1', date: '2026-11-14', items: ['Physics window shows exactly what the canvas shows: same camera view and size, every layer (backgrounds, pictures, masks) in its own place — the physics object sits in its layer, not on top of everything', 'Other layers play their animation in the physics window: scrubbing shows the matching frame. “Layer is solid” can be animated too: moving ground pushes the objects', 'Anchor and collision brushes and the eraser show what you paint right away, while you drag', 'Smoother pixels: ropes bend softly at the links, pixels that touched in your drawing stay joined (no more holes in lines), and pin-holes from turning are filled from the drawing'] },
   { v: '1.58.0', date: '2026-11-13', items: ['Physics for pixel art (Shift+P, or the Animation window): swinging chains and ropes, falling and bouncing pieces, wind — simulated in their own window, then “Apply” turns it into frames on the canvas at the right place (starting at the current frame, new frames are added when needed; Ctrl+Z undoes)', '⚓ Anchor brush: the parts it covers stay fixed. ✥ Move anchor on any frame makes a key — the anchor glides between keys and drags the chain with it. ▦ Collision brush paints solid ground and walls', 'Node editor like Blender: Layer → Physics object (rope / chain, one solid piece or separate pieces; link length, stiffness, weight, friction, bounce, air drag) → Simulation, plus Collision brush, Layer is solid, Canvas edges, Gravity, Wind and Start push. Right-click to add nodes, drag between the dots to connect. The setup is saved with the animation'] },
   { v: '1.57.0', date: '2026-11-13', items: ['Export → “Adobe Illustrator / SVG (vector)”: your animation opens in Illustrator (File → Open) with every shape as a real editable path — outlines, gradients, text, masks, layer names and opacity come along; shadows, glow and blur come as SVG effects; pixel layers and pictures as embedded images', 'Choose this frame, all frames in one file (each frame a group, only the first shown) or one SVG per frame in a .zip. In Illustrator use File → Save As to keep it as .ai'] },
@@ -9925,7 +9926,7 @@ function traceImage(img, opt) {   // img: ImageData → [{ color, loops:[[ [x,y]
     for (let k = 0; k < pal.length; k++) { const p = pal[k], dd = (p[0] - r) * (p[0] - r) * 0.3 + (p[1] - g) * (p[1] - g) * 0.59 + (p[2] - b) * (p[2] - b) * 0.11; if (dd < bd) { bd = dd; best = k; } }
     idx[i] = best; count[best]++;
   }
-  if (opt.smooth > 0) {   // colors that only live on the soft edges between two others (anti-aliasing rims) are not real colors: give them to their neighbors
+  if (opt.smooth > 0 && !opt.keepThin) {   // colors that only live on the soft edges between two others (anti-aliasing rims) are not real colors: give them to their neighbors
     const edgeN = new Int32Array(pal.length);
     for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x, me = idx[i]; if (me < 0) continue;
       if ((x > 0 && idx[i - 1] !== me) || (x < w - 1 && idx[i + 1] !== me) || (y > 0 && idx[i - w] !== me) || (y < h - 1 && idx[i + w] !== me)) edgeN[me]++; }
@@ -9941,7 +9942,7 @@ function traceImage(img, opt) {   // img: ImageData → [{ color, loops:[[ [x,y]
         if (best >= 0) { idx[i] = best; count[me]--; count[best]++; } else left++; }
       if (!left) break; }
   }
-  if (opt.smooth > 0) {   // thin slivers of in-between colors (soft edges) join their neighbors
+  if (opt.smooth > 0 && !opt.keepThin) {   // thin slivers of in-between colors (soft edges) join their neighbors
     const src = idx.slice(), cnt = new Map();
     for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
       const i = y * w + x, me = src[i]; let same = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (src[i + dy * w + dx] === me) same++;
@@ -10425,9 +10426,21 @@ const PH_T = {
   gravity:{ name: 'Gravity', col: '#3a9a6a', ins: [], outs: [['force', 'Force']], ps: [['str', 'Strength', 'num', 1, 0, 10, 0.1], ['ang', 'Direction °', 'num', 90, -360, 360, 5]] },
   wind:   { name: 'Wind', col: '#3a9a6a', ins: [], outs: [['force', 'Force']], ps: [['str', 'Strength', 'num', 1, 0, 20, 0.1], ['ang', 'Direction °', 'num', 0, -360, 360, 5], ['gust', 'Gusts', 'num', 0.5, 0, 1, 0.05]] },
   push:   { name: 'Start push', col: '#3a9a6a', ins: [], outs: [['force', 'Force']], ps: [['vx', 'Speed →', 'num', 60, -3000, 3000, 5], ['vy', 'Speed ↓', 'num', 0, -3000, 3000, 5], ['spin', 'Spin', 'num', 0, -60, 60, 0.5]], info: 'Objects start already moving' },
+  vector: { name: 'Smooth turn (vector)', col: '#7a4ac0', ins: [['obj', 'Object']], outs: [['obj', 'Object']], ps: [['smooth', 'Smooth corners', 'num', 70, 0, 100, 5]],
+    info: 'The sprite is turned as a smooth shape and made into pixels again at every frame — lines stay clean, no pixels slide around' },
+  shadow: { name: 'Shadow', col: '#5a4aa0', ins: [['obj', 'Object']], outs: [['obj', 'Object']],
+    ps: [['amt', 'Size %', 'num', 40, 0, 100, 5], ['ang', 'Light from °', 'num', 225, -360, 360, 15], ['mode', 'Color', 'sel', 'auto', [['auto', 'Darker of each color'], ['solid', 'One color']]], ['c', 'Shadow color', 'col', '#5a3060'],
+      ['mid', 'In-between', 'sel', 'corners', [['none', 'None'], ['corners', 'In the corners'], ['soft', 'Whole edge']]], ['mc', 'In-between color', 'col', '#c060a0'], ['mauto', 'In-between: mix of the two', 'chk', true], ['keep', 'Keep dark lines', 'chk', true]],
+    info: 'Lit like a 3D object: the shadow stays on the side away from the light while it turns' },
+  light:  { name: 'Highlight', col: '#c0a030', ins: [['obj', 'Object']], outs: [['obj', 'Object']],
+    ps: [['amt', 'Size %', 'num', 25, 0, 100, 5], ['ang', 'Light from °', 'num', 225, -360, 360, 15], ['mode', 'Color', 'sel', 'auto', [['auto', 'Lighter of each color'], ['solid', 'One color']]], ['c', 'Light color', 'col', '#fff4d0'],
+      ['mid', 'In-between', 'sel', 'corners', [['none', 'None'], ['corners', 'In the corners'], ['soft', 'Whole edge']]], ['mc', 'In-between color', 'col', '#ffe0a0'], ['mauto', 'In-between: mix of the two', 'chk', true], ['keep', 'Keep dark lines', 'chk', true]] },
+  line:   { name: 'Outline', col: '#404050', ins: [['obj', 'Object']], outs: [['obj', 'Object']],
+    ps: [['c', 'Color', 'col', '#201828'], ['mode', 'Color from', 'sel', 'solid', [['solid', 'This color'], ['auto', 'Darker of the color next to it']]], ['where', 'Where', 'sel', 'out', [['out', 'Outside the shape'], ['in', 'On the edge, inside']]], ['corners', 'Fill corners (thicker)', 'chk', false]] },
   sim:    { name: 'Simulation', col: '#b04080', ins: [['obj', 'Objects', 1], ['col', 'Collisions', 1], ['force', 'Forces', 1]], outs: [],
     ps: [['frames', 'Frames', 'num', 24, 1, 600, 1], ['steps', 'Quality', 'num', 16, 2, 64, 1], ['out', 'Result', 'sel', 'own', [['own', 'Into the object layers'], ['new', 'On a new layer']]]], fixed: true }
 };
+const PH_LOOK = { vector: 1, shadow: 1, light: 1, line: 1 };
 const PH_SOCK = { pix: '#7fb0ff', obj: '#ffb347', col: '#c98a5a', force: '#6fdc9a' };
 function phDefault() {
   const L = S.layer, id = () => Math.random().toString(36).slice(2, 8);
@@ -10443,19 +10456,27 @@ function phDefault() {
 const phP = (nd, k) => { const d = PH_T[nd.t].ps.find(q => q[0] === k); const v = nd.p[k]; if (v !== undefined) return v; if (!d) return undefined; return d[2] === 'layer' ? S.layer : d[3]; };
 const phLayerId = li => S.layers[li] && S.layers[li].id;
 const phLayerIdx = v => { if (typeof v === 'string' && v[0] === '#') { const i = S.layers.findIndex(l => String(l.id) === v.slice(1)); return i; } return +v; };
+// ---------- the physics area: what the camera sees, plus a margin around it (world pixels GX…GX+GW) ----------
+let GX = 0, GY = 0, GW = 1, GH = 1, phVB = { x0: 0, y0: 0, x1: 1, y1: 1 };
+function phGrid() {
+  const cr = camRect(S.cur); let m = Math.round(Math.max(cr.w, cr.h) * 0.5);
+  while (m > 8 && (cr.w + 2 * m) * (cr.h + 2 * m) > 3e6) m = Math.round(m / 2);
+  GX = Math.floor(cr.x0) - m; GY = Math.floor(cr.y0) - m; GW = Math.ceil(cr.x1) + m - GX; GH = Math.ceil(cr.y1) + m - GY;
+  phVB = { x0: cr.x0 - GX, y0: cr.y0 - GY, x1: cr.x1 - GX, y1: cr.y1 - GY };   // the camera view inside the area (edges sit here)
+}
 // ---------- the pictures: the layer's pixels, the masks ----------
 function phCelPix(li, fr) {   // the layer's pixels on a frame (the current one if not said), canvas-sized
-  const c = mk(W, H), g = c.getContext('2d', { willReadFrequently: true }), cel = (fr || curFrame()).cels[li];
-  if (cel && cel.s) cel.s.drawTo(g, { x0: 0, y0: 0, x1: W, y1: H });
-  return new Uint32Array(g.getImageData(0, 0, W, H).data.buffer.slice(0));
+  const c = mk(GW, GH), g = c.getContext('2d', { willReadFrequently: true }), cel = (fr || curFrame()).cels[li];
+  if (cel && cel.s) { g.translate(-GX, -GY); cel.s.drawTo(g, { x0: GX, y0: GY, x1: GX + GW, y1: GY + GH }); }
+  return new Uint32Array(g.getImageData(0, 0, GW, GH).data.buffer.slice(0));
 }
-let phCol = null, phAnc = null;   // W×H canvases: what the collision and anchor brushes painted
+let phCol = null, phAnc = null;   // GW×GH canvases: what the collision and anchor brushes painted
 function phMasks() {
-  if (phCol && phCol.width === W && phCol.height === H) return Promise.resolve();
-  phCol = mk(W, H); phAnc = mk(W, H); const P = S.phys || {};
-  return Promise.all([[phCol, P.col], [phAnc, P.anc]].map(([c, d]) => d ? loadImg(d).then(img => { if (img) c.getContext('2d').drawImage(img, 0, 0); }) : null));
+  if (phCol && phCol.width === GW && phCol.height === GH && phCol.gx === GX && phCol.gy === GY) return Promise.resolve();
+  phCol = mk(GW, GH); phAnc = mk(GW, GH); phCol.gx = phAnc.gx = GX; phCol.gy = phAnc.gy = GY; const P = S.phys || {};
+  return Promise.all([[phCol, P.col], [phAnc, P.anc]].map(([c, d]) => d ? loadImg(d).then(img => { if (img) c.getContext('2d').drawImage(img, (P.mgx || 0) - GX, (P.mgy || 0) - GY); }) : null));
 }
-const phAlpha = c => { const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, W, H).data, m = new Uint8Array(W * H); for (let i = 0; i < m.length; i++) m[i] = d[i * 4 + 3] > 40 ? 1 : 0; return m; };
+const phAlpha = c => { const d = c.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, GW, GH).data, m = new Uint8Array(GW * GH); for (let i = 0; i < m.length; i++) m[i] = d[i * 4 + 3] > 40 ? 1 : 0; return m; };
 function phComps(m, w, h, keep) {   // 8-connected pieces of a mask → [[index…]…]
   const lab = new Int32Array(w * h).fill(-1), out = [];
   for (let i = 0; i < w * h; i++) {
@@ -10493,15 +10514,19 @@ function phGraph(P) {
   const byId = new Map(P.nodes.map(n => [n.id, n]));
   const from = (nd, s) => P.wires.filter(w => w.t === nd.id && w.s === s).map(w => byId.get(w.f)).filter(Boolean);
   const objs = [], cols = [], forces = [];
-  from(sim, 'obj').forEach(o => { if (o.t !== 'object') return; from(o, 'pix').forEach(src => { if (src.t === 'layer') { const li = phLayerIdx(phP(src, 'layer')); if (S.layers[li] && isDraw(S.layers[li]) && !objs.some(x => x.li === li)) objs.push({ li, nd: o }); } }); });
+  from(sim, 'obj').forEach(o => {
+    const look = {}; let guard = 0;   // the look nodes between the object and the simulation (vector, shadow, highlight, outline)
+    while (o && o.t !== 'object' && guard++ < 50) { if (PH_LOOK[o.t]) { if (!look[o.t]) look[o.t] = o; } o = from(o, 'obj')[0]; }
+    if (!o || o.t !== 'object') return;
+    from(o, 'pix').forEach(src => { if (src.t === 'layer') { const li = phLayerIdx(phP(src, 'layer')); if (S.layers[li] && isDraw(S.layers[li]) && !objs.some(x => x.li === li)) objs.push({ li, nd: o, look }); } }); });
   from(sim, 'col').forEach(c => cols.push(c)); from(sim, 'force').forEach(f => forces.push(f));
   return { sim, objs, cols, forces };
 }
 function phScene(P) {
   const G = phGraph(P); if (!G) return null;
-  const anc = phAlpha(phAnc), ac = phComps(anc, W, H);
+  const anc = phAlpha(phAnc), ac = phComps(anc, GW, GH);
   // anchors: each painted blob is one, with its own moves over time (kept by a pixel it covers)
-  const anchors = ac.out.map(list => { const seed = list.reduce((a, b) => Math.min(a, b)); let keyset = (P.keys || []).find(k => ac.lab[k.sy * W + k.sx] === ac.lab[list[0]]); return { list, seed, keys: keyset ? keyset.k : {} }; });
+  const anchors = ac.out.map(list => { const seed = list.reduce((a, b) => Math.min(a, b)); let keyset = (P.keys || []).find(k => { const x = k.sx - GX, y = k.sy - GY; return x >= 0 && y >= 0 && x < GW && y < GH && ac.lab[y * GW + x] === ac.lab[list[0]]; }); return { list, seed, keys: keyset ? keyset.k : {} }; });
   // ground: the collision brush + solid layers (which can be animated: each frame has its own ground)
   let edges = null, brushM = null; const objLis = new Set(G.objs.map(o => o.li)), solidLis = [];
   G.cols.forEach(c => {
@@ -10514,44 +10539,44 @@ function phScene(P) {
   const sdfs = [];
   for (let f = 0; f < nFr; f++) {
     const fr = S.frames[Math.min(S.cur + f, S.frames.length - 1)], key = solidLis.map(li => idOf(fr.cels[li])).join(',');
-    if (!gcache.has(key)) { const solid = new Uint8Array(W * H); if (brushM) for (let i = 0; i < solid.length; i++) solid[i] = brushM[i];
+    if (!gcache.has(key)) { const solid = new Uint8Array(GW * GH); if (brushM) for (let i = 0; i < solid.length; i++) solid[i] = brushM[i];
       solidLis.forEach(li => { const px = phCelPix(li, fr); for (let i = 0; i < px.length; i++) if (px[i] >>> 24 > 40) solid[i] = 1; });
-      gcache.set(key, phSDF(solid, W, H)); }
+      gcache.set(key, phSDF(solid, GW, GH)); }
     sdfs.push(gcache.get(key));
   }
   const gref = { f: 0 };
-  const ground = (x, y) => { let d = phSample(sdfs[Math.min(gref.f, sdfs.length - 1)], W, H, x, y, 1e4); if (edges) { if (edges.floor) d = Math.min(d, H - y); if (edges.walls) d = Math.min(d, x, W - x); if (edges.top) d = Math.min(d, y); } return d; };
+  const ground = (x, y) => { let d = phSample(sdfs[Math.min(gref.f, sdfs.length - 1)], GW, GH, x, y, 1e4); if (edges) { if (edges.floor) d = Math.min(d, phVB.y1 - y); if (edges.walls) d = Math.min(d, x - phVB.x0, phVB.x1 - x); if (edges.top) d = Math.min(d, y - phVB.y0); } return d; };
   // bodies
   const bodies = [], joints = [], pins = [];
   G.objs.forEach((O, oi) => {
-    const px = phCelPix(O.li), m = new Uint8Array(W * H); for (let i = 0; i < m.length; i++) m[i] = px[i] >>> 24 ? 1 : 0;
+    const px = phCelPix(O.li), m = new Uint8Array(GW * GH); for (let i = 0; i < m.length; i++) m[i] = px[i] >>> 24 ? 1 : 0;
     const mode = phP(O.nd, 'mode'), seg = Math.max(1, phP(O.nd, 'seg')), mat = { dens: phP(O.nd, 'dens'), fric: phP(O.nd, 'fric'), bounce: phP(O.nd, 'bounce'), air: phP(O.nd, 'air'), stiff: phP(O.nd, 'stiff') };
-    const comps = phComps(m, W, H).out; let groups = [];   // groups: lists of pixel indices → one body each
+    const comps = phComps(m, GW, GH).out; let groups = [];   // groups: lists of pixel indices → one body each
     if (mode === 'solid') groups = comps.length ? [comps.flat()] : [];
     else if (mode === 'pieces') groups = comps;
     else comps.forEach(list => {   // rope: cut into links by the distance (along the drawing) from the anchor or the top
       const inC = new Set(list), dist = new Map(); let q = list.filter(i => anc[i]); if (!q.length) { let top = list[0]; list.forEach(i => { if (i < top) top = i; }); q = [top]; }
       q.forEach(i => dist.set(i, 0)); let h0 = 0;
-      while (h0 < q.length) { const j = q[h0++], x = j % W, y = (j / W) | 0, d0 = dist.get(j);
-        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const k = (y + dy) * W + x + dx; if (x + dx < 0 || x + dx >= W || !inC.has(k) || dist.has(k)) continue; dist.set(k, d0 + 1); q.push(k); } }
+      while (h0 < q.length) { const j = q[h0++], x = j % GW, y = (j / GW) | 0, d0 = dist.get(j);
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { if (!dx && !dy) continue; const k = (y + dy) * GW + x + dx; if (x + dx < 0 || x + dx >= GW || !inC.has(k) || dist.has(k)) continue; dist.set(k, d0 + 1); q.push(k); } }
       let maxD = 0; dist.forEach(v => { if (v > maxD) maxD = v; });
       const band = new Map(); list.forEach(i => band.set(i, maxD < seg * 1.5 ? 0 : Math.floor((dist.get(i) || 0) / seg)));   // small parts (a chain ring) stay whole
-      const mm = new Uint8Array(W * H); list.forEach(i => { mm[i] = 1; });
-      phComps(mm, W, H, (a, b) => band.get(a) === band.get(b)).out.forEach(g => groups.push(g));
+      const mm = new Uint8Array(GW * GH); list.forEach(i => { mm[i] = 1; });
+      phComps(mm, GW, GH, (a, b) => band.get(a) === band.get(b)).out.forEach(g => groups.push(g));
     });
-    const first = bodies.length, owner = new Int32Array(W * H).fill(-1);
+    const first = bodies.length, owner = new Int32Array(GW * GH).fill(-1);
     groups.forEach(list => {
-      if (!list.length) return; let sx = 0, sy = 0; list.forEach(i => { sx += i % W + 0.5; sy += ((i / W) | 0) + 0.5; });
+      if (!list.length) return; let sx = 0, sy = 0; list.forEach(i => { sx += i % GW + 0.5; sy += ((i / GW) | 0) + 0.5; });
       const cx = sx / list.length, cy = sy / list.length, b = { o: oi, li: O.li, mat, list, rope: mode === 'rope', seg, cx, cy, x: cx, y: cy, a: 0, vx: 0, vy: 0, w: 0, n: list.length, idx: bodies.length };
       let I = 0, x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, R = 0;
-      list.forEach(i => { const X = i % W, Y = (i / W) | 0, rx = X + 0.5 - cx, ry = Y + 0.5 - cy; I += rx * rx + ry * ry + 1 / 6; x0 = Math.min(x0, X); y0 = Math.min(y0, Y); x1 = Math.max(x1, X); y1 = Math.max(y1, Y); R = Math.max(R, Math.hypot(Math.abs(rx) + 0.5, Math.abs(ry) + 0.5)); owner[i] = b.idx; });
+      list.forEach(i => { const X = i % GW, Y = (i / GW) | 0, rx = X + 0.5 - cx, ry = Y + 0.5 - cy; I += rx * rx + ry * ry + 1 / 6; x0 = Math.min(x0, X); y0 = Math.min(y0, Y); x1 = Math.max(x1, X); y1 = Math.max(y1, Y); R = Math.max(R, Math.hypot(Math.abs(rx) + 0.5, Math.abs(ry) + 0.5)); owner[i] = b.idx; });
       b.m = list.length * mat.dens; b.im = 1 / b.m; b.I = Math.max(I, 0.5) * mat.dens; b.iI = 1 / b.I; b.R = R;
       // its own picture and distance field (local box, a little margin)
       const bw = x1 - x0 + 5, bh = y1 - y0 + 5, ox = x0 - 2, oy = y0 - 2, lm = new Uint8Array(bw * bh), col = new Uint32Array(bw * bh);
-      list.forEach(i => { const X = i % W - ox, Y = ((i / W) | 0) - oy; lm[Y * bw + X] = 1; col[Y * bw + X] = px[i]; });
+      list.forEach(i => { const X = i % GW - ox, Y = ((i / GW) | 0) - oy; lm[Y * bw + X] = 1; col[Y * bw + X] = px[i]; });
       Object.assign(b, { bw, bh, ox, oy, lm, col, sdf: phSDF(lm, bw, bh) });
       // edge pixels are the points that touch things
-      const sm = []; list.forEach(i => { const X = i % W, Y = (i / W) | 0; if (!m[i - 1] || !m[i + 1] || !m[i - W] || !m[i + W] || X === 0 || X === W - 1) sm.push([X + 0.5 - cx, Y + 0.5 - cy]); });
+      const sm = []; list.forEach(i => { const X = i % GW, Y = (i / GW) | 0; if (!m[i - 1] || !m[i + 1] || !m[i - GW] || !m[i + GW] || X === 0 || X === GW - 1) sm.push([X + 0.5 - cx, Y + 0.5 - cy]); });
       const step = Math.max(1, Math.ceil(sm.length / 40)); b.samp = sm.filter((_, k) => k % step === 0); if (!b.samp.length) b.samp = [[0, 0]];
       bodies.push(b);
     });
@@ -10559,15 +10584,15 @@ function phScene(P) {
     if (mode !== 'solid') {
       const pairs = new Map(), OFFS = [];   // a rope also joins links with a small gap between them (chain rings drawn apart)
       const rad = mode === 'rope' ? 2 : 1; for (let dy = 0; dy <= rad; dy++) for (let dx = -rad; dx <= rad; dx++) if (dy > 0 || dx > 0) OFFS.push([dx, dy]);
-      for (let i = 0; i < W * H; i++) { const a = owner[i]; if (a < first) continue; const x = i % W;
-        for (const [dx, dy] of OFFS) { const X = x + dx; if (X < 0 || X >= W) continue; const k = i + dy * W + dx; if (k >= W * H) continue; const c = owner[k]; if (c < first || c === a) continue;
-          const key = Math.min(a, c) + ',' + Math.max(a, c); let p = pairs.get(key); if (!p) pairs.set(key, p = { a: Math.min(a, c), b: Math.max(a, c), sx: 0, sy: 0, n: 0 }); p.sx += x + 0.5 + dx / 2; p.sy += ((i / W) | 0) + 0.5 + dy / 2; p.n++; } }
+      for (let i = 0; i < GW * GH; i++) { const a = owner[i]; if (a < first) continue; const x = i % GW;
+        for (const [dx, dy] of OFFS) { const X = x + dx; if (X < 0 || X >= GW) continue; const k = i + dy * GW + dx; if (k >= GW * GH) continue; const c = owner[k]; if (c < first || c === a) continue;
+          const key = Math.min(a, c) + ',' + Math.max(a, c); let p = pairs.get(key); if (!p) pairs.set(key, p = { a: Math.min(a, c), b: Math.max(a, c), sx: 0, sy: 0, n: 0 }); p.sx += x + 0.5 + dx / 2; p.sy += ((i / GW) | 0) + 0.5 + dy / 2; p.n++; } }
       pairs.forEach(p => { const wx = p.sx / p.n, wy = p.sy / p.n, A = bodies[p.a], B = bodies[p.b]; joints.push({ A, B, ra: [wx - A.cx, wy - A.cy], rb: [wx - B.cx, wy - B.cy], stiff: mode === 'rope' ? mat.stiff : 0.9 }); });
     }
     // anchors hold the pieces they cover
     anchors.forEach((an, k) => {
       const per = new Map(); an.list.forEach(i => { const o2 = owner[i]; if (o2 < first) return; let l = per.get(o2); if (!l) per.set(o2, l = []); l.push(i); });
-      per.forEach((l, bi) => { const B = bodies[bi], P_ = l.map(i => [i % W + 0.5, ((i / W) | 0) + 0.5]);
+      per.forEach((l, bi) => { const B = bodies[bi], P_ = l.map(i => [i % GW + 0.5, ((i / GW) | 0) + 0.5]);
         let c0 = P_.reduce((s, p) => [s[0] + p[0] / P_.length, s[1] + p[1] / P_.length], [0, 0]); let far = P_[0], fd = -1; P_.forEach(p => { const d = Math.hypot(p[0] - c0[0], p[1] - c0[1]); if (d > fd) { fd = d; far = p; } });
         let far2 = far, fd2 = -1; P_.forEach(p => { const d = Math.hypot(p[0] - far[0], p[1] - far[1]); if (d > fd2) { fd2 = d; far2 = p; } });
         const pts = fd2 >= 3 ? [far, far2] : [c0];
@@ -10576,23 +10601,24 @@ function phScene(P) {
     });
   });
   // how each pixel follows its piece — near a link it bends half with the neighbour, so a rope stays smooth
-  const pix = new Map();
+  const pix = new Map(), vec = new Map();
   G.objs.forEach(O => {
-    const px = phCelPix(O.li), list = [], idm = new Int32Array(W * H).fill(-1);
+    const px = phCelPix(O.li), list = [], idm = new Int32Array(GW * GH).fill(-1);
     bodies.forEach((b, bi) => { if (b.li === O.li) b.list.forEach(i => { idm[i] = list.length; list.push([i, bi]); }); });
     const n = list.length, X = new Int16Array(n), Y = new Int16Array(n), col = new Uint32Array(n), B0 = new Int32Array(n), B1 = new Int32Array(n).fill(-1), B2 = new Int32Array(n).fill(-1), W0 = new Float32Array(n), W1 = new Float32Array(n), W2 = new Float32Array(n);
     const jb = new Map(); joints.forEach(j => { [[j.A, j.B, j.ra], [j.B, j.A, j.rb]].forEach(([a, o, r]) => { if (!a.rope) return; let l = jb.get(a.idx); if (!l) jb.set(a.idx, l = []); l.push({ o: o.idx, x: a.cx + r[0], y: a.cy + r[1], L: Math.max(1.5, a.seg * 0.75) }); }); });
     list.forEach(([i, bi], k) => {
-      X[k] = i % W; Y[k] = (i / W) | 0; col[k] = px[i]; B0[k] = bi;
+      X[k] = i % GW; Y[k] = (i / GW) | 0; col[k] = px[i]; B0[k] = bi;
       const js = (jb.get(bi) || []).map(j => ({ o: j.o, w: Math.max(0, 1 - Math.hypot(X[k] + 0.5 - j.x, Y[k] + 0.5 - j.y) / j.L) * 0.5 })).filter(j => j.w > 0).sort((a, b) => b.w - a.w).slice(0, 2);
       let sum = js.reduce((a, j) => a + j.w, 0); const sc2 = sum > 0.9 ? 0.9 / sum : 1;
       if (js[0]) { B1[k] = js[0].o; W1[k] = js[0].w * sc2; } if (js[1]) { B2[k] = js[1].o; W2[k] = js[1].w * sc2; }
       W0[k] = 1 - W1[k] - W2[k];
     });
     pix.set(O.li, { n, X, Y, col, B0, B1, B2, W0, W1, W2, idm });
+    if (O.look.vector) vec.set(O.li, phVecBuild(bodies, jb, O.li, phP(O.look.vector, 'smooth')));
   });
   const sp = G.sim;
-  return { G, bodies, joints, pins, anchors, ground, gref, pix, edges, frames: Math.round(phP(sp, 'frames')), steps: Math.round(phP(sp, 'steps')), out: phP(sp, 'out') };
+  return { G, bodies, joints, pins, anchors, ground, gref, pix, vec, edges, frames: Math.round(phP(sp, 'frames')), steps: Math.round(phP(sp, 'steps')), out: phP(sp, 'out') };
 }
 const phAnchorOff = (an, t) => {   // the anchor's move at frame t (straight between keys)
   const ks = Object.keys(an.keys).map(Number).sort((a, b) => a - b); if (!ks.length) return [0, 0];
@@ -10645,7 +10671,7 @@ function phRun(sc) {
         });
         // ground
         B.forEach(b => {
-          if (b.x + b.R < -64 || b.x - b.R > W + 64 || b.y - b.R > H + 256) return;
+          if (b.x + b.R < -64 || b.x - b.R > GW + 64 || b.y - b.R > GH + 256) return;
           for (const q of b.samp) {
             const r = rot(b, q), X = b.x + r[0], Y = b.y + r[1], d = sc.ground(X, Y); if (d >= 0) continue;
             const e = 0.5, nx0 = sc.ground(X + e, Y) - sc.ground(X - e, Y), ny0 = sc.ground(X, Y + e) - sc.ground(X, Y - e), nl = Math.hypot(nx0, ny0) || 1, nx = nx0 / nl, ny = ny0 / nl;
@@ -10688,39 +10714,136 @@ function phRun(sc) {
   return hist;
 }
 // ---------- pictures of a simulated frame ----------
-function phRender(sc, st, li) {   // the pixels of one layer at a frame → Uint32Array W×H (no holes: neighbours stay joined)
-  const out = new Uint32Array(W * H), P = sc.pix.get(li); if (!P) return out;
+function phRender(sc, st, li) {   // the pixels of one layer at a frame → Uint32Array GW×GH (no holes: neighbours stay joined)
+  const out = new Uint32Array(GW * GH), P = sc.pix.get(li); if (!P) return out;
   const tr = sc.bodies.map((b, i) => { const [x, y, a] = st[i]; return [Math.cos(a), Math.sin(a), x, y, b.cx, b.cy]; });
-  const n = P.n, DX = new Int32Array(n), DY = new Int32Array(n), own = new Int32Array(W * H).fill(-1);
+  const n = P.n, DX = new Int32Array(n), DY = new Int32Array(n), own = new Int32Array(GW * GH).fill(-1);
   const add = (k, w, qx, qy, acc) => { if (k < 0 || w <= 0) return; const t = tr[k], dx = qx - t[4], dy = qy - t[5]; acc[0] += w * (t[2] + dx * t[0] - dy * t[1]); acc[1] += w * (t[3] + dx * t[1] + dy * t[0]); };
   for (let p = 0; p < n; p++) { const qx = P.X[p] + 0.5, qy = P.Y[p] + 0.5, acc = [0, 0]; add(P.B0[p], P.W0[p], qx, qy, acc); add(P.B1[p], P.W1[p], qx, qy, acc); add(P.B2[p], P.W2[p], qx, qy, acc); DX[p] = Math.floor(acc[0]); DY[p] = Math.floor(acc[1]); }
-  const put = (x, y, c, p) => { if (x >= 0 && y >= 0 && x < W && y < H) { out[y * W + x] = c; own[y * W + x] = p; } };
+  const put = (x, y, c, p) => { if (x >= 0 && y >= 0 && x < GW && y < GH) { out[y * GW + x] = c; own[y * GW + x] = p; } };
   // 1) bridges: two pixels that touched in the drawing still touch after moving
   const OF = [[1, 0], [0, 1], [1, 1], [-1, 1]];
   for (let p = 0; p < n; p++) {
     const X = P.X[p], Y = P.Y[p];
     for (const [ox, oy] of OF) {
-      const nx = X + ox, ny = Y + oy; if (nx < 0 || nx >= W || ny >= H) continue; const q = P.idm[ny * W + nx]; if (q < 0) continue;
-      if (ox && oy && (P.idm[Y * W + nx] >= 0 || P.idm[ny * W + X] >= 0)) continue;   // a diagonal that is already joined around a corner
+      const nx = X + ox, ny = Y + oy; if (nx < 0 || nx >= GW || ny >= GH) continue; const q = P.idm[ny * GW + nx]; if (q < 0) continue;
+      if (ox && oy && (P.idm[Y * GW + nx] >= 0 || P.idm[ny * GW + X] >= 0)) continue;   // a diagonal that is already joined around a corner
       const ddx = DX[q] - DX[p], ddy = DY[q] - DY[p], m = Math.max(Math.abs(ddx), Math.abs(ddy)); if (m <= 1) continue;
       for (let s2 = 1; s2 < m; s2++) put(Math.round(DX[p] + ddx * s2 / m), Math.round(DY[p] + ddy * s2 / m), s2 * 2 < m ? P.col[p] : P.col[q], s2 * 2 < m ? p : q);
     }
   }
   // 2) the pixels themselves
-  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  let x0 = GW, y0 = GH, x1 = -1, y1 = -1;
   for (let p = 0; p < n; p++) { const x = DX[p], y = DY[p]; put(x, y, P.col[p], p); if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
   // 3) pin-holes a turn leaves inside filled areas: look back into the drawing (a hole that is really drawn stays a hole)
-  x0 = Math.max(1, x0); y0 = Math.max(1, y0); x1 = Math.min(W - 2, x1); y1 = Math.min(H - 2, y1);
+  x0 = Math.max(1, x0); y0 = Math.max(1, y0); x1 = Math.min(GW - 2, x1); y1 = Math.min(GH - 2, y1);
   const fill = [];
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    const i = y * W + x; if (out[i]) continue; let k = 0, nb = -1;
-    for (const j of [i - 1, i + 1, i - W, i + W]) if (out[j]) { k++; if (nb < 0) nb = own[j]; }
+    const i = y * GW + x; if (out[i]) continue; let k = 0, nb = -1;
+    for (const j of [i - 1, i + 1, i - GW, i + GW]) if (out[j]) { k++; if (nb < 0) nb = own[j]; }
     if (k < 3 || nb < 0) continue;
     const t = tr[P.B0[nb]], dx = x + 0.5 - t[2], dy = y + 0.5 - t[3], sx = Math.floor(dx * t[0] + dy * t[1] + t[4]), sy = Math.floor(-dx * t[1] + dy * t[0] + t[5]);
-    const src = sx >= 0 && sy >= 0 && sx < W && sy < H ? P.idm[sy * W + sx] : -1; if (src >= 0) fill.push([i, P.col[src]]);
+    const src = sx >= 0 && sy >= 0 && sx < GW && sy < GH ? P.idm[sy * GW + sx] : -1; if (src >= 0) fill.push([i, P.col[src]]);
   }
   fill.forEach(([i, c]) => { out[i] = c; });
   return out;
+}
+// ---------- the look: vector turning, 3D-like shadow & highlight, outline ----------
+function phWeights(jb, bi, x, y) {   // which pieces a point follows (near a link: half the neighbour)
+  const js = (jb.get(bi) || []).map(j => ({ o: j.o, w: Math.max(0, 1 - Math.hypot(x - j.x, y - j.y) / j.L) * 0.5 })).filter(j => j.w > 0).sort((a, b) => b.w - a.w).slice(0, 2);
+  const sum = js.reduce((a, j) => a + j.w, 0), k = sum > 0.9 ? 0.9 / sum : 1, out = [[bi, 1 - sum * k]]; js.forEach(j => out.push([j.o, j.w * k])); return out;
+}
+function phScale2x(src, w, h) {   // pixel-art aware doubling: corners get rounded, lines stay lines
+  const W2 = w * 2, out = new Uint32Array(W2 * h * 2), at = (x, y) => x < 0 || y < 0 || x >= w || y >= h ? 0 : src[y * w + x];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const E = src[y * w + x], B = at(x, y - 1), D = at(x - 1, y), F = at(x + 1, y), Hh = at(x, y + 1); let e0 = E, e1 = E, e2 = E, e3 = E;
+    if (B !== Hh && D !== F) { if (D === B) e0 = D; if (B === F) e1 = F; if (D === Hh) e2 = D; if (Hh === F) e3 = F; }
+    const o = y * 2 * W2 + x * 2; out[o] = e0; out[o + 1] = e1; out[o + W2] = e2; out[o + W2 + 1] = e3;
+  }
+  return out;
+}
+function phVecBuild(bodies, jb, li, smooth) {   // every piece made smooth (enlarged pixel-art style, like RotSprite) for clean turning
+  const pass = smooth <= 0 ? 0 : smooth < 34 ? 1 : smooth < 67 ? 2 : 3, out = new Map();
+  bodies.forEach((b, bi) => { if (b.li !== li) return; let img = b.col, w = b.bw, h = b.bh; for (let k = 0; k < pass; k++) { img = phScale2x(img, w, h); w *= 2; h *= 2; } out.set(bi, { img, w, h, k: 1 << pass }); });
+  return out;
+}
+function phRenderVec(sc, st, li) {   // each piece turned by reading its smooth big copy at every pixel center (pixels never slide)
+  const out = new Uint32Array(GW * GH), V = sc.vec.get(li); if (!V) return out;
+  sc.bodies.forEach((b, i) => {
+    const v = V.get(i); if (!v) return; const [X, Y, a] = st[i], c = Math.cos(a), s = Math.sin(a), still = Math.abs(a) < 0.02;
+    const R = b.R + 2, x0 = Math.max(0, Math.floor(X - R)), x1 = Math.min(GW - 1, Math.ceil(X + R)), y0 = Math.max(0, Math.floor(Y - R)), y1 = Math.min(GH - 1, Math.ceil(Y + R));
+    for (let py = y0; py <= y1; py++) for (let px = x0; px <= x1; px++) {
+      const dx = px + 0.5 - X, dy = py + 0.5 - Y, lx = dx * c + dy * s + b.cx - b.ox, ly = -dx * s + dy * c + b.cy - b.oy; let col;
+      if (still) { const ix = Math.floor(lx + 1e-6), iy = Math.floor(ly + 1e-6); if (ix < 0 || iy < 0 || ix >= b.bw || iy >= b.bh) continue; col = b.col[iy * b.bw + ix]; }
+      else { const ix = Math.floor(lx * v.k), iy = Math.floor(ly * v.k); if (ix < 0 || iy < 0 || ix >= v.w || iy >= v.h) continue; col = v.img[iy * v.w + ix]; }
+      if (col >>> 24) out[py * GW + px] = col;
+    }
+  });
+  // where bending pieces of a rope part, fill the little gaps from the joined-up picture
+  if (sc.joints.some(j => j.A.li === li && j.A.rope)) {
+    const f = phRender(sc, st, li);
+    for (let y = 1; y < GH - 1; y++) for (let x = 1; x < GW - 1; x++) { const i = y * GW + x; if (out[i] || !f[i]) continue; let k = 0; if (out[i - 1]) k++; if (out[i + 1]) k++; if (out[i - GW]) k++; if (out[i + GW]) k++; if (k >= 2) out[i] = f[i]; }
+  }
+  return out;
+}
+const phHex = hx => { hx = String(hx || '#000000'); return (255 << 24 | parseInt(hx.slice(5, 7), 16) << 16 | parseInt(hx.slice(3, 5), 16) << 8 | parseInt(hx.slice(1, 3), 16)) >>> 0; };
+const phMix = (a, b, t) => { const m = s2 => Math.round(((a >> s2) & 255) * (1 - t) + ((b >> s2) & 255) * t); return (255 << 24 | m(16) << 16 | m(8) << 8 | m(0)) >>> 0; };
+const phLuma = c => ((c & 255) * 0.3 + (c >> 8 & 255) * 0.59 + (c >> 16 & 255) * 0.11) / 255;
+const phDark = c => (255 << 24 | Math.round((c >> 16 & 255) * 0.62 + 22) << 16 | Math.round((c >> 8 & 255) * 0.5) << 8 | Math.round((c & 255) * 0.6 + 8)) >>> 0;   // darker, a bit purple (pixel-art style)
+const phBright = c => phMix(c, 0xffd8f4ff, 0.45);
+function phShade(buf, look) {
+  const sh = look.shadow, lt = look.light, ln = look.line; if (!sh && !lt && !ln) return buf;
+  let x0 = GW, y0 = GH, x1 = -1, y1 = -1;
+  for (let i = 0; i < buf.length; i++) if (buf[i] >>> 24) { const x = i % GW, y = (i / GW) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) return buf;
+  x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2); x1 = Math.min(GW - 1, x1 + 2); y1 = Math.min(GH - 1, y1 + 2);
+  const bw = x1 - x0 + 1, bh = y1 - y0 + 1, at = (x, y) => (y + y0) * GW + x + x0, base = new Uint32Array(bw * bh), m = new Uint8Array(bw * bh);
+  for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) { const v = buf[at(x, y)]; base[y * bw + x] = v; m[y * bw + x] = v >>> 24 ? 1 : 0; }
+  const res = base.slice();
+  if (sh || lt) {
+    // the shape as a rounded 3D lump: thickest in the middle of each part, sloping to its edges
+    const sdf = phSDF(m, bw, bh), comp = phComps(m, bw, bh), R = comp.out.map(l => Math.max(1, ...l.map(i => -sdf[i])));
+    const cls = new Int8Array(bw * bh);   // 1 shadow, 2 light
+    const Ld = nd => { const a = phP(nd, 'ang') * Math.PI / 180, v = [Math.cos(a), Math.sin(a), 0.8], l = Math.hypot(...v); return v.map(q => q / l); };
+    const LS = sh && Ld(sh), LL = lt && Ld(lt), thS = sh ? -0.4 + phP(sh, 'amt') / 100 * 1.4 : -9, thL = lt ? 1 - phP(lt, 'amt') / 100 * 0.6 : 9;
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+      const i = y * bw + x; if (!m[i]) continue;
+      const d = -sdf[i], Rr = R[comp.lab[i]], t = clamp(d / Rr, 0, 1), h = Math.sqrt(Math.max(0.0025, 1 - (1 - t) * (1 - t))), s2 = (1 - t) / h;
+      const g = (X, Y) => X < 0 || Y < 0 || X >= bw || Y >= bh ? 2 : sdf[Y * bw + X];
+      let gx = g(x + 1, y) - g(x - 1, y), gy = g(x, y + 1) - g(x, y - 1); const gl = Math.hypot(gx, gy) || 1; gx /= gl; gy /= gl;
+      const n = [gx * s2, gy * s2, 1], nl = Math.hypot(...n);
+      const I = L => (n[0] * L[0] + n[1] * L[1] + n[2] * L[2]) / nl;
+      if (sh && I(LS) < thS && !(phP(sh, 'keep') && phLuma(base[i]) < 0.22)) cls[i] = 1;
+      else if (lt && I(LL) > thL && !(phP(lt, 'keep') && phLuma(base[i]) < 0.22)) cls[i] = 2;
+    }
+    const tone = (nd, c, k) => phP(nd, 'mode') === 'solid' ? phHex(phP(nd, 'c')) : (k === 1 ? phDark(c) : phBright(c));
+    for (let i = 0; i < cls.length; i++) if (cls[i]) res[i] = tone(cls[i] === 1 ? sh : lt, base[i], cls[i]);
+    // the in-between pixels where the shadow (or light) steps
+    [[sh, 1], [lt, 2]].forEach(([nd, k]) => {
+      if (!nd || phP(nd, 'mid') === 'none') return; const need = phP(nd, 'mid') === 'soft' ? 1 : 2, add = [];
+      for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) { const i = y * bw + x; if (!m[i] || cls[i]) continue; if (phP(nd, 'keep') && phLuma(base[i]) < 0.22) continue;
+        let c = 0; if (x > 0 && cls[i - 1] === k) c++; if (x < bw - 1 && cls[i + 1] === k) c++; if (y > 0 && cls[i - bw] === k) c++; if (y < bh - 1 && cls[i + bw] === k) c++;
+        if (c >= need) add.push(i); }
+      add.forEach(i => { res[i] = phP(nd, 'mauto') ? phMix(base[i], tone(nd, base[i], k), 0.5) : phHex(phP(nd, 'mc')); });
+    });
+  }
+  if (ln) {   // outline
+    const col = phHex(phP(ln, 'c')), auto = phP(ln, 'mode') === 'auto', corn = phP(ln, 'corners'), inside = phP(ln, 'where') === 'in', put = [];
+    const NB = corn ? [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]] : [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) {
+      const i = y * bw + x, filled = !!m[i]; if (inside !== filled) continue; let near = -1;
+      for (const [dx, dy] of NB) { const X = x + dx, Y = y + dy, o = X < 0 || Y < 0 || X >= bw || Y >= bh ? 0 : m[Y * bw + X]; if (inside ? !o : o) { near = inside ? i : Y * bw + X; break; } }
+      if (near >= 0) put.push([i, auto ? phDark(phDark(res[near])) : col]);
+    }
+    put.forEach(([i, c]) => { res[i] = c; });
+  }
+  const out = buf.slice(); for (let y = 0; y < bh; y++) for (let x = 0; x < bw; x++) out[at(x, y)] = res[y * bw + x];
+  return out;
+}
+function phLook(sc, st, li) {
+  const O = sc.G.objs.find(o => o.li === li), look = (O && O.look) || {};
+  const buf = look.vector && sc.vec.get(li) ? phRenderVec(sc, st, li) : phRender(sc, st, li);
+  return phShade(buf, look);
 }
 // ---------- the Physics window ----------
 let phWin = null;
@@ -10728,7 +10851,7 @@ async function openPhysics() {
   if (MODE !== 'pixel') { flash('Physics is for pixel art animations'); return; }
   if (phWin) return; stopPlay();
   if (!S.phys || !S.phys.nodes) S.phys = phDefault();
-  phCol = null; await phMasks();
+  phGrid(); phCol = null; await phMasks();
   const P = S.phys;
   const d = document.createElement('dialog'); d.className = 'fdlg physwin'; phWin = d;
   d.innerHTML = '<div class="ph-top"><b>Physics</b>' +
@@ -10741,7 +10864,7 @@ async function openPhysics() {
   document.body.appendChild(d); d.showModal();
   const q = s => d.querySelector(s), cv = q('#phCv'), g = cv.getContext('2d'); cv.width = W; cv.height = H;
   let tool = 'anchor', size = 2, T = 0, playing = 0, sc = null, hist = null, dirty = true, busy = 0, segCache = new Map();
-  const save = () => { P.col = phCol.toDataURL(); P.anc = phAnc.toDataURL(); touched(); };
+  const save = () => { P.col = phCol.toDataURL(); P.anc = phAnc.toDataURL(); P.mgx = GX; P.mgy = GY; touched(); };
   // ---- the picture: the same view as the canvas (camera), every layer in its own place, the frame that matches the time
   const frameAt = () => Math.min(S.cur + T, S.frames.length - 1);
   const layersPic = fi => {   // the layers between the physics objects, as pictures (kept per frame)
@@ -10755,8 +10878,8 @@ async function openPhysics() {
     });
     segCache.set(fi, segs); return segs;
   };
-  const tint = (src, color, a) => { const c = mk(W, H), x = c.getContext('2d'); x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = color; x.globalAlpha = a; x.fillRect(0, 0, W, H); return c; };
-  const bufPic = buf => { const c = mk(W, H), id = new ImageData(W, H); new Uint32Array(id.data.buffer).set(buf); c.getContext('2d').putImageData(id, 0, 0); return c; };
+  const tint = (src, color, a) => { const c = mk(GW, GH), x = c.getContext('2d'); x.drawImage(src, 0, 0); x.globalCompositeOperation = 'source-in'; x.fillStyle = color; x.globalAlpha = a; x.fillRect(0, 0, GW, GH); return c; };
+  const bufPic = buf => { const c = mk(GW, GH), id = new ImageData(GW, GH); new Uint32Array(id.data.buffer).set(buf); c.getContext('2d').putImageData(id, 0, 0); return c; };
   const draw = () => {
     const fi = frameAt(), cr = camRect(fi);
     g.setTransform(1, 0, 0, 1, 0, 0); g.imageSmoothingEnabled = false; g.clearRect(0, 0, W, H); g.fillStyle = S.paper || '#fff'; g.fillRect(0, 0, W, H);
@@ -10764,13 +10887,13 @@ async function openPhysics() {
     layersPic(fi).forEach(sg => {
       if (sg.c) { g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(sg.c, 0, 0); return; }
       if (!st) return; const l = S.layers[sg.obj]; if (!l.visible) return;
-      camSet(g, cr, 1); g.globalAlpha = l.opacity == null ? 1 : l.opacity; g.drawImage(bufPic(phRender(sc, st, sg.obj)), 0, 0); g.globalAlpha = 1;
+      camSet(g, cr, 1); g.translate(GX, GY); g.globalAlpha = l.opacity == null ? 1 : l.opacity; g.drawImage(bufPic(phLook(sc, st, sg.obj)), 0, 0); g.globalAlpha = 1;
     });
-    camSet(g, cr, 1);
+    camSet(g, cr, 1); g.translate(GX, GY);
     g.drawImage(tint(phCol, '#e0782a', 0.55), 0, 0);
     // anchors: while painting (or not simulated yet) as painted; otherwise where they are on this frame
-    if (sc && sc.anchors.length && !dirty) { const lay = mk(W, H), lg = lay.getContext('2d'), id = lg.createImageData(W, H), b32 = new Uint32Array(id.data.buffer);
-      sc.anchors.forEach(an => { const o = phAnchorOff(an, T), ox = Math.round(o[0]), oy = Math.round(o[1]); an.list.forEach(i => { const x = i % W + ox, y = ((i / W) | 0) + oy; if (x >= 0 && y >= 0 && x < W && y < H) b32[y * W + x] = 0xc0ffb02a; }); });
+    if (sc && sc.anchors.length && !dirty) { const lay = mk(GW, GH), lg = lay.getContext('2d'), id = lg.createImageData(GW, GH), b32 = new Uint32Array(id.data.buffer);
+      sc.anchors.forEach(an => { const o = phAnchorOff(an, T), ox = Math.round(o[0]), oy = Math.round(o[1]); an.list.forEach(i => { const x = i % GW + ox, y = ((i / GW) | 0) + oy; if (x >= 0 && y >= 0 && x < GW && y < GH) b32[y * GW + x] = 0xc0ffb02a; }); });
       lg.putImageData(id, 0, 0); g.drawImage(lay, 0, 0); } else g.drawImage(tint(phAnc, '#2ab0ff', 0.75), 0, 0);
     g.setTransform(1, 0, 0, 1, 0, 0);
   };
@@ -10789,7 +10912,7 @@ async function openPhysics() {
   // ---- painting & moving anchors on the picture
   const at = e => {   // a point on the picture → the drawing's pixel under it (through the camera)
     const r = cv.getBoundingClientRect(), vx = (e.clientX - r.left) / r.width * W, vy = (e.clientY - r.top) / r.height * H;
-    const t = mk(1, 1).getContext('2d'); camSet(t, camRect(frameAt()), 1); const p = t.getTransform().inverse().transformPoint({ x: vx, y: vy }); return [Math.floor(p.x), Math.floor(p.y)]; };
+    const t = mk(1, 1).getContext('2d'); camSet(t, camRect(frameAt()), 1); const p = t.getTransform().inverse().transformPoint({ x: vx, y: vy }); return [Math.floor(p.x) - GX, Math.floor(p.y) - GY]; };
   const dab = (x, y) => { const s = size, x0 = x - Math.floor(s / 2), y0 = y - Math.floor(s / 2);
     if (tool === 'erase') [phCol, phAnc].forEach(c => c.getContext('2d').clearRect(x0, y0, s, s));
     else { const c = (tool === 'col' ? phCol : phAnc).getContext('2d'); c.fillStyle = tool === 'col' ? '#e0782a' : '#2ab0ff'; c.fillRect(x0, y0, s, s); } };
@@ -10797,16 +10920,16 @@ async function openPhysics() {
   cv.addEventListener('pointerdown', e => {
     if (e.button !== 0) return; cv.setPointerCapture(e.pointerId); const [x, y] = at(e);
     if (tool === 'move') {
-      if (!sc) return; const an = sc.anchors.findIndex(a => { const o = phAnchorOff(a, T), ox = Math.round(o[0]), oy = Math.round(o[1]); return a.list.some(i => Math.abs(i % W + ox - x) <= 1 && Math.abs(((i / W) | 0) + oy - y) <= 1); });
+      if (!sc) return; const an = sc.anchors.findIndex(a => { const o = phAnchorOff(a, T), ox = Math.round(o[0]), oy = Math.round(o[1]); return a.list.some(i => Math.abs(i % GW + ox - x) <= 1 && Math.abs(((i / GW) | 0) + oy - y) <= 1); });
       if (an < 0) { flash('Grab an anchor (blue)'); return; }
-      const A = sc.anchors[an]; let ks = (P.keys = P.keys || []).find(k => A.list.includes(k.sy * W + k.sx)); if (!ks) { ks = { sx: A.seed % W, sy: (A.seed / W) | 0, k: {} }; P.keys.push(ks); }
+      const A = sc.anchors[an]; const kin = k => A.list.includes((k.sy - GY) * GW + k.sx - GX); let ks = (P.keys = P.keys || []).find(kin); if (!ks) { ks = { sx: A.seed % GW + GX, sy: ((A.seed / GW) | 0) + GY, k: {} }; P.keys.push(ks); }
       const o = phAnchorOff(A, T); drag = { ks, x, y, o: [Math.round(o[0]), Math.round(o[1])] }; return;
     }
     drag = { x, y }; dirty = true; dab(x, y); draw();
   });
   cv.addEventListener('pointermove', e => {
     if (!drag) return; const [x, y] = at(e);
-    if (drag.ks) { drag.ks.k[T] = [drag.o[0] + x - drag.x, drag.o[1] + y - drag.y]; const A = sc.anchors.find(a => a.list.includes(drag.ks.sy * W + drag.ks.sx)); if (A) A.keys = drag.ks.k; draw(); return; }
+    if (drag.ks) { drag.ks.k[T] = [drag.o[0] + x - drag.x, drag.o[1] + y - drag.y]; const A = sc.anchors.find(a => a.list.includes((drag.ks.sy - GY) * GW + drag.ks.sx - GX)); if (A) A.keys = drag.ks.k; draw(); return; }
     const n = Math.max(Math.abs(x - drag.x), Math.abs(y - drag.y)); for (let i = 1; i <= n; i++) dab(Math.round(drag.x + (x - drag.x) * i / n), Math.round(drag.y + (y - drag.y) * i / n)); drag.x = x; drag.y = y; draw();
   });
   cv.addEventListener('pointerup', () => { if (!drag) return; drag = null; save(); keysUI(); later(); });
@@ -10835,13 +10958,14 @@ async function openPhysics() {
       if (kind === 'layer') h += '<label class="ph-f">' + lb + '<select data-k="' + k + '">' + layerOpts(v) + '</select></label>';
       else if (kind === 'sel') h += '<label class="ph-f">' + lb + '<select data-k="' + k + '">' + a.map(([o, n]) => '<option value="' + o + '"' + (o === v ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>';
       else if (kind === 'chk') h += '<label class="ph-f ph-chk"><input type="checkbox" data-k="' + k + '"' + (v ? ' checked' : '') + '> ' + lb + '</label>';
+      else if (kind === 'col') h += '<label class="ph-f">' + lb + '<input type="color" data-k="' + k + '" value="' + v + '"></label>';
       else h += '<label class="ph-f">' + lb + '<input type="number" data-k="' + k + '" value="' + v + '" min="' + a + '" max="' + b + '" step="' + (step || 1) + '"></label>';
     });
     if (T_.info) h += '<div class="ph-note">' + T_.info + '</div>';
     el.innerHTML = h;
     el.querySelectorAll('[data-k]').forEach(inp => {
       const k = inp.dataset.k, kind = T_.ps.find(p => p[0] === k)[2];
-      inp.addEventListener(kind === 'num' ? 'input' : 'change', () => {
+      inp.addEventListener(kind === 'num' || kind === 'col' ? 'input' : 'change', () => {
         nd.p[k] = kind === 'chk' ? inp.checked : kind === 'num' ? (isFinite(+inp.value) ? +inp.value : nd.p[k]) : inp.value;
         touched(); later(); if (k === 'mode') syncSeg();
       });
@@ -10895,7 +11019,7 @@ async function openPhysics() {
     d.querySelectorAll('.ph-menu').forEach(m => m.remove());
     const m = document.createElement('div'); m.className = 'ph-menu'; const DR = d.getBoundingClientRect();
     m.style.left = (e.clientX - DR.left) + 'px'; m.style.top = (e.clientY - DR.top) + 'px';
-    const groups = [['Input', [['layer']]], ['Object', [['object']]], ['Collision', [['brush'], ['solid'], ['edges']]], ['Force', [['gravity'], ['wind'], ['push']]]];
+    const groups = [['Input', [['layer']]], ['Object', [['object']]], ['Look (put between Object and Simulation)', [['vector'], ['shadow'], ['light'], ['line']]], ['Collision', [['brush'], ['solid'], ['edges']]], ['Force', [['gravity'], ['wind'], ['push']]]];
     m.innerHTML = groups.map(([g2, it]) => '<div class="ph-mh">' + g2 + '</div>' + it.map(([t]) => '<button type="button" data-add="' + t + '"><i style="background:' + PH_T[t].col + '"></i>' + PH_T[t].name + '</button>').join('')).join('');
     d.appendChild(m);
     m.addEventListener('click', ev => { const b = ev.target.closest('[data-add]'); if (b) add(b.dataset.add)(); m.remove(); });
@@ -10916,19 +11040,19 @@ function phApply(sc, hist) {   // the simulated frames go into the animation, st
     const need = start + N - S.frames.length, last = S.frames[S.frames.length - 1];
     frameOp(() => { for (let k = 0; k < need; k++) S.frames.push(newFrame(last.cels.map((c, li) => lis.includes(li) ? (isDraw(S.layers[li]) ? newCel() : null) : copyCel(c)))); });
   }
-  const toCel = buf => { const cel = newCel(); let x0 = W, y0 = H, x1 = -1, y1 = -1;
-    for (let i = 0; i < buf.length; i++) if (buf[i]) { const x = i % W, y = (i / W) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const toCel = buf => { const cel = newCel(); let x0 = GW, y0 = GH, x1 = -1, y1 = -1;
+    for (let i = 0; i < buf.length; i++) if (buf[i]) { const x = i % GW, y = (i / GW) | 0; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
     if (x1 >= 0) { const c = mk(x1 - x0 + 1, y1 - y0 + 1), id = new ImageData(c.width, c.height), b = new Uint32Array(id.data.buffer);
-      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) b[(y - y0) * c.width + x - x0] = buf[y * W + x];
-      c.getContext('2d').putImageData(id, 0, 0); cel.s.paint(x0, y0, x1 + 1, y1 + 1, g => g.drawImage(c, x0, y0)); }
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) b[(y - y0) * c.width + x - x0] = buf[y * GW + x];
+      c.getContext('2d').putImageData(id, 0, 0); cel.s.paint(x0 + GX, y0 + GY, x1 + 1 + GX, y1 + 1 + GY, g => g.drawImage(c, x0 + GX, y0 + GY)); }
     cel.dirty = true; return cel; };
   layerOp(() => {
     let target = null;
     if (sc.out === 'new') { const top = Math.max(...lis), l = newLayer(layerName('Physics')); l.lv = S.layers[top].lv || 0; S.layers.splice(top + 1, 0, l); S.frames.forEach(f => f.cels.splice(top + 1, 0, newCel())); target = top + 1; }
     for (let k = 0; k < N; k++) {
       const f = S.frames[start + k]; if (!f) break;
-      if (target != null) { const all = new Uint32Array(W * H); lis.forEach(li => { const r = phRender(sc, hist[k], li); for (let i = 0; i < r.length; i++) if (r[i]) all[i] = r[i]; }); f.cels[target] = toCel(all); lis.forEach(li => { f.cels[li] = newCel(); }); }
-      else lis.forEach(li => { f.cels[li] = toCel(phRender(sc, hist[k], li)); });
+      if (target != null) { const all = new Uint32Array(GW * GH); lis.forEach(li => { const r = phLook(sc, hist[k], li); for (let i = 0; i < r.length; i++) if (r[i]) all[i] = r[i]; }); f.cels[target] = toCel(all); lis.forEach(li => { f.cels[li] = newCel(); }); }
+      else lis.forEach(li => { f.cels[li] = toCel(phLook(sc, hist[k], li)); });
     }
     if (target != null) S.layer = target;
   });
@@ -10937,9 +11061,9 @@ function phApply(sc, hist) {   // the simulated frames go into the animation, st
 }
 // ---------- saved with the project ----------
 const _projectData33 = projectData;
-projectData = function () { const d = _projectData33.apply(this, arguments); if (S.phys && S.phys.nodes) { const P = S.phys; d.phys = { nodes: P.nodes, wires: P.wires, keys: P.keys || [], col: P.col || null, anc: P.anc || null }; } return d; };
+projectData = function () { const d = _projectData33.apply(this, arguments); if (S.phys && S.phys.nodes) { const P = S.phys; d.phys = { nodes: P.nodes, wires: P.wires, keys: P.keys || [], col: P.col || null, anc: P.anc || null, mgx: P.mgx || 0, mgy: P.mgy || 0 }; } return d; };
 const _loadProject33 = loadProject;
-loadProject = function (pp) { const r = _loadProject33.apply(this, arguments); try { const ph = pp && pp.d && pp.d.phys; S.phys = ph && Array.isArray(ph.nodes) ? { nodes: ph.nodes, wires: ph.wires || [], keys: ph.keys || [], col: ph.col || null, anc: ph.anc || null } : null; } catch (e) { S.phys = null; } phCol = null; return r; };
+loadProject = function (pp) { const r = _loadProject33.apply(this, arguments); try { const ph = pp && pp.d && pp.d.phys; S.phys = ph && Array.isArray(ph.nodes) ? { nodes: ph.nodes, wires: ph.wires || [], keys: ph.keys || [], col: ph.col || null, anc: ph.anc || null, mgx: ph.mgx || 0, mgy: ph.mgy || 0 } : null; } catch (e) { S.phys = null; } phCol = null; return r; };
 // ---------- where to find it ----------
 (() => {
   const st = document.createElement('style');
