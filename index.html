@@ -11031,7 +11031,7 @@ async function openPhysics() {
   P.nodes.forEach(mkNode);
   requestAnimationFrame(() => { fitView(); wires(); rebuild(); });
   window.addEventListener('resize', () => { if (phWin === d) { fitView(); wires(); } });
-  d.__ph = { rebuild, state: () => ({ sc, hist, T }), setT: v => { T = v; q('#phT').value = v; q('#phTOut').textContent = (T + 1) + ' / ' + (sc ? sc.frames : 1); draw(); }, dab: (x, y, t, s) => { const k = tool, z = size; tool = t; size = s || 1; dab(x, y); tool = k; size = z; save(); later(); } };
+  d.__ph = { rebuild, state: () => ({ sc, hist, T }), setT: v => { T = v; q('#phT').value = v; q('#phTOut').textContent = (T + 1) + ' / ' + (sc ? sc.frames : 1); draw(); }, dab: (x, y, t, s) => { const k = tool, z = size; tool = t; size = s || 1; dab(x - GX, y - GY); tool = k; size = z; save(); later(); } };
 }
 function phApply(sc, hist) {   // the simulated frames go into the animation, starting at the current frame
   const start = S.cur, N = hist.length, lis = sc.G.objs.map(o => o.li);
